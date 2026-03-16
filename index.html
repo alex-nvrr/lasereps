@@ -649,11 +649,15 @@ body {
     border-radius: 20px;
     padding: 15px;
     margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
+}
+
+.info-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
 }
 
 #info-bar-timers {
@@ -780,6 +784,16 @@ body {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 20px;
+}
+@media (max-width: 768px) {
+    #course-screen.active {
+        padding: 6px 8px 0;
+    }
+}
+@media (max-width: 480px) {
+    #course-screen.active {
+        padding: 4px 6px 0;
+    }
 }
 
 /* Onglets */
@@ -1188,51 +1202,77 @@ body {
     
     .course-header {
         flex-direction: row;
-        flex-wrap: wrap;
-        gap: 10px;
-        text-align: center;
-        padding: 12px 15px;
-        margin-bottom: 10px;
+        flex-wrap: nowrap;
+        gap: 8px;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        align-items: center;
     }
     .course-header h2 {
-        font-size: 1.1rem;
+        font-size: 1rem;
         flex: 1;
+        white-space: nowrap;
+    }
+    .course-header .back-button {
+        font-size: 0.8rem;
+        padding: 6px 10px;
     }
     
     #info-bar {
-        flex-wrap: wrap;
-        padding: 10px;
-        gap: 10px;
-        margin-bottom: 10px;
+        padding: 8px;
+        margin-bottom: 6px;
+        border-radius: 14px;
     }
-    #info-bar-timers {
+    .info-bar-row {
         gap: 8px;
     }
-    .info-timer {
-        padding: 6px 10px;
-        min-width: 90px;
-        border-radius: 12px;
+    #info-bar-timers {
+        gap: 6px;
+        flex-shrink: 0;
     }
-    .info-timer .timer-value {
-        font-size: 1.3rem;
+    .info-timer {
+        padding: 4px 8px;
+        min-width: auto;
+        border-radius: 10px;
+        flex-direction: row;
+        gap: 6px;
     }
     .info-timer .timer-label {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
     }
-    .lap-item.active {
-        min-width: 90px;
-        padding: 6px 8px;
-    }
-    .lap-item.active .lap-time {
+    .info-timer .timer-value {
         font-size: 1.1rem;
     }
+    #info-bar-laps {
+        gap: 5px;
+    }
+    .lap-item {
+        min-width: 50px;
+        padding: 3px 6px;
+        font-size: 0.75rem;
+        border-radius: 10px;
+    }
+    .lap-time {
+        font-size: 0.65rem;
+    }
+    .lap-icon {
+        font-size: 0.9rem;
+    }
+    .lap-item.active {
+        min-width: 70px;
+        padding: 4px 6px;
+    }
+    .lap-item.active .lap-time {
+        font-size: 0.85rem;
+    }
     .lap-item.active .lap-icon {
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
     #info-bar-stop-button {
-        padding: 10px 20px;
-        font-size: 1rem;
-        border-radius: 12px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        border-radius: 10px;
+        flex-shrink: 0;
     }
     
     .timer-display span {
@@ -1286,26 +1326,49 @@ body {
     }
     
     #info-bar {
-        padding: 8px;
-        gap: 8px;
-        border-radius: 14px;
+        padding: 6px;
+        gap: 4px;
+        border-radius: 12px;
     }
     .info-timer {
-        padding: 5px 8px;
-        min-width: 80px;
+        padding: 3px 6px;
     }
     .info-timer .timer-value {
-        font-size: 1.1rem;
+        font-size: 1rem;
+    }
+    .info-timer .timer-label {
+        font-size: 0.6rem;
     }
     .lap-item {
-        min-width: 55px;
+        min-width: 42px;
+        padding: 2px 4px;
+        font-size: 0.7rem;
+    }
+    .lap-time {
+        font-size: 0.6rem;
+    }
+    .lap-icon {
         font-size: 0.8rem;
     }
     .lap-item.active {
-        min-width: 80px;
+        min-width: 60px;
     }
     .lap-item.active .lap-time {
-        font-size: 0.95rem;
+        font-size: 0.8rem;
+    }
+    .lap-item.active .lap-icon {
+        font-size: 0.85rem;
+    }
+    #info-bar-stop-button {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    .course-header {
+        padding: 6px 10px;
+        margin-bottom: 4px;
+    }
+    .course-header h2 {
+        font-size: 0.9rem;
     }
 }
 
@@ -2236,16 +2299,16 @@ body {
             </div>
 
             <div id="info-bar" style="display: none;">
-                <div id="info-bar-timers">
-                    <div class="info-timer" id="info-total-timer">
-                        <span class="timer-label">Total</span>
-                        <span class="timer-value">00:00.0</span>
+                <div class="info-bar-row">
+                    <div id="info-bar-timers">
+                        <div class="info-timer" id="info-total-timer">
+                            <span class="timer-label">TOTAL</span>
+                            <span class="timer-value">00:00.0</span>
+                        </div>
                     </div>
+                    <div id="info-bar-laps"></div>
+                    <button id="info-bar-stop-button">Arrêter</button>
                 </div>
-                <div id="info-bar-laps">
-                    <!-- Les tours seront générés ici -->
-                </div>
-                <button id="info-bar-stop-button">Arrêter</button>
             </div>
 
             <div class="course-content">
