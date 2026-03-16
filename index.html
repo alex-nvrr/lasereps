@@ -1561,6 +1561,308 @@ body {
         justify-content: space-between;
     }
 }
+
+/* ===== Bouton Enregistrer session ===== */
+.save-session-btn {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    transition: all 0.4s ease;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.save-session-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(40,167,69,0.35);
+}
+.save-session-btn.saved {
+    background: linear-gradient(135deg, #20c997, #28a745);
+    pointer-events: none;
+    opacity: 0.85;
+}
+.save-session-btn .save-icon {
+    font-size: 1.3rem;
+    transition: transform 0.3s ease;
+}
+.save-session-btn.saved .save-icon {
+    transform: scale(1.3);
+}
+
+.results-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+}
+.results-actions-grid .action-btn {
+    padding: 14px 12px;
+    border: none;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.results-actions-grid .action-btn:hover {
+    transform: translateY(-1px);
+}
+.action-btn.btn-history {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+.action-btn.btn-new {
+    background: rgba(102,126,234,0.12);
+    color: #667eea;
+}
+.action-btn.btn-pdf {
+    background: rgba(102,126,234,0.12);
+    color: #667eea;
+    grid-column: 1 / -1;
+}
+.post-save-actions {
+    display: none;
+}
+.post-save-actions.visible {
+    display: block;
+    animation: fadeSlideUp 0.4s ease;
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Historique : onglets ===== */
+.history-tabs {
+    display: flex;
+    background: rgba(102,126,234,0.08);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 20px;
+}
+.history-tab {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: #888;
+    transition: all 0.3s ease;
+}
+.history-tab.active {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.history-panel {
+    display: none;
+}
+.history-panel.active {
+    display: block;
+}
+
+/* ===== Session detail ===== */
+.detail-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.detail-summary-card {
+    background: white;
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.detail-summary-card .detail-val {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #667eea;
+}
+.detail-summary-card .detail-lbl {
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 4px;
+}
+.detail-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    padding-left: 28px;
+}
+.detail-timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    background: linear-gradient(to bottom, #667eea, #764ba2);
+    border-radius: 3px;
+}
+.timeline-item {
+    position: relative;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #667eea;
+    background: white;
+}
+.timeline-item.type-course::before {
+    background: #667eea;
+}
+.timeline-item.type-shooting::before {
+    background: #f39c12;
+    border-color: #f39c12;
+}
+.timeline-item .tl-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+.timeline-item .tl-values {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.timeline-item .tl-val {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 0.95rem;
+}
+.timeline-item .tl-val.shooting {
+    color: #f39c12;
+}
+.detail-comparison {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+}
+.comp-better {
+    background: #d4edda;
+    color: #28a745;
+}
+.comp-worse {
+    background: #f8d7da;
+    color: #dc3545;
+}
+
+.history-card.clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.history-card.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+}
+.history-card .card-arrow {
+    color: #ccc;
+    font-size: 1.2rem;
+    transition: transform 0.2s ease;
+}
+.history-card.clickable:hover .card-arrow {
+    transform: translateX(4px);
+    color: #667eea;
+}
+
+/* ===== Graphiques évolution ===== */
+.charts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+}
+.chart-card h4 {
+    color: #333;
+    margin-bottom: 14px;
+    font-size: 1rem;
+}
+.chart-card canvas {
+    width: 100% !important;
+    max-height: 220px;
+}
+
+/* ===== Home : résumé dernière session ===== */
+.last-session-summary {
+    margin-top: 20px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 16px;
+    padding: 16px 20px;
+    text-align: center;
+    display: none;
+}
+.last-session-summary.visible {
+    display: block;
+}
+.last-session-summary .summary-title {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 8px;
+}
+.last-session-summary .summary-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.last-session-summary .s-stat {
+    text-align: center;
+}
+.last-session-summary .s-val {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: white;
+}
+.last-session-summary .s-lbl {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.65);
+}
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -1612,6 +1914,10 @@ body {
                         </div>
                     </button>
                 </div>
+                <div id="last-session-summary" class="last-session-summary">
+                    <div class="summary-title">Dernière session</div>
+                    <div class="summary-stats" id="last-session-stats"></div>
+                </div>
             </div>
         </div>
 
@@ -1622,10 +1928,31 @@ body {
                     <h2>Mon historique</h2>
                     <button id="back-to-home-from-history" class="back-button">← Accueil</button>
                 </div>
-                <div class="results-content">
+                <div class="history-tabs">
+                    <button class="history-tab active" data-tab="sessions">Sessions</button>
+                    <button class="history-tab" data-tab="evolution">Évolution</button>
+                </div>
+                <div id="panel-sessions" class="history-panel active">
                     <div id="history-content">
                         <div class="history-empty">Chargement...</div>
                     </div>
+                </div>
+                <div id="panel-evolution" class="history-panel">
+                    <div id="evolution-content">
+                        <div class="history-empty">Chargement...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran détail session -->
+        <div id="session-detail-screen" class="screen">
+            <div class="container">
+                <div class="header">
+                    <h2>Détail de la session</h2>
+                    <button id="back-to-history" class="back-button">← Historique</button>
+                </div>
+                <div id="session-detail-content" class="results-content">
                 </div>
             </div>
         </div>
@@ -1719,12 +2046,20 @@ body {
                 </div>
 
                 <div id="results-content" class="results-content">
-                    <!-- Les résultats seront générés dynamiquement -->
                 </div>
 
                 <div class="results-actions">
-                    <button id="new-course" class="primary-button">Nouvelle course</button>
-                    <button id="export-pdf" class="secondary-button">Exporter PDF</button>
+                    <button id="save-session-btn" class="save-session-btn">
+                        <span class="save-icon">💾</span>
+                        <span id="save-session-text">Enregistrer la session</span>
+                    </button>
+                    <div id="post-save-actions" class="post-save-actions">
+                        <div class="results-actions-grid">
+                            <button id="go-history-btn" class="action-btn btn-history">📊 Mon historique</button>
+                            <button id="new-course" class="action-btn btn-new">🔄 Nouvelle course</button>
+                            <button id="export-pdf" class="action-btn btn-pdf">📄 Exporter PDF</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1743,6 +2078,7 @@ body {
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1816,6 +2152,7 @@ class LaserEPSApp {
                 document.getElementById('user-email-display').textContent = user.email;
                 this.init();
                 this.showScreen('home');
+                this.loadLastSessionSummary();
             } else {
                 this.currentUser = null;
                 this.showScreen('auth');
@@ -1913,6 +2250,21 @@ class LaserEPSApp {
             this.showScreen('home');
         });
 
+        document.getElementById('back-to-history').addEventListener('click', () => {
+            this.showScreen('history');
+        });
+
+        // Onglets historique
+        document.querySelectorAll('.history-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.history-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.history-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+                if (tab.dataset.tab === 'evolution') this.loadEvolutionCharts();
+            });
+        });
+
         // Navigation
         document.getElementById('start-competition').addEventListener('click', () => {
             this.showScreen('config');
@@ -1927,6 +2279,9 @@ class LaserEPSApp {
         });
 
         document.getElementById('back-to-course').addEventListener('click', () => {
+            if (!this._sessionSaved && this.courseData.totalTime > 0) {
+                if (!confirm('Ta session n\'est pas enregistrée. Quitter quand même ?')) return;
+            }
             this.showScreen('course');
         });
 
@@ -1962,8 +2317,33 @@ class LaserEPSApp {
         });
 
         document.getElementById('new-course').addEventListener('click', () => {
+            if (!this._sessionSaved && this.courseData.totalTime > 0) {
+                if (!confirm('Ta session n\'est pas enregistrée. Quitter quand même ?')) return;
+            }
             this.resetCourse();
             this.showScreen('config');
+        });
+
+        // Enregistrer la session
+        document.getElementById('save-session-btn').addEventListener('click', async () => {
+            if (this._sessionSaved) return;
+            const btn = document.getElementById('save-session-btn');
+            const text = document.getElementById('save-session-text');
+            text.textContent = 'Enregistrement...';
+            btn.disabled = true;
+            this._sessionSaved = true;
+            await this.saveSessionToFirestore();
+            btn.classList.add('saved');
+            btn.querySelector('.save-icon').textContent = '✅';
+            text.textContent = 'Session enregistrée';
+            btn.disabled = false;
+            document.getElementById('post-save-actions').classList.add('visible');
+        });
+
+        // Voir historique depuis résultats
+        document.getElementById('go-history-btn').addEventListener('click', () => {
+            this.showScreen('history');
+            this.loadHistory();
         });
 
         document.getElementById('export-pdf').addEventListener('click', () => {
@@ -2523,9 +2903,18 @@ class LaserEPSApp {
     showResults() {
         this.showScreen('results');
         this.displayResults();
-        if (!this._sessionSaved) {
-            this._sessionSaved = true;
-            this.saveSessionToFirestore();
+        const saveBtn = document.getElementById('save-session-btn');
+        const postActions = document.getElementById('post-save-actions');
+        if (this._sessionSaved) {
+            saveBtn.classList.add('saved');
+            document.getElementById('save-session-text').textContent = 'Session enregistrée';
+            saveBtn.querySelector('.save-icon').textContent = '✅';
+            postActions.classList.add('visible');
+        } else {
+            saveBtn.classList.remove('saved');
+            document.getElementById('save-session-text').textContent = 'Enregistrer la session';
+            saveBtn.querySelector('.save-icon').textContent = '💾';
+            postActions.classList.remove('visible');
         }
     }
 
@@ -2550,6 +2939,7 @@ class LaserEPSApp {
                     totalHits: totalHits,
                     totalMisses: totalMisses,
                     averageSpeed: this.calculateAverageSpeed(totalRunningTime),
+                    distances: { first: this.distances.first, other: this.distances.other, final: this.distances.final },
                     targets: this.courseData.targets.map(t => ({
                         hitCount: t.hitCount || 0,
                         missCount: t.missCount || 0,
@@ -2584,19 +2974,19 @@ class LaserEPSApp {
                 return;
             }
 
-            const sessions = [];
-            snap.forEach(doc => sessions.push({ id: doc.id, ...doc.data() }));
+            this._historySessions = [];
+            snap.forEach(doc => this._historySessions.push({ id: doc.id, ...doc.data() }));
 
             let html = '<div class="history-list">';
-            sessions.forEach((s, i) => {
+            this._historySessions.forEach((s, i) => {
                 const d = s.date ? s.date.toDate() : new Date();
                 const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const totalShots = (s.totalHits || 0) + (s.totalMisses || 0);
                 const accuracy = totalShots > 0 ? Math.round((s.totalHits / totalShots) * 100) : 0;
 
                 let evoHtml = '';
-                if (i < sessions.length - 1) {
-                    const prev = sessions[i + 1];
+                if (i < this._historySessions.length - 1) {
+                    const prev = this._historySessions[i + 1];
                     const diff = (prev.totalTime || 0) - (s.totalTime || 0);
                     if (diff > 0.5) {
                         evoHtml = `<span class="history-evolution evolution-better">-${this.formatTime(diff)}</span>`;
@@ -2608,8 +2998,8 @@ class LaserEPSApp {
                 }
 
                 html += `
-                <div class="history-card">
-                    <div>
+                <div class="history-card clickable" data-session-index="${i}">
+                    <div style="flex:1;">
                         <div class="history-date">${dateStr}</div>
                         <div style="color:#888;font-size:0.85rem;">${s.numberOfShootings || '?'} tirs - ${s.totalDistance || '?'}m</div>
                     </div>
@@ -2628,13 +3018,222 @@ class LaserEPSApp {
                         </div>
                         ${evoHtml ? `<div class="history-stat">${evoHtml}<div class="stat-lbl">Évolution</div></div>` : ''}
                     </div>
+                    <span class="card-arrow">›</span>
                 </div>`;
             });
             html += '</div>';
             container.innerHTML = html;
+
+            container.querySelectorAll('.history-card.clickable').forEach(card => {
+                card.addEventListener('click', () => {
+                    const idx = parseInt(card.dataset.sessionIndex);
+                    this.showSessionDetail(idx);
+                });
+            });
         } catch (e) {
             console.warn('Erreur chargement historique :', e);
             container.innerHTML = '<div class="history-empty">Erreur de chargement. Vérifie ta connexion.</div>';
+        }
+    }
+
+    showSessionDetail(index) {
+        const s = this._historySessions[index];
+        const prev = index < this._historySessions.length - 1 ? this._historySessions[index + 1] : null;
+        if (!s) return;
+
+        const d = s.date ? s.date.toDate() : new Date();
+        const dateStr = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const totalShots = (s.totalHits || 0) + (s.totalMisses || 0);
+        const accuracy = totalShots > 0 ? Math.round((s.totalHits / totalShots) * 100) : 0;
+
+        const comp = (current, previous, lowerIsBetter) => {
+            if (!prev || previous == null || current == null) return '';
+            const diff = current - previous;
+            if (Math.abs(diff) < 0.1) return '';
+            const better = lowerIsBetter ? diff < 0 : diff > 0;
+            const cls = better ? 'comp-better' : 'comp-worse';
+            const sign = diff > 0 ? '+' : '';
+            const formatted = typeof current === 'number' && current < 100 ? `${sign}${diff.toFixed(1)}` : `${sign}${this.formatTime(Math.abs(diff))}`;
+            return `<span class="detail-comparison ${cls}">${lowerIsBetter ? (better ? '↓' : '↑') : (better ? '↑' : '↓')} ${formatted}</span>`;
+        };
+
+        const prevAccuracy = prev ? ((prev.totalHits || 0) / Math.max(1, (prev.totalHits || 0) + (prev.totalMisses || 0)) * 100) : null;
+
+        let html = `
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="color:#888;font-size:0.95rem;">${dateStr}</div>
+                <div style="color:#555;font-size:0.85rem;margin-top:4px;">${s.numberOfShootings || '?'} tirs - ${s.totalDistance || '?'}m</div>
+            </div>
+            <div class="detail-summary">
+                <div class="detail-summary-card">
+                    <div class="detail-val">${this.formatTime(s.totalTime || 0)}</div>
+                    <div class="detail-lbl">Temps total ${comp(s.totalTime, prev?.totalTime, true)}</div>
+                </div>
+                <div class="detail-summary-card">
+                    <div class="detail-val">${this.formatTime(s.totalRunningTime || 0)}</div>
+                    <div class="detail-lbl">Course ${comp(s.totalRunningTime, prev?.totalRunningTime, true)}</div>
+                </div>
+                <div class="detail-summary-card">
+                    <div class="detail-val">${this.formatTime(s.totalShootingTime || 0)}</div>
+                    <div class="detail-lbl">Tir ${comp(s.totalShootingTime, prev?.totalShootingTime, true)}</div>
+                </div>
+                <div class="detail-summary-card">
+                    <div class="detail-val">${accuracy}%</div>
+                    <div class="detail-lbl">Précision ${comp(accuracy, prevAccuracy, false)}</div>
+                </div>
+                <div class="detail-summary-card">
+                    <div class="detail-val">${(s.averageSpeed || 0).toFixed(1)}</div>
+                    <div class="detail-lbl">km/h ${comp(s.averageSpeed, prev?.averageSpeed, false)}</div>
+                </div>
+            </div>
+            <h3 style="color:#333;margin-bottom:14px;">Chronologie</h3>
+            <div class="detail-timeline">`;
+
+        if (s.lapTimes && s.lapTimes.length > 0) {
+            const distances = s.distances || {};
+            const getDistForCourse = (num) => {
+                if (num === 1) return distances.first || '?';
+                if (num === (s.numberOfShootings || 0) + 1) return distances.final || '?';
+                return distances.other || '?';
+            };
+
+            s.lapTimes.forEach(lap => {
+                const dur = isNaN(lap.duration) || lap.duration < 0 ? 0 : lap.duration;
+                if (lap.type === 'course') {
+                    const dist = getDistForCourse(lap.number);
+                    const speed = dur > 0 && dist !== '?' ? ((dist / 1000) / (dur / 3600)).toFixed(1) : '0.0';
+                    html += `
+                    <div class="timeline-item type-course">
+                        <span class="tl-label">👟 Course ${lap.number} — ${dist}m</span>
+                        <div class="tl-values">
+                            <span class="tl-val">${this.formatTime(dur)}</span>
+                            <span class="tl-val" style="color:#888;font-size:0.85rem;">${speed} km/h</span>
+                        </div>
+                    </div>`;
+                } else if (lap.type === 'shooting') {
+                    const target = s.targets && s.targets[lap.number - 1];
+                    const hits = target ? target.hitCount : '?';
+                    const misses = target ? target.missCount : '?';
+                    html += `
+                    <div class="timeline-item type-shooting">
+                        <span class="tl-label">🎯 Tir ${lap.number}</span>
+                        <div class="tl-values">
+                            <span class="tl-val shooting">${this.formatTime(dur)}</span>
+                            <span class="tl-val" style="color:#28a745;font-size:0.85rem;">${hits}✓</span>
+                            <span class="tl-val" style="color:#dc3545;font-size:0.85rem;">${misses}✗</span>
+                        </div>
+                    </div>`;
+                }
+            });
+        } else {
+            html += '<div class="history-empty" style="padding:20px;">Pas de détails disponibles pour cette session.</div>';
+        }
+
+        html += '</div>';
+        document.getElementById('session-detail-content').innerHTML = html;
+        this.showScreen('session-detail');
+    }
+
+    async loadEvolutionCharts() {
+        const container = document.getElementById('evolution-content');
+        if (!this._historySessions || this._historySessions.length < 2) {
+            container.innerHTML = '<div class="history-empty">Il faut au moins 2 sessions pour afficher l\'évolution.</div>';
+            return;
+        }
+
+        const sessions = [...this._historySessions].reverse();
+        const labels = sessions.map(s => {
+            const d = s.date ? s.date.toDate() : new Date();
+            return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        });
+
+        container.innerHTML = `
+            <div class="charts-grid">
+                <div class="chart-card"><h4>Temps total</h4><canvas id="chart-time"></canvas></div>
+                <div class="chart-card"><h4>Vitesse de course (km/h)</h4><canvas id="chart-speed"></canvas></div>
+                <div class="chart-card"><h4>Précision de tir (%)</h4><canvas id="chart-accuracy"></canvas></div>
+                <div class="chart-card"><h4>Temps de tir moyen (s)</h4><canvas id="chart-shooting"></canvas></div>
+            </div>`;
+
+        if (this._charts) this._charts.forEach(c => c.destroy());
+        this._charts = [];
+
+        const makeGradient = (ctx, r, g, b) => {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, `rgba(${r},${g},${b},0.25)`);
+            gradient.addColorStop(1, `rgba(${r},${g},${b},0.02)`);
+            return gradient;
+        };
+
+        const chartOptions = (reverse) => ({
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                y: { reverse: !!reverse, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } }
+            },
+            elements: { point: { radius: 4, hoverRadius: 6 }, line: { tension: 0.35 } }
+        });
+
+        const createChart = (id, data, r, g, b, reverse) => {
+            const ctx = document.getElementById(id).getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        borderColor: `rgb(${r},${g},${b})`,
+                        backgroundColor: makeGradient(ctx, r, g, b),
+                        borderWidth: 2.5,
+                        fill: true,
+                    }]
+                },
+                options: chartOptions(reverse)
+            });
+        };
+
+        const timeData = sessions.map(s => parseFloat(((s.totalTime || 0) / 60).toFixed(2)));
+        this._charts.push(createChart('chart-time', timeData, 102, 126, 234, true));
+
+        const speedData = sessions.map(s => parseFloat((s.averageSpeed || 0).toFixed(1)));
+        this._charts.push(createChart('chart-speed', speedData, 40, 167, 69, false));
+
+        const accData = sessions.map(s => {
+            const total = (s.totalHits || 0) + (s.totalMisses || 0);
+            return total > 0 ? Math.round((s.totalHits / total) * 100) : 0;
+        });
+        this._charts.push(createChart('chart-accuracy', accData, 243, 156, 18, false));
+
+        const shootData = sessions.map(s => {
+            const n = s.numberOfShootings || 1;
+            return parseFloat(((s.totalShootingTime || 0) / n).toFixed(1));
+        });
+        this._charts.push(createChart('chart-shooting', shootData, 220, 53, 69, true));
+    }
+
+    async loadLastSessionSummary() {
+        if (!this.currentUser) return;
+        try {
+            const snap = await db.collection('users').doc(this.currentUser.uid)
+                .collection('sessions')
+                .orderBy('date', 'desc')
+                .limit(1)
+                .get();
+            if (snap.empty) return;
+            const s = snap.docs[0].data();
+            const totalShots = (s.totalHits || 0) + (s.totalMisses || 0);
+            const accuracy = totalShots > 0 ? Math.round((s.totalHits / totalShots) * 100) : 0;
+            const container = document.getElementById('last-session-summary');
+            document.getElementById('last-session-stats').innerHTML = `
+                <div class="s-stat"><div class="s-val">${this.formatTime(s.totalTime || 0)}</div><div class="s-lbl">Temps</div></div>
+                <div class="s-stat"><div class="s-val">${accuracy}%</div><div class="s-lbl">Précision</div></div>
+                <div class="s-stat"><div class="s-val">${(s.averageSpeed || 0).toFixed(1)}</div><div class="s-lbl">km/h</div></div>
+            `;
+            container.classList.add('visible');
+        } catch (e) {
+            console.warn('Erreur chargement résumé :', e);
         }
     }
 
