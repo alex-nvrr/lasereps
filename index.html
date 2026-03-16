@@ -944,7 +944,7 @@ body {
     text-align: center;
 }
 
-.target {
+.target:not(.success-zone) {
     position: relative;
     width: 300px;
     height: 300px;
@@ -957,20 +957,20 @@ body {
 
 /* Optimisation cible pour tablettes paysage */
 @media (min-width: 768px) and (orientation: landscape) {
-    .target {
+    .target:not(.success-zone) {
         width: 350px;
         height: 350px;
     }
 }
 
-.target:hover {
+.target:not(.success-zone):hover {
     transform: scale(1.02);
 }
 
 .target.success-zone {
-    background: transparent;
+    background: transparent !important;
     border: 3px solid #ff4757;
-    box-shadow: none;
+    box-shadow: none !important;
     width: 37%;
     height: 37%;
     position: absolute;
@@ -980,6 +980,7 @@ body {
     pointer-events: none;
     z-index: 2;
     border-radius: 50%;
+    cursor: default;
 }
 
 .impact {
@@ -1410,6 +1411,14 @@ body {
 }
 .target.has-image {
     background: none !important;
+    overflow: hidden;
+}
+
+.stat-label-short { display: none; }
+.stat-label-full { display: inline; }
+@media (max-width: 768px) {
+    .stat-label-short { display: inline; }
+    .stat-label-full { display: none; }
 }
 
 /* Statistiques des cibles - refonte moderne */
@@ -1522,21 +1531,13 @@ body {
         display: flex;
         justify-content: center;
     }
-    .target-wrapper .target {
-        width: min(70vw, 320px);
-        height: min(70vw, 320px);
-    }
-    .target-wrapper .target.has-image {
-        width: min(70vw, 320px);
-        height: min(70vw, 320px);
-    }
-    .target-wrapper .target.has-image img.target-image {
-        width: 100%;
-        height: 100%;
+    .target-wrapper .target:not(.success-zone) {
+        width: min(75vw, 340px);
+        height: min(75vw, 340px);
     }
     .tir-chrono {
         font-size: 1.1rem;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
 }
 
@@ -3003,23 +3004,21 @@ class LaserEPSApp {
                 <div class=\"target-stats\">
                     <div class=\"stat-row\">
                         <div class=\"stat-card\">
-                            <span class=\"stat-label\">🎯 Réussis</span>
+                            <span class=\"stat-label\">🎯 <span class=\"stat-label-full\">Réussis</span><span class=\"stat-label-short\">OK</span></span>
                             <span id=\"hits-${targetNumber}\" class=\"stat-value\">${target.hitCount}</span>
                         </div>
                         <div class=\"stat-card\">
-                            <span class=\"stat-label\">❌ Ratés</span>
+                            <span class=\"stat-label\">❌ <span class=\"stat-label-full\">Ratés</span><span class=\"stat-label-short\">Ratés</span></span>
                             <span id=\"misses-${targetNumber}\" class=\"stat-value\">${target.missCount}</span>
                         </div>
                     </div>
                     <div class=\"stat-row\">
-                        <div class=\"stat-card\" style=\"flex:2;\">
-                            <span class=\"stat-label\">📊 Nombre de tentatives</span>
+                        <div class=\"stat-card\">
+                            <span class=\"stat-label\">📊 <span class=\"stat-label-full\">Tentatives</span><span class=\"stat-label-short\">Total</span></span>
                             <span id=\"total-${targetNumber}\" class=\"stat-value\">${target.totalCount}</span>
                         </div>
-                    </div>
-                    <div class=\"stat-row\">
-                        <div class=\"stat-card\" style=\"flex:2;\">
-                            <span class=\"stat-label\">⚡ Temps moyen entre deux tirs</span>
+                        <div class=\"stat-card\">
+                            <span class=\"stat-label\">⚡ <span class=\"stat-label-full\">Temps moyen</span><span class=\"stat-label-short\">Moy.</span></span>
                             <span id=\"average-${targetNumber}\" class=\"stat-value\">${target.totalCount > 0 ? (target.timeElapsed / target.totalCount).toFixed(2) : '0.00'}s</span>
                         </div>
                     </div>
