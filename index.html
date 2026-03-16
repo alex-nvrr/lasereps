@@ -2512,9 +2512,10 @@ body {
         <div id="home-screen" class="screen">
             <div class="container">
                 <div class="header">
-                    <div class="user-info" style="justify-content:flex-end;margin-bottom:10px;">
+                    <div class="user-info" style="justify-content:flex-end;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
                         <span id="user-display-name" class="user-email" style="font-weight:600;"></span>
                         <span id="user-email-display" class="user-email"></span>
+                        <button id="change-role-btn" class="logout-button" style="background:rgba(255,255,255,0.15);">Changer de mode</button>
                         <button id="logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                     <h1>LaserEPS</h1>
@@ -2557,8 +2558,8 @@ body {
             <div class="container">
                 <div class="header">
                     <h2>Mes classes</h2>
-                    <div style="display:flex;gap:8px;">
-                        <button id="prof-to-home" class="back-button">🏠 Accueil</button>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button id="prof-change-role-btn" class="logout-button" style="background:rgba(255,255,255,0.15);">Changer de mode</button>
                         <button id="prof-logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                 </div>
@@ -3024,6 +3025,19 @@ class LaserEPSApp {
         }, { merge: true });
     }
 
+    openRoleChange() {
+        document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+        const nameInput = document.getElementById('role-display-name');
+        const confirmBtn = document.getElementById('role-confirm-btn');
+        nameInput.value = this.userDisplayName || '';
+        nameInput.style.display = this.userDisplayName ? 'block' : 'none';
+        confirmBtn.style.display = this.userDisplayName ? 'block' : 'none';
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Continuer';
+        this.showScreen('role');
+        this.setupRoleListeners();
+    }
+
     init() {
         this.loadFromStorage();
         if (!this._initialized) {
@@ -3052,10 +3066,12 @@ class LaserEPSApp {
             auth.signOut();
         });
 
-        // Prof : retour accueil perso depuis dashboard
-        document.getElementById('prof-to-home').addEventListener('click', () => {
-            this.showScreen('home');
-            this.loadLastSessionSummary();
+        // Changer de mode (rôle)
+        document.getElementById('change-role-btn').addEventListener('click', () => {
+            this.openRoleChange();
+        });
+        document.getElementById('prof-change-role-btn').addEventListener('click', () => {
+            this.openRoleChange();
         });
 
         // Rejoindre une classe
