@@ -1328,16 +1328,270 @@ body {
     .target-wrapper {
         min-height: 220px;
     }
-} 
+}
+
+/* ===== Écran d'authentification ===== */
+.auth-container {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 40px 30px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    text-align: center;
+}
+
+.auth-container h1 {
+    color: #667eea;
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+}
+
+.auth-container .auth-subtitle {
+    color: #888;
+    font-size: 1rem;
+    margin-bottom: 30px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 14px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    color: #333;
+    background: #fafafa;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+}
+
+.auth-form .auth-button {
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.auth-button.primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.auth-button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.auth-button.secondary {
+    background: transparent;
+    color: #667eea;
+    border: 2px solid #667eea;
+}
+
+.auth-button.secondary:hover {
+    background: rgba(102, 126, 234, 0.08);
+}
+
+.auth-error {
+    color: #e74c3c;
+    font-size: 0.9rem;
+    min-height: 20px;
+    margin-top: 4px;
+}
+
+.auth-switch {
+    margin-top: 20px;
+    color: #888;
+    font-size: 0.95rem;
+}
+
+.auth-switch a {
+    color: #667eea;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.auth-switch a:hover {
+    text-decoration: underline;
+}
+
+.auth-loading {
+    display: none;
+    color: #667eea;
+    font-weight: 500;
+    margin-top: 10px;
+}
+
+/* ===== Bouton déconnexion ===== */
+.logout-button {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 8px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+    background: rgba(255,60,60,0.3);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-email {
+    color: rgba(255,255,255,0.8);
+    font-size: 0.85rem;
+}
+
+/* ===== Écran historique ===== */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.history-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.history-card .history-date {
+    font-weight: 600;
+    color: #333;
+    font-size: 1.05rem;
+}
+
+.history-card .history-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.history-stat {
+    text-align: center;
+}
+
+.history-stat .stat-val {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: #667eea;
+}
+
+.history-stat .stat-lbl {
+    font-size: 0.78rem;
+    color: #888;
+}
+
+.history-evolution {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.evolution-better {
+    background: #d4edda;
+    color: #28a745;
+}
+
+.evolution-worse {
+    background: #f8d7da;
+    color: #dc3545;
+}
+
+.evolution-same {
+    background: #e2e3e5;
+    color: #6c757d;
+}
+
+.history-empty {
+    text-align: center;
+    color: #888;
+    padding: 60px 20px;
+    font-size: 1.1rem;
+}
+
+.history-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.history-header-bar h3 {
+    color: #333;
+    font-size: 1.4rem;
+}
+
+@media (max-width: 600px) {
+    .history-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .history-card .history-stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="app">
+        <!-- Écran de connexion -->
+        <div id="auth-screen" class="screen active">
+            <div class="container" style="display:flex;align-items:center;justify-content:center;min-height:80vh;">
+                <div class="auth-container">
+                    <h1>LaserEPS</h1>
+                    <p class="auth-subtitle">Connecte-toi pour suivre ta progression</p>
+                    <div id="auth-form-login" class="auth-form">
+                        <input type="email" id="auth-email" placeholder="Adresse e-mail" autocomplete="email">
+                        <input type="password" id="auth-password" placeholder="Mot de passe" autocomplete="current-password">
+                        <div id="auth-error" class="auth-error"></div>
+                        <button id="auth-login-btn" class="auth-button primary">Se connecter</button>
+                        <button id="auth-register-btn" class="auth-button secondary">Créer un compte</button>
+                        <div id="auth-loading" class="auth-loading">Chargement...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Écran d'accueil -->
-        <div id="home-screen" class="screen active">
+        <div id="home-screen" class="screen">
             <div class="container">
                 <div class="header">
+                    <div class="user-info" style="justify-content:flex-end;margin-bottom:10px;">
+                        <span id="user-email-display" class="user-email"></span>
+                        <button id="logout-btn" class="logout-button">Déconnexion</button>
+                    </div>
                     <h1>LaserEPS</h1>
                     <p>Mode Compétition</p>
                 </div>
@@ -1350,6 +1604,28 @@ body {
                             <p>Course avec tirs alternés</p>
                         </div>
                     </button>
+                    <button id="show-history" class="menu-button">
+                        <div class="button-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">📊</div>
+                        <div class="button-text">
+                            <h3>Mon historique</h3>
+                            <p>Voir mes résultats et mon évolution</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran historique -->
+        <div id="history-screen" class="screen">
+            <div class="container">
+                <div class="header">
+                    <h2>Mon historique</h2>
+                    <button id="back-to-home-from-history" class="back-button">← Accueil</button>
+                </div>
+                <div class="results-content">
+                    <div id="history-content">
+                        <div class="history-empty">Chargement...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1469,6 +1745,23 @@ body {
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script>
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyC-Dsv4dK0Xo6z-MdGwLUZ-cd7w1emA5Wk",
+    authDomain: "lasereps-570a7.firebaseapp.com",
+    projectId: "lasereps-570a7",
+    storageBucket: "lasereps-570a7.firebasestorage.app",
+    messagingSenderId: "982760964953",
+    appId: "1:982760964953:web:0b9de1e4b480c564bf8248"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+    </script>
     <script>
 // État global de l'application
 class LaserEPSApp {
@@ -1499,7 +1792,8 @@ class LaserEPSApp {
         this.currentTirNumber = null;
         
         this.storageEnabled = this.checkStorageAvailability();
-        this.init();
+        this.currentUser = null;
+        this.initAuth();
     }
 
     checkStorageAvailability() {
@@ -1509,14 +1803,87 @@ class LaserEPSApp {
             localStorage.removeItem(testKey);
             return true;
         } catch (error) {
-            console.warn('Stockage local indisponible. Les données ne seront pas sauvegardées.', error);
+            console.warn('Stockage local indisponible.', error);
             return false;
         }
     }
 
+    initAuth() {
+        this.setupAuthListeners();
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                this.currentUser = user;
+                document.getElementById('user-email-display').textContent = user.email;
+                this.init();
+                this.showScreen('home');
+            } else {
+                this.currentUser = null;
+                this.showScreen('auth');
+            }
+        });
+    }
+
+    setupAuthListeners() {
+        const loginBtn = document.getElementById('auth-login-btn');
+        const registerBtn = document.getElementById('auth-register-btn');
+        const emailInput = document.getElementById('auth-email');
+        const passwordInput = document.getElementById('auth-password');
+        const errorDiv = document.getElementById('auth-error');
+        const loadingDiv = document.getElementById('auth-loading');
+
+        const setLoading = (loading) => {
+            loginBtn.disabled = loading;
+            registerBtn.disabled = loading;
+            loadingDiv.style.display = loading ? 'block' : 'none';
+        };
+
+        const showError = (msg) => {
+            const messages = {
+                'auth/invalid-email': 'Adresse e-mail invalide.',
+                'auth/user-not-found': 'Aucun compte trouvé avec cet e-mail.',
+                'auth/wrong-password': 'Mot de passe incorrect.',
+                'auth/invalid-credential': 'E-mail ou mot de passe incorrect.',
+                'auth/email-already-in-use': 'Un compte existe déjà avec cet e-mail.',
+                'auth/weak-password': 'Le mot de passe doit faire au moins 6 caractères.',
+                'auth/too-many-requests': 'Trop de tentatives. Réessaie plus tard.',
+                'auth/missing-password': 'Entre un mot de passe.',
+            };
+            errorDiv.textContent = messages[msg] || 'Erreur : ' + msg;
+        };
+
+        loginBtn.addEventListener('click', async () => {
+            errorDiv.textContent = '';
+            setLoading(true);
+            try {
+                await auth.signInWithEmailAndPassword(emailInput.value.trim(), passwordInput.value);
+            } catch (e) {
+                showError(e.code);
+            }
+            setLoading(false);
+        });
+
+        registerBtn.addEventListener('click', async () => {
+            errorDiv.textContent = '';
+            setLoading(true);
+            try {
+                await auth.createUserWithEmailAndPassword(emailInput.value.trim(), passwordInput.value);
+            } catch (e) {
+                showError(e.code);
+            }
+            setLoading(false);
+        });
+
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
+        });
+    }
+
     init() {
         this.loadFromStorage();
-        this.setupEventListeners();
+        if (!this._initialized) {
+            this._initialized = true;
+            this.setupEventListeners();
+        }
         this.updateCoursePreview();
     }
 
@@ -1531,6 +1898,21 @@ class LaserEPSApp {
 
     // Gestion des événements
     setupEventListeners() {
+        // Déconnexion
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // Historique
+        document.getElementById('show-history').addEventListener('click', () => {
+            this.showScreen('history');
+            this.loadHistory();
+        });
+
+        document.getElementById('back-to-home-from-history').addEventListener('click', () => {
+            this.showScreen('home');
+        });
+
         // Navigation
         document.getElementById('start-competition').addEventListener('click', () => {
             this.showScreen('config');
@@ -2141,6 +2523,119 @@ class LaserEPSApp {
     showResults() {
         this.showScreen('results');
         this.displayResults();
+        if (!this._sessionSaved) {
+            this._sessionSaved = true;
+            this.saveSessionToFirestore();
+        }
+    }
+
+    async saveSessionToFirestore() {
+        if (!this.currentUser) return;
+        try {
+            const totalShootingTime = this.courseData.lapTimes
+                .filter(l => l.type === 'shooting')
+                .reduce((s, l) => s + (isNaN(l.duration) || l.duration < 0 ? 0 : l.duration), 0);
+            const totalRunningTime = this.courseData.totalTime - totalShootingTime;
+            const totalHits = this.courseData.targets.reduce((s, t) => s + (t.hitCount || 0), 0);
+            const totalMisses = this.courseData.targets.reduce((s, t) => s + (t.missCount || 0), 0);
+
+            await db.collection('users').doc(this.currentUser.uid)
+                .collection('sessions').add({
+                    date: firebase.firestore.FieldValue.serverTimestamp(),
+                    totalTime: this.courseData.totalTime,
+                    totalShootingTime: totalShootingTime,
+                    totalRunningTime: totalRunningTime,
+                    totalDistance: this.courseData.totalDistance,
+                    numberOfShootings: this.numberOfShootings,
+                    totalHits: totalHits,
+                    totalMisses: totalMisses,
+                    averageSpeed: this.calculateAverageSpeed(totalRunningTime),
+                    targets: this.courseData.targets.map(t => ({
+                        hitCount: t.hitCount || 0,
+                        missCount: t.missCount || 0,
+                    })),
+                    lapTimes: this.courseData.lapTimes.map(l => ({
+                        type: l.type,
+                        number: l.number,
+                        duration: l.duration,
+                    })),
+                });
+        } catch (e) {
+            console.warn('Impossible de sauvegarder la session :', e);
+        }
+    }
+
+    async loadHistory() {
+        const container = document.getElementById('history-content');
+        if (!this.currentUser) {
+            container.innerHTML = '<div class="history-empty">Connecte-toi pour voir ton historique.</div>';
+            return;
+        }
+        container.innerHTML = '<div class="history-empty">Chargement...</div>';
+        try {
+            const snap = await db.collection('users').doc(this.currentUser.uid)
+                .collection('sessions')
+                .orderBy('date', 'desc')
+                .limit(50)
+                .get();
+
+            if (snap.empty) {
+                container.innerHTML = '<div class="history-empty">Aucune session enregistrée.<br>Fais une course pour commencer !</div>';
+                return;
+            }
+
+            const sessions = [];
+            snap.forEach(doc => sessions.push({ id: doc.id, ...doc.data() }));
+
+            let html = '<div class="history-list">';
+            sessions.forEach((s, i) => {
+                const d = s.date ? s.date.toDate() : new Date();
+                const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const totalShots = (s.totalHits || 0) + (s.totalMisses || 0);
+                const accuracy = totalShots > 0 ? Math.round((s.totalHits / totalShots) * 100) : 0;
+
+                let evoHtml = '';
+                if (i < sessions.length - 1) {
+                    const prev = sessions[i + 1];
+                    const diff = (prev.totalTime || 0) - (s.totalTime || 0);
+                    if (diff > 0.5) {
+                        evoHtml = `<span class="history-evolution evolution-better">-${this.formatTime(diff)}</span>`;
+                    } else if (diff < -0.5) {
+                        evoHtml = `<span class="history-evolution evolution-worse">+${this.formatTime(Math.abs(diff))}</span>`;
+                    } else {
+                        evoHtml = `<span class="history-evolution evolution-same">=</span>`;
+                    }
+                }
+
+                html += `
+                <div class="history-card">
+                    <div>
+                        <div class="history-date">${dateStr}</div>
+                        <div style="color:#888;font-size:0.85rem;">${s.numberOfShootings || '?'} tirs - ${s.totalDistance || '?'}m</div>
+                    </div>
+                    <div class="history-stats">
+                        <div class="history-stat">
+                            <div class="stat-val">${this.formatTime(s.totalTime || 0)}</div>
+                            <div class="stat-lbl">Temps</div>
+                        </div>
+                        <div class="history-stat">
+                            <div class="stat-val">${accuracy}%</div>
+                            <div class="stat-lbl">Précision</div>
+                        </div>
+                        <div class="history-stat">
+                            <div class="stat-val">${(s.averageSpeed || 0).toFixed(1)}</div>
+                            <div class="stat-lbl">km/h</div>
+                        </div>
+                        ${evoHtml ? `<div class="history-stat">${evoHtml}<div class="stat-lbl">Évolution</div></div>` : ''}
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (e) {
+            console.warn('Erreur chargement historique :', e);
+            container.innerHTML = '<div class="history-empty">Erreur de chargement. Vérifie ta connexion.</div>';
+        }
     }
 
     displayResults() {
@@ -2436,7 +2931,8 @@ class LaserEPSApp {
 
     // Réinitialisation
     resetCourse() {
-        // Arrêter tous les timers en cours
+        this._sessionSaved = false;
+        
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
