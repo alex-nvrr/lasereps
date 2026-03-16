@@ -810,6 +810,10 @@ body {
     background: #f8f9fa;
     border-bottom: 1px solid #eee;
     overflow-x: auto;
+    scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+    display: none;
 }
 
 /* Optimisation onglets pour tablettes paysage */
@@ -845,6 +849,19 @@ body {
     transition: all 0.3s ease;
     white-space: nowrap;
     border-bottom: 3px solid transparent;
+    flex-shrink: 0;
+}
+@media (max-width: 768px) {
+    .tab {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+    }
+}
+@media (max-width: 480px) {
+    .tab {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
 }
 
 @media (min-width: 768px) and (orientation: landscape) {
@@ -867,6 +884,17 @@ body {
 .tab-content {
     padding: 30px;
     min-height: 400px;
+}
+@media (max-width: 768px) {
+    .tab-content {
+        padding: 12px;
+        min-height: unset;
+    }
+}
+@media (max-width: 480px) {
+    .tab-content {
+        padding: 8px;
+    }
 }
 
 /* Optimisation contenu onglets pour tablettes paysage */
@@ -1279,16 +1307,6 @@ body {
         font-size: 2.5rem;
     }
     
-    .target {
-        width: 250px;
-        height: 250px;
-    }
-    
-    .shooting-stats {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
     .results-actions {
         flex-direction: column;
     }
@@ -1315,14 +1333,14 @@ body {
         font-size: 1.3rem;
     }
     
-    .target {
-        width: 200px;
-        height: 200px;
+    .stat-card {
+        padding: 4px 2px;
     }
-    
-    .success-zone {
-        width: 50px;
-        height: 50px;
+    .stat-label {
+        font-size: 0.65rem;
+    }
+    .stat-value {
+        font-size: 1rem;
     }
     
     #info-bar {
@@ -1443,25 +1461,37 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Responsive */
+/* Responsive stats */
 @media (max-width: 768px) {
     .target-stats {
-        gap: 10px;
+        gap: 0;
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        padding: 8px;
+        margin-bottom: 12px;
+        flex-direction: row;
+        flex-wrap: wrap;
     }
     .stat-row {
-        flex-direction: column;
-        gap: 10px;
+        display: contents;
     }
     .stat-card {
         min-width: unset;
-        min-height: 60px;
-        padding: 12px 10px 10px 10px;
+        min-height: unset;
+        padding: 6px 4px;
+        border-radius: 10px;
+        box-shadow: none;
+        flex: 1 1 auto;
+        width: 25%;
     }
     .stat-label {
-        font-size: 1rem;
+        font-size: 0.7rem;
+        margin-bottom: 2px;
+        white-space: nowrap;
     }
     .stat-value {
-        font-size: 1.3rem;
+        font-size: 1.15rem;
     }
 }
 
@@ -1476,14 +1506,37 @@ body {
 @media (max-width: 900px) {
     .target-container {
         flex-direction: column;
-        gap: 24px;
+        gap: 8px;
         align-items: stretch;
     }
     .target-side {
         min-width: unset;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
     .target-wrapper {
-        min-height: 220px;
+        min-width: unset;
+        min-height: unset;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+    .target-wrapper .target {
+        width: min(70vw, 320px);
+        height: min(70vw, 320px);
+    }
+    .target-wrapper .target.has-image {
+        width: min(70vw, 320px);
+        height: min(70vw, 320px);
+    }
+    .target-wrapper .target.has-image img.target-image {
+        width: 100%;
+        height: 100%;
+    }
+    .tir-chrono {
+        font-size: 1.1rem;
+        margin-bottom: 6px;
     }
 }
 
