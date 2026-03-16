@@ -653,11 +653,13 @@ body {
     align-items: center;
     gap: 20px;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
 }
 
 #info-bar-timers {
     display: flex;
     gap: 15px;
+    flex-shrink: 0;
 }
 
 .info-timer {
@@ -687,9 +689,17 @@ body {
 #info-bar-laps {
     flex-grow: 1;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+#info-bar-laps::-webkit-scrollbar {
+    display: none;
 }
 
 .lap-item {
@@ -734,7 +744,7 @@ body {
     color: white;
     font-family: 'Courier New', monospace;
     font-size: 1.4rem;
-    order: 2; /* Met le temps après l'icône */
+    order: 2;
 }
 
 #info-bar-stop-button {
@@ -748,10 +758,28 @@ body {
     cursor: pointer;
     transition: background 0.3s ease;
     align-self: center;
+    flex-shrink: 0;
 }
 
 #info-bar-stop-button:hover {
     background: #ff2d2d;
+}
+
+/* Layout stable pour l'écran de course : empêche la cible de bouger */
+#course-screen.active {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: 0;
+}
+#course-screen .course-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 20px;
 }
 
 /* Onglets */
@@ -1159,9 +1187,52 @@ body {
     }
     
     .course-header {
-        flex-direction: column;
-        gap: 15px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
         text-align: center;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+    }
+    .course-header h2 {
+        font-size: 1.1rem;
+        flex: 1;
+    }
+    
+    #info-bar {
+        flex-wrap: wrap;
+        padding: 10px;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    #info-bar-timers {
+        gap: 8px;
+    }
+    .info-timer {
+        padding: 6px 10px;
+        min-width: 90px;
+        border-radius: 12px;
+    }
+    .info-timer .timer-value {
+        font-size: 1.3rem;
+    }
+    .info-timer .timer-label {
+        font-size: 0.7rem;
+    }
+    .lap-item.active {
+        min-width: 90px;
+        padding: 6px 8px;
+    }
+    .lap-item.active .lap-time {
+        font-size: 1.1rem;
+    }
+    .lap-item.active .lap-icon {
+        font-size: 1.2rem;
+    }
+    #info-bar-stop-button {
+        padding: 10px 20px;
+        font-size: 1rem;
+        border-radius: 12px;
     }
     
     .timer-display span {
@@ -1212,6 +1283,29 @@ body {
     .success-zone {
         width: 50px;
         height: 50px;
+    }
+    
+    #info-bar {
+        padding: 8px;
+        gap: 8px;
+        border-radius: 14px;
+    }
+    .info-timer {
+        padding: 5px 8px;
+        min-width: 80px;
+    }
+    .info-timer .timer-value {
+        font-size: 1.1rem;
+    }
+    .lap-item {
+        min-width: 55px;
+        font-size: 0.8rem;
+    }
+    .lap-item.active {
+        min-width: 80px;
+    }
+    .lap-item.active .lap-time {
+        font-size: 0.95rem;
     }
 }
 
@@ -3879,6 +3973,8 @@ class LaserEPSApp {
             }
         });
         lapsContainer.innerHTML = lapsHtml;
+        const activeLap = lapsContainer.querySelector('.lap-item.active');
+        if (activeLap) activeLap.scrollIntoView({ behavior: 'smooth', inline: 'end', block: 'nearest' });
     }
 }
 
