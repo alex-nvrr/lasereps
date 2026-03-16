@@ -1562,6 +1562,17 @@ body {
     }
 }
 
+/* ===== Base tactile multi-plateforme ===== */
+.save-session-btn,
+.action-btn,
+.history-tab,
+.history-card.clickable {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 /* ===== Bouton Enregistrer session ===== */
 .save-session-btn {
     width: 100%;
@@ -1579,10 +1590,16 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
+    min-height: 56px;
 }
-.save-session-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(40,167,69,0.35);
+@media (hover: hover) {
+    .save-session-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(40,167,69,0.35);
+    }
+}
+.save-session-btn:active {
+    transform: scale(0.97);
 }
 .save-session-btn.saved {
     background: linear-gradient(135deg, #20c997, #28a745);
@@ -1615,9 +1632,15 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    min-height: 48px;
 }
-.results-actions-grid .action-btn:hover {
-    transform: translateY(-1px);
+@media (hover: hover) {
+    .results-actions-grid .action-btn:hover {
+        transform: translateY(-1px);
+    }
+}
+.results-actions-grid .action-btn:active {
+    transform: scale(0.96);
 }
 .action-btn.btn-history {
     background: linear-gradient(135deg, #667eea, #764ba2);
@@ -1645,6 +1668,19 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+@media (max-width: 380px) {
+    .results-actions-grid {
+        grid-template-columns: 1fr;
+    }
+    .action-btn.btn-pdf {
+        grid-column: auto;
+    }
+    .save-session-btn {
+        font-size: 1rem;
+        padding: 16px;
+    }
+}
+
 /* ===== Historique : onglets ===== */
 .history-tabs {
     display: flex;
@@ -1664,6 +1700,10 @@ body {
     background: transparent;
     color: #888;
     transition: all 0.3s ease;
+    min-height: 44px;
+}
+.history-tab:active {
+    transform: scale(0.96);
 }
 .history-tab.active {
     background: white;
@@ -1791,18 +1831,25 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
 }
-.history-card.clickable:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+@media (hover: hover) {
+    .history-card.clickable:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    }
+    .history-card.clickable:hover .card-arrow {
+        transform: translateX(4px);
+        color: #667eea;
+    }
+}
+.history-card.clickable:active {
+    transform: scale(0.98);
+    background: #f8f9fa;
 }
 .history-card .card-arrow {
     color: #ccc;
     font-size: 1.2rem;
     transition: transform 0.2s ease;
-}
-.history-card.clickable:hover .card-arrow {
-    transform: translateX(4px);
-    color: #667eea;
+    flex-shrink: 0;
 }
 
 /* ===== Graphiques évolution ===== */
@@ -1824,7 +1871,28 @@ body {
 }
 .chart-card canvas {
     width: 100% !important;
-    max-height: 220px;
+    height: 220px !important;
+}
+@media (max-width: 480px) {
+    .chart-card {
+        padding: 14px;
+        border-radius: 12px;
+    }
+    .chart-card canvas {
+        height: 180px !important;
+    }
+    .chart-card h4 {
+        font-size: 0.9rem;
+    }
+}
+@media (min-width: 768px) {
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .chart-card canvas {
+        height: 240px !important;
+    }
 }
 
 /* ===== Home : résumé dernière session ===== */
@@ -1862,6 +1930,58 @@ body {
 .last-session-summary .s-lbl {
     font-size: 0.75rem;
     color: rgba(255,255,255,0.65);
+}
+
+/* ===== Responsive mobile global pour nouveaux composants ===== */
+@media (max-width: 480px) {
+    .detail-summary {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    .detail-summary-card {
+        padding: 12px 8px;
+    }
+    .detail-summary-card .detail-val {
+        font-size: 1.1rem;
+    }
+    .detail-timeline {
+        padding-left: 22px;
+    }
+    .timeline-item {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .timeline-item .tl-label {
+        font-size: 0.88rem;
+    }
+    .timeline-item .tl-values {
+        gap: 10px;
+    }
+    .detail-comparison {
+        font-size: 0.7rem;
+    }
+    .last-session-summary {
+        padding: 12px 14px;
+    }
+    .last-session-summary .summary-stats {
+        gap: 16px;
+    }
+    .last-session-summary .s-val {
+        font-size: 1rem;
+    }
+}
+@media (max-width: 380px) {
+    .detail-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+    .history-tabs {
+        padding: 3px;
+    }
+    .history-tab {
+        padding: 10px 8px;
+        font-size: 0.85rem;
+    }
 }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1950,7 +2070,10 @@ body {
             <div class="container">
                 <div class="header">
                     <h2>Détail de la session</h2>
-                    <button id="back-to-history" class="back-button">← Historique</button>
+                    <div style="display:flex;gap:8px;">
+                        <button id="back-to-history" class="back-button">← Historique</button>
+                        <button id="detail-to-home" class="back-button">🏠 Accueil</button>
+                    </div>
                 </div>
                 <div id="session-detail-content" class="results-content">
                 </div>
@@ -2012,7 +2135,10 @@ body {
             <div class="course-header">
                 <button id="back-to-config" class="back-button">← Configuration</button>
                 <h2>Course en cours</h2>
-                <button id="export-results" class="export-button" style="display: none;">📊 Exporter</button>
+                <div style="display:flex;gap:8px;">
+                    <button id="export-results" class="export-button" style="display: none;">📊 Exporter</button>
+                    <button id="course-to-home" class="back-button">🏠</button>
+                </div>
             </div>
 
             <div id="info-bar" style="display: none;">
@@ -2042,7 +2168,10 @@ body {
             <div class="container">
                 <div class="header">
                     <h2>Résultats de Course</h2>
-                    <button id="back-to-course" class="back-button">← Course</button>
+                    <div style="display:flex;gap:8px;">
+                        <button id="back-to-course" class="back-button">← Course</button>
+                        <button id="results-to-home" class="back-button">🏠 Accueil</button>
+                    </div>
                 </div>
 
                 <div id="results-content" class="results-content">
@@ -2283,6 +2412,25 @@ class LaserEPSApp {
                 if (!confirm('Ta session n\'est pas enregistrée. Quitter quand même ?')) return;
             }
             this.showScreen('course');
+        });
+
+        // Boutons Accueil
+        document.getElementById('results-to-home').addEventListener('click', () => {
+            if (!this._sessionSaved && this.courseData.totalTime > 0) {
+                if (!confirm('Ta session n\'est pas enregistrée. Quitter quand même ?')) return;
+            }
+            this.showScreen('home');
+        });
+
+        document.getElementById('course-to-home').addEventListener('click', () => {
+            if (this.courseData.isRunning) {
+                if (!confirm('Une course est en cours. Retourner à l\'accueil ?')) return;
+            }
+            this.showScreen('home');
+        });
+
+        document.getElementById('detail-to-home').addEventListener('click', () => {
+            this.showScreen('home');
         });
 
         // Configuration
@@ -3165,15 +3313,17 @@ class LaserEPSApp {
             return gradient;
         };
 
+        const isMobile = window.innerWidth < 500;
         const chartOptions = (reverse) => ({
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { titleFont: { size: isMobile ? 11 : 13 }, bodyFont: { size: isMobile ? 11 : 13 } } },
             scales: {
-                x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-                y: { reverse: !!reverse, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } }
+                x: { grid: { display: false }, ticks: { font: { size: isMobile ? 9 : 11 }, maxRotation: 45, maxTicksLimit: isMobile ? 6 : 12 } },
+                y: { reverse: !!reverse, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: isMobile ? 9 : 11 }, maxTicksLimit: 6 } }
             },
-            elements: { point: { radius: 4, hoverRadius: 6 }, line: { tension: 0.35 } }
+            elements: { point: { radius: isMobile ? 3 : 4, hoverRadius: isMobile ? 5 : 7 }, line: { tension: 0.35 } }
         });
 
         const createChart = (id, data, r, g, b, reverse) => {
