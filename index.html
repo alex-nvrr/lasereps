@@ -2217,6 +2217,245 @@ body {
         font-size: 0.85rem;
     }
 }
+
+/* ===== Ecran choix de role ===== */
+.role-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 420px;
+    margin: 0 auto;
+}
+.role-card {
+    background: white;
+    border-radius: 18px;
+    padding: 24px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+.role-card:active { transform: scale(0.97); }
+@media (hover:hover) { .role-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.13); } }
+.role-card.selected { border-color: #667eea; }
+.role-card .role-icon { font-size: 2.5rem; margin-bottom: 8px; }
+.role-card h3 { color: #333; margin-bottom: 4px; }
+.role-card p { color: #888; font-size: 0.85rem; }
+.role-name-input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 14px;
+    font-size: 1rem;
+    color: #333;
+    background: white;
+    margin-top: 20px;
+    transition: border-color 0.3s;
+}
+.role-name-input:focus { outline: none; border-color: #667eea; }
+.role-confirm-btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    margin-top: 16px;
+    transition: all 0.3s;
+    -webkit-tap-highlight-color: transparent;
+}
+.role-confirm-btn:disabled { opacity: 0.5; cursor: default; }
+.role-confirm-btn:not(:disabled):active { transform: scale(0.97); }
+
+/* ===== Bandeau classe eleve ===== */
+.class-banner {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.class-banner .class-name { color: white; font-weight: 600; font-size: 1rem; }
+.class-banner .class-code { color: rgba(255,255,255,0.7); font-size: 0.8rem; }
+.join-class-btn {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    -webkit-tap-highlight-color: transparent;
+}
+.join-class-btn:active { transform: scale(0.96); }
+
+/* ===== Modal rejoindre classe ===== */
+.join-modal-content { text-align: center; }
+.join-modal-content input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 14px;
+    font-size: 1.2rem;
+    text-align: center;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #333;
+    margin: 16px 0;
+}
+.join-modal-content input:focus { outline: none; border-color: #667eea; }
+.join-modal-content .join-error { color: #dc3545; font-size: 0.9rem; min-height: 20px; }
+.join-modal-content .join-confirm-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+/* ===== Dashboard prof ===== */
+.prof-classes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.prof-class-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    -webkit-tap-highlight-color: transparent;
+}
+.prof-class-card:active { transform: scale(0.98); }
+@media (hover:hover) { .prof-class-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.12); } }
+.prof-class-card .pcc-info h3 { color: #333; font-size: 1.1rem; margin-bottom: 4px; }
+.prof-class-card .pcc-info .pcc-code { color: #667eea; font-weight: 600; font-size: 0.9rem; }
+.prof-class-card .pcc-count { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 0.95rem; }
+.create-class-section {
+    margin-top: 20px;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+}
+.create-class-section input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 12px;
+}
+.create-class-section input:focus { outline: none; border-color: #667eea; }
+.create-class-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    cursor: pointer;
+}
+
+/* ===== Vue classe (prof) ===== */
+.class-info-header {
+    background: white;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.class-info-header .cih-name { font-size: 1.3rem; font-weight: 700; color: #333; }
+.class-info-header .cih-code {
+    background: #667eea;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+.student-list { display: flex; flex-direction: column; gap: 10px; }
+.student-card {
+    background: white;
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.student-card:active { transform: scale(0.98); }
+.student-card .sc-name { font-weight: 600; color: #333; font-size: 1rem; }
+.student-card .sc-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+.student-card .sc-stat { text-align: center; }
+.student-card .sc-val { font-weight: 700; color: #667eea; font-size: 1rem; }
+.student-card .sc-lbl { font-size: 0.7rem; color: #888; }
+
+/* Tableau comparatif */
+.comp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+    font-size: 0.9rem;
+}
+.comp-table th {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 12px 10px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+.comp-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    white-space: nowrap;
+}
+.comp-table tr:last-child td { border-bottom: none; }
+.comp-table tr:nth-child(even) td { background: #fafafa; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -2240,18 +2479,56 @@ body {
             </div>
         </div>
 
+        <!-- Écran choix de rôle -->
+        <div id="role-screen" class="screen">
+            <div class="container" style="display:flex;align-items:center;justify-content:center;min-height:80vh;">
+                <div class="auth-container" style="max-width:460px;">
+                    <h1 style="color:#667eea;">Bienvenue !</h1>
+                    <p class="auth-subtitle">Comment vas-tu utiliser LaserEPS ?</p>
+                    <div class="role-cards">
+                        <div class="role-card" data-role="eleve">
+                            <div class="role-icon">🎒</div>
+                            <h3>Élève</h3>
+                            <p>Rejoins la classe de ton prof</p>
+                        </div>
+                        <div class="role-card" data-role="prof">
+                            <div class="role-icon">🧑‍🏫</div>
+                            <h3>Professeur</h3>
+                            <p>Crée des classes et suis tes élèves</p>
+                        </div>
+                        <div class="role-card" data-role="perso">
+                            <div class="role-icon">🏃</div>
+                            <h3>Personnel</h3>
+                            <p>Suis tes propres stats</p>
+                        </div>
+                    </div>
+                    <input type="text" id="role-display-name" class="role-name-input" placeholder="Ton prénom et nom" style="display:none;">
+                    <button id="role-confirm-btn" class="role-confirm-btn" disabled style="display:none;">Continuer</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Écran d'accueil -->
         <div id="home-screen" class="screen">
             <div class="container">
                 <div class="header">
                     <div class="user-info" style="justify-content:flex-end;margin-bottom:10px;">
+                        <span id="user-display-name" class="user-email" style="font-weight:600;"></span>
                         <span id="user-email-display" class="user-email"></span>
                         <button id="logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                     <h1>LaserEPS</h1>
                     <p>Mode Compétition</p>
                 </div>
-                
+                <div id="class-banner" class="class-banner" style="display:none;">
+                    <div>
+                        <span id="class-banner-name" class="class-name"></span>
+                        <span id="class-banner-code" class="class-code"></span>
+                    </div>
+                </div>
+                <div id="join-class-banner" style="display:none;text-align:center;margin-bottom:16px;">
+                    <button id="join-class-btn" class="join-class-btn">Rejoindre une classe</button>
+                </div>
                 <div class="menu-buttons">
                     <button id="start-competition" class="menu-button">
                         <div class="button-icon">🎯</div>
@@ -2271,6 +2548,68 @@ body {
                 <div id="last-session-summary" class="last-session-summary">
                     <div class="summary-title">Dernière session</div>
                     <div class="summary-stats" id="last-session-stats"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard prof -->
+        <div id="prof-screen" class="screen">
+            <div class="container">
+                <div class="header">
+                    <h2>Mes classes</h2>
+                    <div style="display:flex;gap:8px;">
+                        <button id="prof-to-home" class="back-button">🏠 Accueil</button>
+                        <button id="prof-logout-btn" class="logout-button">Déconnexion</button>
+                    </div>
+                </div>
+                <div id="prof-classes-content">
+                    <div class="history-empty">Chargement...</div>
+                </div>
+                <div class="create-class-section">
+                    <h3 style="color:#333;margin-bottom:12px;">Créer une classe</h3>
+                    <input type="text" id="new-class-name" placeholder="Nom de la classe (ex: 3eB EPS)">
+                    <button id="create-class-btn" class="create-class-btn">Créer la classe</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vue classe -->
+        <div id="class-view-screen" class="screen">
+            <div class="container">
+                <div class="header">
+                    <h2 id="class-view-title">Classe</h2>
+                    <button id="back-to-prof" class="back-button">← Mes classes</button>
+                </div>
+                <div id="class-view-header" class="class-info-header"></div>
+                <div class="history-tabs">
+                    <button class="cv-tab active" data-cvtab="students">Élèves</button>
+                    <button class="cv-tab" data-cvtab="comparative">Comparatif</button>
+                </div>
+                <div id="cv-panel-students" class="history-panel active">
+                    <div id="cv-students-content"><div class="history-empty">Chargement...</div></div>
+                </div>
+                <div id="cv-panel-comparative" class="history-panel">
+                    <div id="cv-comparative-content"><div class="history-empty">Chargement...</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail élève (pour le prof) -->
+        <div id="student-detail-screen" class="screen">
+            <div class="container">
+                <div class="header">
+                    <h2 id="student-detail-title">Élève</h2>
+                    <button id="back-to-class-view" class="back-button">← Classe</button>
+                </div>
+                <div class="history-tabs">
+                    <button class="sd-tab active" data-sdtab="sessions">Sessions</button>
+                    <button class="sd-tab" data-sdtab="evolution">Évolution</button>
+                </div>
+                <div id="sd-panel-sessions" class="history-panel active">
+                    <div id="sd-sessions-content"><div class="history-empty">Chargement...</div></div>
+                </div>
+                <div id="sd-panel-evolution" class="history-panel">
+                    <div id="sd-evolution-content"><div class="history-empty">Chargement...</div></div>
                 </div>
             </div>
         </div>
@@ -2444,6 +2783,20 @@ body {
         </div>
     </div>
 
+    <!-- Modal rejoindre classe -->
+    <div id="join-class-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:20px;padding:30px 24px;max-width:380px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%);">
+            <div class="join-modal-content">
+                <h2 style="color:#333;margin-bottom:4px;">Rejoindre une classe</h2>
+                <p style="color:#888;font-size:0.9rem;">Entre le code donné par ton prof</p>
+                <input type="text" id="join-class-code" placeholder="CODE" maxlength="10" autocapitalize="characters">
+                <div id="join-class-error" class="join-error"></div>
+                <button id="join-class-confirm" class="join-confirm-btn">Rejoindre</button>
+                <button id="join-class-cancel" style="width:100%;padding:12px;border:none;background:transparent;color:#888;font-size:0.95rem;cursor:pointer;margin-top:8px;">Annuler</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
@@ -2495,6 +2848,12 @@ class LaserEPSApp {
         
         this.storageEnabled = this.checkStorageAvailability();
         this.currentUser = null;
+        this.userRole = null;
+        this.userDisplayName = null;
+        this.userClasses = [];
+        this._currentClassId = null;
+        this._currentStudentUid = null;
+        this._studentSessions = [];
         this.initAuth();
     }
 
@@ -2512,18 +2871,47 @@ class LaserEPSApp {
 
     initAuth() {
         this.setupAuthListeners();
-        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
                 this.currentUser = user;
                 document.getElementById('user-email-display').textContent = user.email;
                 this.init();
-                this.showScreen('home');
-                this.loadLastSessionSummary();
+                try {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (userDoc.exists && userDoc.data().role) {
+                        this.userRole = userDoc.data().role;
+                        this.userDisplayName = userDoc.data().displayName || '';
+                        this.userClasses = userDoc.data().classes || [];
+                        document.getElementById('user-display-name').textContent = this.userDisplayName;
+                        this.routeByRole();
+                    } else {
+                        this.showScreen('role');
+                        this.setupRoleListeners();
+                    }
+                } catch (e) {
+                    console.warn('Erreur lecture profil :', e);
+                    this.showScreen('home');
+                    this.loadLastSessionSummary();
+                }
             } else {
                 this.currentUser = null;
+                this.userRole = null;
+                this.userDisplayName = null;
+                this.userClasses = [];
                 this.showScreen('auth');
             }
         });
+    }
+
+    routeByRole() {
+        if (this.userRole === 'prof') {
+            this.showScreen('prof');
+            this.loadClasses();
+        } else {
+            this.showScreen('home');
+            this.loadLastSessionSummary();
+            this.updateClassBanner();
+        }
     }
 
     setupAuthListeners() {
@@ -2581,6 +2969,61 @@ class LaserEPSApp {
         });
     }
 
+    setupRoleListeners() {
+        if (this._roleListenersAttached) return;
+        this._roleListenersAttached = true;
+        let selectedRole = null;
+        const cards = document.querySelectorAll('.role-card');
+        const nameInput = document.getElementById('role-display-name');
+        const confirmBtn = document.getElementById('role-confirm-btn');
+
+        const updateConfirmState = () => {
+            const ready = selectedRole && nameInput.value.trim().length >= 2;
+            confirmBtn.disabled = !ready;
+        };
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                cards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedRole = card.dataset.role;
+                nameInput.style.display = 'block';
+                confirmBtn.style.display = 'block';
+                nameInput.focus();
+                updateConfirmState();
+            });
+        });
+
+        nameInput.addEventListener('input', updateConfirmState);
+
+        confirmBtn.addEventListener('click', async () => {
+            if (!selectedRole || nameInput.value.trim().length < 2) return;
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Chargement...';
+            try {
+                await this.saveRole(selectedRole, nameInput.value.trim());
+                this.routeByRole();
+            } catch (e) {
+                console.warn('Erreur sauvegarde rôle :', e);
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Continuer';
+            }
+        });
+    }
+
+    async saveRole(role, displayName) {
+        this.userRole = role;
+        this.userDisplayName = displayName;
+        this.userClasses = [];
+        document.getElementById('user-display-name').textContent = displayName;
+        await db.collection('users').doc(this.currentUser.uid).set({
+            email: this.currentUser.email,
+            role: role,
+            displayName: displayName,
+            classes: []
+        }, { merge: true });
+    }
+
     init() {
         this.loadFromStorage();
         if (!this._initialized) {
@@ -2605,6 +3048,69 @@ class LaserEPSApp {
         document.getElementById('logout-btn').addEventListener('click', () => {
             auth.signOut();
         });
+        document.getElementById('prof-logout-btn').addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // Prof : retour accueil perso depuis dashboard
+        document.getElementById('prof-to-home').addEventListener('click', () => {
+            this.showScreen('home');
+            this.loadLastSessionSummary();
+        });
+
+        // Rejoindre une classe
+        document.getElementById('join-class-btn').addEventListener('click', () => {
+            this.openJoinClassModal();
+        });
+        document.getElementById('join-class-cancel').addEventListener('click', () => {
+            this.closeJoinClassModal();
+        });
+        document.getElementById('join-class-confirm').addEventListener('click', () => {
+            const code = document.getElementById('join-class-code').value;
+            this.joinClass(code);
+        });
+
+        // Créer une classe (prof)
+        document.getElementById('create-class-btn').addEventListener('click', () => {
+            const name = document.getElementById('new-class-name').value;
+            if (name.trim()) {
+                this.createClass(name);
+                document.getElementById('new-class-name').value = '';
+            }
+        });
+
+        // Retour depuis vue classe
+        document.getElementById('back-to-prof').addEventListener('click', () => {
+            this.showScreen('prof');
+            this.loadClasses();
+        });
+
+        // Onglets vue classe
+        document.querySelectorAll('.cv-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.cv-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('cv-panel-students').classList.toggle('active', tab.dataset.cvtab === 'students');
+                document.getElementById('cv-panel-comparative').classList.toggle('active', tab.dataset.cvtab === 'comparative');
+            });
+        });
+
+        // Retour depuis détail élève
+        document.getElementById('back-to-class-view').addEventListener('click', () => {
+            this.showScreen('class-view');
+            if (this._currentClassId) this.loadClassView(this._currentClassId);
+        });
+
+        // Onglets détail élève
+        document.querySelectorAll('.sd-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.sd-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('sd-panel-sessions').classList.toggle('active', tab.dataset.sdtab === 'sessions');
+                document.getElementById('sd-panel-evolution').classList.toggle('active', tab.dataset.sdtab === 'evolution');
+                if (tab.dataset.sdtab === 'evolution') this.loadStudentEvolutionCharts();
+            });
+        });
 
         // Historique
         document.getElementById('show-history').addEventListener('click', () => {
@@ -2620,11 +3126,12 @@ class LaserEPSApp {
             this.showScreen('history');
         });
 
-        // Onglets historique
-        document.querySelectorAll('.history-tab').forEach(tab => {
+        // Onglets historique (scoped to history-screen)
+        const histScreen = document.getElementById('history-screen');
+        histScreen.querySelectorAll('.history-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                document.querySelectorAll('.history-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.history-panel').forEach(p => p.classList.remove('active'));
+                histScreen.querySelectorAll('.history-tab').forEach(t => t.classList.remove('active'));
+                histScreen.querySelectorAll('.history-panel').forEach(p => p.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
                 if (tab.dataset.tab === 'evolution') this.loadEvolutionCharts();
@@ -3318,6 +3825,7 @@ class LaserEPSApp {
             await db.collection('users').doc(this.currentUser.uid)
                 .collection('sessions').add({
                     date: firebase.firestore.FieldValue.serverTimestamp(),
+                    displayName: this.userDisplayName || '',
                     totalTime: this.courseData.totalTime,
                     totalShootingTime: totalShootingTime,
                     totalRunningTime: totalRunningTime,
@@ -3642,6 +4150,360 @@ class LaserEPSApp {
         } catch (e) {
             console.warn('Erreur chargement résumé :', e);
         }
+    }
+
+    // ===== CLASSE BANNER (élève) =====
+    updateClassBanner() {
+        const banner = document.getElementById('class-banner');
+        const joinBanner = document.getElementById('join-class-banner');
+        if (this.userRole === 'eleve' && this.userClasses.length > 0) {
+            banner.style.display = 'flex';
+            joinBanner.style.display = 'none';
+            this.loadClassBannerInfo(this.userClasses[0]);
+        } else if (this.userRole === 'eleve') {
+            banner.style.display = 'none';
+            joinBanner.style.display = 'block';
+        } else {
+            banner.style.display = 'none';
+            joinBanner.style.display = 'none';
+        }
+    }
+
+    async loadClassBannerInfo(classId) {
+        try {
+            const doc = await db.collection('classes').doc(classId).get();
+            if (doc.exists) {
+                document.getElementById('class-banner-name').textContent = doc.data().name;
+                document.getElementById('class-banner-code').textContent = ' — ' + doc.data().code;
+            }
+        } catch (e) { console.warn(e); }
+    }
+
+    // ===== REJOINDRE UNE CLASSE =====
+    openJoinClassModal() {
+        document.getElementById('join-class-modal').style.display = 'flex';
+        document.getElementById('join-class-code').value = '';
+        document.getElementById('join-class-error').textContent = '';
+    }
+
+    closeJoinClassModal() {
+        document.getElementById('join-class-modal').style.display = 'none';
+    }
+
+    async joinClass(code) {
+        const errDiv = document.getElementById('join-class-error');
+        errDiv.textContent = '';
+        const upper = code.trim().toUpperCase();
+        if (!upper) { errDiv.textContent = 'Entre un code.'; return; }
+        try {
+            const snap = await db.collection('classes').where('code', '==', upper).get();
+            if (snap.empty) { errDiv.textContent = 'Aucune classe trouvée avec ce code.'; return; }
+            const classDoc = snap.docs[0];
+            const classId = classDoc.id;
+            await db.collection('classes').doc(classId).collection('members').doc(this.currentUser.uid).set({
+                displayName: this.userDisplayName,
+                email: this.currentUser.email,
+                joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            if (!this.userClasses.includes(classId)) {
+                this.userClasses.push(classId);
+                await db.collection('users').doc(this.currentUser.uid).update({
+                    classes: firebase.firestore.FieldValue.arrayUnion(classId)
+                });
+            }
+            this.closeJoinClassModal();
+            this.updateClassBanner();
+        } catch (e) {
+            console.warn(e);
+            errDiv.textContent = 'Erreur. Réessaie.';
+        }
+    }
+
+    // ===== PROF : GESTION DES CLASSES =====
+    generateClassCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
+        for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        return code;
+    }
+
+    async createClass(name) {
+        if (!name.trim()) return;
+        const code = this.generateClassCode();
+        try {
+            const ref = await db.collection('classes').add({
+                name: name.trim(),
+                code: code,
+                profUid: this.currentUser.uid,
+                profEmail: this.currentUser.email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            this.userClasses.push(ref.id);
+            await db.collection('users').doc(this.currentUser.uid).update({
+                classes: firebase.firestore.FieldValue.arrayUnion(ref.id)
+            });
+            this.loadClasses();
+        } catch (e) {
+            console.warn('Erreur création classe :', e);
+            alert('Erreur lors de la création.');
+        }
+    }
+
+    async loadClasses() {
+        const container = document.getElementById('prof-classes-content');
+        container.innerHTML = '<div class="history-empty">Chargement...</div>';
+        try {
+            const snap = await db.collection('classes').where('profUid', '==', this.currentUser.uid).get();
+            if (snap.empty) {
+                container.innerHTML = '<div class="history-empty">Aucune classe pour le moment.<br>Crée ta première classe ci-dessous.</div>';
+                return;
+            }
+            const classes = [];
+            for (const doc of snap.docs) {
+                const membersSnap = await db.collection('classes').doc(doc.id).collection('members').get();
+                classes.push({ id: doc.id, ...doc.data(), memberCount: membersSnap.size });
+            }
+            container.innerHTML = '<div class="prof-classes-list">' + classes.map(c => `
+                <div class="prof-class-card" data-class-id="${c.id}">
+                    <div class="pcc-info">
+                        <h3>${c.name}</h3>
+                        <div class="pcc-code">Code : ${c.code}</div>
+                    </div>
+                    <div class="pcc-count">${c.memberCount} élève${c.memberCount > 1 ? 's' : ''}</div>
+                </div>
+            `).join('') + '</div>';
+            container.querySelectorAll('.prof-class-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    this._currentClassId = card.dataset.classId;
+                    this.showScreen('class-view');
+                    this.loadClassView(this._currentClassId);
+                });
+            });
+        } catch (e) {
+            console.warn(e);
+            container.innerHTML = '<div class="history-empty">Erreur de chargement.</div>';
+        }
+    }
+
+    // ===== VUE CLASSE =====
+    async loadClassView(classId) {
+        const headerDiv = document.getElementById('class-view-header');
+        const studentsDiv = document.getElementById('cv-students-content');
+        const compDiv = document.getElementById('cv-comparative-content');
+        studentsDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
+        compDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
+        try {
+            const classDoc = await db.collection('classes').doc(classId).get();
+            if (!classDoc.exists) return;
+            const cls = classDoc.data();
+            document.getElementById('class-view-title').textContent = cls.name;
+            headerDiv.innerHTML = `
+                <div class="cih-name">${cls.name}</div>
+                <div class="cih-code" title="Copier le code" onclick="navigator.clipboard.writeText('${cls.code}').then(()=>alert('Code copié !'))">${cls.code}</div>
+            `;
+            const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
+            if (membersSnap.empty) {
+                studentsDiv.innerHTML = '<div class="history-empty">Aucun élève dans cette classe.</div>';
+                compDiv.innerHTML = '<div class="history-empty">Aucun élève.</div>';
+                return;
+            }
+            const studentData = [];
+            for (const mDoc of membersSnap.docs) {
+                const uid = mDoc.id;
+                const mData = mDoc.data();
+                const sessionsSnap = await db.collection('users').doc(uid).collection('sessions')
+                    .orderBy('date', 'desc').limit(1).get();
+                let lastSession = null;
+                if (!sessionsSnap.empty) lastSession = sessionsSnap.docs[0].data();
+                studentData.push({ uid, displayName: mData.displayName || mData.email, lastSession });
+            }
+            studentData.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
+            studentsDiv.innerHTML = '<div class="student-list">' + studentData.map(st => {
+                const ls = st.lastSession;
+                const shots = ls ? (ls.totalHits || 0) + (ls.totalMisses || 0) : 0;
+                const acc = shots > 0 ? Math.round((ls.totalHits / shots) * 100) : '-';
+                return `<div class="student-card" data-student-uid="${st.uid}" data-student-name="${st.displayName}">
+                    <div class="sc-name">${st.displayName}</div>
+                    <div class="sc-stats">
+                        <div class="sc-stat"><div class="sc-val">${ls ? this.formatTime(ls.totalTime || 0) : '-'}</div><div class="sc-lbl">Temps</div></div>
+                        <div class="sc-stat"><div class="sc-val">${acc}${acc !== '-' ? '%' : ''}</div><div class="sc-lbl">Précision</div></div>
+                        <div class="sc-stat"><div class="sc-val">${ls ? (ls.averageSpeed || 0).toFixed(1) : '-'}</div><div class="sc-lbl">km/h</div></div>
+                    </div>
+                </div>`;
+            }).join('') + '</div>';
+            studentsDiv.querySelectorAll('.student-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    this._currentStudentUid = card.dataset.studentUid;
+                    const name = card.dataset.studentName;
+                    document.getElementById('student-detail-title').textContent = name;
+                    this.showScreen('student-detail');
+                    this.loadStudentSessions(this._currentStudentUid);
+                });
+            });
+            this.buildComparativeTable(classId, studentData, compDiv);
+        } catch (e) {
+            console.warn(e);
+            studentsDiv.innerHTML = '<div class="history-empty">Erreur de chargement.</div>';
+        }
+    }
+
+    async buildComparativeTable(classId, studentData, container) {
+        try {
+            const rows = [];
+            for (const st of studentData) {
+                const allSnap = await db.collection('users').doc(st.uid).collection('sessions')
+                    .orderBy('date', 'desc').get();
+                const sessions = allSnap.docs.map(d => d.data());
+                if (sessions.length === 0) {
+                    rows.push({ name: st.displayName, best: '-', avgAcc: '-', avgSpeed: '-', count: 0, evo: '-' });
+                    continue;
+                }
+                const bestTime = Math.min(...sessions.map(s => s.totalTime || Infinity));
+                const totalAcc = sessions.reduce((sum, s) => {
+                    const shots = (s.totalHits || 0) + (s.totalMisses || 0);
+                    return sum + (shots > 0 ? (s.totalHits / shots) * 100 : 0);
+                }, 0);
+                const avgAcc = Math.round(totalAcc / sessions.length);
+                const avgSpeed = (sessions.reduce((s, x) => s + (x.averageSpeed || 0), 0) / sessions.length).toFixed(1);
+                let evo = '-';
+                if (sessions.length >= 2) {
+                    const diff = (sessions[sessions.length - 1].totalTime || 0) - (sessions[0].totalTime || 0);
+                    evo = diff < 0 ? '📈' : diff > 0 ? '📉' : '➡️';
+                }
+                rows.push({ name: st.displayName, best: this.formatTime(bestTime), avgAcc: avgAcc + '%', avgSpeed, count: sessions.length, evo });
+            }
+            container.innerHTML = `<div class="comp-table-wrap"><table class="comp-table">
+                <thead><tr><th>Nom</th><th>Meilleur temps</th><th>Précision moy.</th><th>Vitesse moy.</th><th>Sessions</th><th>Évo</th></tr></thead>
+                <tbody>${rows.map(r => `<tr><td>${r.name}</td><td>${r.best}</td><td>${r.avgAcc}</td><td>${r.avgSpeed}</td><td>${r.count}</td><td>${r.evo}</td></tr>`).join('')}</tbody>
+            </table></div>`;
+        } catch (e) {
+            console.warn(e);
+            container.innerHTML = '<div class="history-empty">Erreur tableau comparatif.</div>';
+        }
+    }
+
+    // ===== DETAIL ELEVE (pour le prof) =====
+    async loadStudentSessions(uid) {
+        const sessionsDiv = document.getElementById('sd-sessions-content');
+        const evoDiv = document.getElementById('sd-evolution-content');
+        sessionsDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
+        evoDiv.innerHTML = '';
+        try {
+            const snap = await db.collection('users').doc(uid).collection('sessions')
+                .orderBy('date', 'desc').get();
+            if (snap.empty) {
+                sessionsDiv.innerHTML = '<div class="history-empty">Aucune session enregistrée.</div>';
+                return;
+            }
+            this._studentSessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            sessionsDiv.innerHTML = '<div class="history-list">' + this._studentSessions.map((s, i) => {
+                const date = s.date ? new Date(s.date.seconds * 1000) : null;
+                const dateStr = date ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+                const shots = (s.totalHits || 0) + (s.totalMisses || 0);
+                const acc = shots > 0 ? Math.round((s.totalHits / shots) * 100) : 0;
+                return `<div class="history-card" data-sd-index="${i}">
+                    <div class="hc-date">${dateStr}</div>
+                    <div class="hc-stats">
+                        <div class="hc-stat"><span class="hc-val">${this.formatTime(s.totalTime || 0)}</span><span class="hc-lbl">Temps</span></div>
+                        <div class="hc-stat"><span class="hc-val">${acc}%</span><span class="hc-lbl">Précision</span></div>
+                        <div class="hc-stat"><span class="hc-val">${(s.averageSpeed || 0).toFixed(1)}</span><span class="hc-lbl">km/h</span></div>
+                    </div>
+                </div>`;
+            }).join('') + '</div>';
+            sessionsDiv.querySelectorAll('.history-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const idx = parseInt(card.dataset.sdIndex);
+                    this.showStudentSessionDetail(idx);
+                });
+            });
+        } catch (e) {
+            console.warn(e);
+            sessionsDiv.innerHTML = '<div class="history-empty">Erreur de chargement.</div>';
+        }
+    }
+
+    showStudentSessionDetail(index) {
+        const s = this._studentSessions[index];
+        if (!s) return;
+        const prevS = index + 1 < this._studentSessions.length ? this._studentSessions[index + 1] : null;
+        const totalShots = (s.totalHits || 0) + (s.totalMisses || 0);
+        const accuracy = totalShots > 0 ? Math.round((s.totalHits / totalShots) * 100) : 0;
+        const date = s.date ? new Date(s.date.seconds * 1000) : null;
+        const dateStr = date ? date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+        let compHtml = '';
+        if (prevS) {
+            const prevShots = (prevS.totalHits || 0) + (prevS.totalMisses || 0);
+            const prevAcc = prevShots > 0 ? Math.round((prevS.totalHits / prevShots) * 100) : 0;
+            const timeDiff = (s.totalTime || 0) - (prevS.totalTime || 0);
+            const accDiff = accuracy - prevAcc;
+            const arr = (v) => v < 0 ? '↓' : v > 0 ? '↑' : '=';
+            const cls = (v, inv) => { const d = inv ? -v : v; return d < 0 ? 'evo-down' : d > 0 ? 'evo-up' : ''; };
+            compHtml = `<div class="detail-comparison"><h4>vs session précédente</h4><div class="hc-stats">
+                <div class="hc-stat"><span class="hc-val ${cls(timeDiff, true)}">${arr(-timeDiff)} ${Math.abs(timeDiff).toFixed(1)}s</span><span class="hc-lbl">Temps</span></div>
+                <div class="hc-stat"><span class="hc-val ${cls(accDiff, false)}">${arr(accDiff)} ${Math.abs(accDiff)}%</span><span class="hc-lbl">Précision</span></div>
+            </div></div>`;
+        }
+
+        let timelineHtml = '';
+        if (s.lapTimes && s.lapTimes.length > 0) {
+            timelineHtml = '<div class="detail-timeline"><h4>Chronologie</h4>' + s.lapTimes.map(l => {
+                const icon = l.type === 'running' ? '🏃' : '🎯';
+                const label = l.type === 'running' ? `Course ${l.number}` : `Tir ${l.number}`;
+                return `<div class="timeline-item"><span class="ti-icon">${icon}</span><span class="ti-label">${label}</span><span class="ti-val">${this.formatTime(l.duration || 0)}</span></div>`;
+            }).join('') + '</div>';
+        }
+
+        const content = document.getElementById('sd-sessions-content');
+        content.innerHTML = `
+            <button class="back-button" id="sd-back-to-list" style="margin-bottom:12px;">← Retour</button>
+            <div class="detail-summary"><h3>${dateStr}</h3>
+                <div class="hc-stats" style="margin:12px 0;">
+                    <div class="hc-stat"><span class="hc-val">${this.formatTime(s.totalTime || 0)}</span><span class="hc-lbl">Temps</span></div>
+                    <div class="hc-stat"><span class="hc-val">${accuracy}%</span><span class="hc-lbl">Précision</span></div>
+                    <div class="hc-stat"><span class="hc-val">${(s.averageSpeed || 0).toFixed(1)}</span><span class="hc-lbl">km/h</span></div>
+                    <div class="hc-stat"><span class="hc-val">${s.totalHits || 0}/${totalShots}</span><span class="hc-lbl">Tirs</span></div>
+                </div>
+            </div>
+            ${compHtml}
+            ${timelineHtml}
+        `;
+        document.getElementById('sd-back-to-list').addEventListener('click', () => {
+            this.loadStudentSessions(this._currentStudentUid);
+        });
+    }
+
+    loadStudentEvolutionCharts() {
+        const container = document.getElementById('sd-evolution-content');
+        if (!this._studentSessions || this._studentSessions.length < 2) {
+            container.innerHTML = '<div class="history-empty">Il faut au moins 2 sessions pour voir l\'évolution.</div>';
+            return;
+        }
+        const sessions = [...this._studentSessions].reverse();
+        const labels = sessions.map((s, i) => {
+            const d = s.date ? new Date(s.date.seconds * 1000) : null;
+            return d ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : `#${i + 1}`;
+        });
+        const makeChart = (id, label, data, color) => {
+            const existing = Chart.getChart(id);
+            if (existing) existing.destroy();
+            new Chart(document.getElementById(id), {
+                type: 'line',
+                data: { labels, datasets: [{ label, data, borderColor: color, backgroundColor: color + '22', fill: true, tension: 0.3, pointRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        };
+        container.innerHTML = `<div class="charts-grid">
+            <div class="chart-card"><h4>Temps total</h4><div style="height:200px"><canvas id="sd-chart-time"></canvas></div></div>
+            <div class="chart-card"><h4>Précision</h4><div style="height:200px"><canvas id="sd-chart-acc"></canvas></div></div>
+            <div class="chart-card"><h4>Vitesse moyenne</h4><div style="height:200px"><canvas id="sd-chart-speed"></canvas></div></div>
+        </div>`;
+        makeChart('sd-chart-time', 'Temps (s)', sessions.map(s => s.totalTime || 0), '#667eea');
+        makeChart('sd-chart-acc', 'Précision (%)', sessions.map(s => {
+            const shots = (s.totalHits || 0) + (s.totalMisses || 0);
+            return shots > 0 ? Math.round((s.totalHits / shots) * 100) : 0;
+        }), '#28a745');
+        makeChart('sd-chart-speed', 'km/h', sessions.map(s => s.averageSpeed || 0), '#fd7e14');
     }
 
     displayResults() {
