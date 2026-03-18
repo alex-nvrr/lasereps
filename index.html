@@ -1900,7 +1900,9 @@ body {
     padding: 4px;
     margin-bottom: 20px;
 }
-.history-tab {
+.history-tab,
+.cv-tab,
+.sd-tab {
     flex: 1;
     padding: 12px 16px;
     border: none;
@@ -1913,10 +1915,14 @@ body {
     transition: all 0.3s ease;
     min-height: 44px;
 }
-.history-tab:active {
+.history-tab:active,
+.cv-tab:active,
+.sd-tab:active {
     transform: scale(0.96);
 }
-.history-tab.active {
+.history-tab.active,
+.cv-tab.active,
+.sd-tab.active {
     background: white;
     color: #667eea;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
@@ -2456,6 +2462,106 @@ body {
 }
 .comp-table tr:last-child td { border-bottom: none; }
 .comp-table tr:nth-child(even) td { background: #fafafa; }
+
+/* ===== Comparatif session (fenêtre +/-5 min) ===== */
+.cv-controls {
+    background: rgba(255,255,255,0.55);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    margin-bottom: 14px;
+}
+.cv-controls-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    margin-top: 8px;
+}
+.cv-controls-help {
+    color: #888;
+    font-size: 0.85rem;
+    margin-top: 6px;
+}
+
+.comp-session-compare-head {
+    color: #333;
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-align: center;
+}
+.comp-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.comp-metric-card {
+    background: white;
+    border-radius: 14px;
+    padding: 12px 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+.comp-metric-title {
+    font-weight: 800;
+    color: #667eea;
+    margin-bottom: 8px;
+}
+.comp-metric-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.rank-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    background: rgba(102,126,234,0.06);
+}
+.rank-num {
+    width: 26px;
+    text-align: center;
+    font-weight: 900;
+    color: #667eea;
+}
+.rank-name {
+    flex: 1;
+    color: #333;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.rank-val {
+    font-weight: 900;
+    color: #333;
+    text-align: right;
+}
+
+.compare-sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.compare-session-card {
+    background: white;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.03);
+}
+.compare-session-card:active {
+    transform: scale(0.99);
+}
+
+@media (max-width: 480px) {
+    .comp-metrics-grid { grid-template-columns: 1fr; }
+}
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -2590,6 +2696,19 @@ body {
                     <div id="cv-students-content"><div class="history-empty">Chargement...</div></div>
                 </div>
                 <div id="cv-panel-comparative" class="history-panel">
+                    <div id="cv-comparative-controls" class="cv-controls">
+                        <div style="font-weight:700;color:#333;margin-bottom:6px;">Comparer la séance</div>
+                        <div class="cv-controls-row">
+                            <input
+                                type="datetime-local"
+                                id="class-session-datetime"
+                                style="flex:1;min-width:0;"
+                            >
+                            <button id="class-compare-btn" class="action-btn btn-new" style="flex-shrink:0;">Mettre à jour</button>
+                        </div>
+                        <div class="cv-controls-help">Classement basé sur la session la plus proche dans une fenêtre +/- 5 min.</div>
+                        <datalist id="class-session-datetime-list"></datalist>
+                    </div>
                     <div id="cv-comparative-content"><div class="history-empty">Chargement...</div></div>
                 </div>
             </div>
@@ -2855,6 +2974,9 @@ class LaserEPSApp {
         this._currentClassId = null;
         this._currentStudentUid = null;
         this._studentSessions = [];
+        this._classCompareSessionsByStudent = {};
+        this._classCompareMembers = [];
+        this._cvSelectedDateTime = null;
         this.initAuth();
     }
 
@@ -3111,6 +3233,11 @@ class LaserEPSApp {
             });
         });
 
+        document.getElementById('class-compare-btn').addEventListener('click', () => {
+            if (!this._currentClassId) return;
+            this.buildClassSessionCompare(this._currentClassId);
+        });
+
         // Retour depuis détail élève
         document.getElementById('back-to-class-view').addEventListener('click', () => {
             this.showScreen('class-view');
@@ -3142,6 +3269,10 @@ class LaserEPSApp {
             const target = this._detailReturnTo && this._detailReturnTo.screen ? this._detailReturnTo.screen : 'history';
             if (target === 'student-detail') {
                 this.showScreen('student-detail');
+            } else if (target === 'class-view') {
+                this.showScreen('class-view');
+                const clsId = this._detailReturnTo && this._detailReturnTo.classId ? this._detailReturnTo.classId : this._currentClassId;
+                if (clsId) this.loadClassView(clsId);
             } else {
                 this.showScreen('history');
             }
@@ -3909,6 +4040,25 @@ class LaserEPSApp {
         return null;
     }
 
+    dateToDatetimeLocalValue(date) {
+        if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+        // Format for <input type="datetime-local"> in local time.
+        const pad = (n) => String(n).padStart(2, '0');
+        const yyyy = date.getFullYear();
+        const mm = pad(date.getMonth() + 1);
+        const dd = pad(date.getDate());
+        const hh = pad(date.getHours());
+        const mi = pad(date.getMinutes());
+        return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    }
+
+    datetimeLocalValueToDate(value) {
+        if (!value) return null;
+        // value is like "YYYY-MM-DDTHH:mm" in local time; Date(...) parses it as local in modern browsers.
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
     async fetchSessionsForUid(uid, limit = 50) {
         const snap = await db.collection('users').doc(uid)
             .collection('sessions')
@@ -4350,9 +4500,14 @@ class LaserEPSApp {
         const headerDiv = document.getElementById('class-view-header');
         const studentsDiv = document.getElementById('cv-students-content');
         const compDiv = document.getElementById('cv-comparative-content');
+        const datalistEl = document.getElementById('class-session-datetime-list');
+        const datetimeInputEl = document.getElementById('class-session-datetime');
         studentsDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
         compDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
         try {
+            this._currentClassId = classId;
+            this._classCompareSessionsByStudent = {};
+            this._classCompareMembers = [];
             const classDoc = await db.collection('classes').doc(classId).get();
             if (!classDoc.exists) return;
             const cls = classDoc.data();
@@ -4368,19 +4523,22 @@ class LaserEPSApp {
                 return;
             }
             const studentData = [];
+            const candidateMinutes = new Map(); // key(datetime-local value) -> timeMs
             for (const mDoc of membersSnap.docs) {
                 const uid = mDoc.id;
                 const mData = mDoc.data();
-                const sessionsSnap = await db.collection('users').doc(uid).collection('sessions')
-                    .orderBy('date', 'desc').limit(1).get();
-                let lastSession = null;
-                if (!sessionsSnap.empty) {
-                    const raw = sessionsSnap.docs[0].data();
-                    lastSession = {
-                        ...raw,
-                        date: this.normalizeFirestoreDate(raw.date)
-                    };
+                const sessions = await this.fetchSessionsForUid(uid, 50);
+                this._classCompareSessionsByStudent[uid] = sessions;
+                const lastSession = sessions && sessions.length ? sessions[0] : null;
+
+                // Prepare candidate datetime options (rounded to minute through datetime-local formatting).
+                for (const s of sessions) {
+                    if (!s.date) continue;
+                    const key = this.dateToDatetimeLocalValue(s.date);
+                    if (!key) continue;
+                    if (!candidateMinutes.has(key)) candidateMinutes.set(key, s.date.getTime());
                 }
+
                 studentData.push({
                     uid,
                     displayName: mData.displayName || (lastSession && lastSession.displayName) || mData.email,
@@ -4388,6 +4546,8 @@ class LaserEPSApp {
                 });
             }
             studentData.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
+            this._classCompareMembers = studentData;
+
             studentsDiv.innerHTML = '<div class="student-list">' + studentData.map(st => {
                 const ls = st.lastSession;
                 const acc = ls ? this.computeAccuracyPercent(ls) : '-';
@@ -4409,45 +4569,190 @@ class LaserEPSApp {
                     this.loadStudentSessions(this._currentStudentUid);
                 });
             });
-            this.buildComparativeTable(classId, studentData, compDiv);
+
+            // Fill datetime picker list + default selection
+            const sortedKeys = [...candidateMinutes.keys()].sort((a, b) => candidateMinutes.get(b) - candidateMinutes.get(a));
+            const limitedKeys = sortedKeys.slice(0, 30);
+            if (datalistEl) {
+                datalistEl.innerHTML = limitedKeys.map(k => `<option value="${k}"></option>`).join('');
+            }
+            if (datetimeInputEl) {
+                datetimeInputEl.value = limitedKeys.length ? limitedKeys[0] : '';
+            }
+
+            // Render comparatif for the default datetime
+            await this.buildClassSessionCompare(classId);
         } catch (e) {
             console.warn(e);
             studentsDiv.innerHTML = '<div class="history-empty">Erreur de chargement.</div>';
         }
     }
 
-    async buildComparativeTable(classId, studentData, container) {
+    async buildClassSessionCompare(classId) {
+        const container = document.getElementById('cv-comparative-content');
+        if (!container) return;
+
+        container.innerHTML = '<div class="history-empty">Chargement...</div>';
+
+        const inputEl = document.getElementById('class-session-datetime');
+        const targetDate = this.datetimeLocalValueToDate(inputEl ? inputEl.value : '');
+        if (!targetDate) {
+            container.innerHTML = '<div class="history-empty">Choisis une date/heure de séance.</div>';
+            return;
+        }
+
+        const targetMs = targetDate.getTime();
+        const windowMs = 5 * 60 * 1000;
+
         try {
-            const rows = [];
-            for (const st of studentData) {
-                const allSnap = await db.collection('users').doc(st.uid).collection('sessions')
-                    .orderBy('date', 'desc').get();
-                const sessions = allSnap.docs.map(d => d.data());
-                if (sessions.length === 0) {
-                    rows.push({ name: st.displayName, best: '-', avgAcc: '-', avgSpeed: '-', count: 0, evo: '-' });
-                    continue;
-                }
-                const bestTime = Math.min(...sessions.map(s => s.totalTime || Infinity));
-                const totalAcc = sessions.reduce((sum, s) => {
-                    const shots = (s.totalHits || 0) + (s.totalMisses || 0);
-                    return sum + (shots > 0 ? (s.totalHits / shots) * 100 : 0);
-                }, 0);
-                const avgAcc = Math.round(totalAcc / sessions.length);
-                const avgSpeed = (sessions.reduce((s, x) => s + (x.averageSpeed || 0), 0) / sessions.length).toFixed(1);
-                let evo = '-';
-                if (sessions.length >= 2) {
-                    const diff = (sessions[sessions.length - 1].totalTime || 0) - (sessions[0].totalTime || 0);
-                    evo = diff < 0 ? '📈' : diff > 0 ? '📉' : '➡️';
-                }
-                rows.push({ name: st.displayName, best: this.formatTime(bestTime), avgAcc: avgAcc + '%', avgSpeed, count: sessions.length, evo });
+            const members = this._classCompareMembers || [];
+            if (!members.length) {
+                container.innerHTML = '<div class="history-empty">Aucun élève.</div>';
+                return;
             }
-            container.innerHTML = `<div class="comp-table-wrap"><table class="comp-table">
-                <thead><tr><th>Nom</th><th>Meilleur temps</th><th>Précision moy.</th><th>Vitesse moy.</th><th>Sessions</th><th>Évo</th></tr></thead>
-                <tbody>${rows.map(r => `<tr><td>${r.name}</td><td>${r.best}</td><td>${r.avgAcc}</td><td>${r.avgSpeed}</td><td>${r.count}</td><td>${r.evo}</td></tr>`).join('')}</tbody>
-            </table></div>`;
+
+            // Pick 1 nearest session per student inside +/-5 minutes window
+            const selectedEntries = [];
+            for (const m of members) {
+                const sessions = this._classCompareSessionsByStudent[m.uid] || [];
+                if (!sessions.length) continue;
+
+                let best = null;
+                let bestDiff = Infinity;
+                for (const s of sessions) {
+                    if (!s.date) continue;
+                    const diff = Math.abs(s.date.getTime() - targetMs);
+                    if (diff > windowMs) continue;
+                    if (diff < bestDiff) {
+                        bestDiff = diff;
+                        best = s;
+                    }
+                }
+
+                if (best) {
+                    selectedEntries.push({ uid: m.uid, displayName: m.displayName, session: best, diffMs: bestDiff });
+                }
+            }
+
+            if (!selectedEntries.length) {
+                const d = targetDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                container.innerHTML = `<div class="history-empty">Aucune session trouvée autour de ${d} (±5 min).</div>`;
+                return;
+            }
+
+            const accuracyOf = (s) => this.computeAccuracyPercent(s);
+
+            const metrics = [
+                {
+                    key: 'totalTime',
+                    title: 'Temps total',
+                    sort: (a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0),
+                    format: (s) => this.formatTime(s.totalTime || 0)
+                },
+                {
+                    key: 'totalShootingTime',
+                    title: 'Temps de tir',
+                    sort: (a, b) => (a.session.totalShootingTime || 0) - (b.session.totalShootingTime || 0),
+                    format: (s) => this.formatTime(s.totalShootingTime || 0)
+                },
+                {
+                    key: 'totalRunningTime',
+                    title: 'Temps de course',
+                    sort: (a, b) => (a.session.totalRunningTime || 0) - (b.session.totalRunningTime || 0),
+                    format: (s) => this.formatTime(s.totalRunningTime || 0)
+                },
+                {
+                    key: 'accuracy',
+                    title: 'Précision',
+                    sort: (a, b) => accuracyOf(b.session) - accuracyOf(a.session),
+                    format: (s) => `${accuracyOf(s)}%`
+                },
+                {
+                    key: 'averageSpeed',
+                    title: 'Vitesse moyenne (km/h)',
+                    sort: (a, b) => (b.session.averageSpeed || 0) - (a.session.averageSpeed || 0),
+                    format: (s) => `${(s.averageSpeed || 0).toFixed(1)}`
+                }
+            ];
+
+            const dateLabel = targetDate.toLocaleString('fr-FR', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const metricCards = metrics.map(metric => {
+                const sorted = [...selectedEntries].sort(metric.sort);
+                const rows = sorted.map((e, idx) => {
+                    const val = metric.format(e.session);
+                    return `<div class="rank-row">
+                        <span class="rank-num">${idx + 1}</span>
+                        <span class="rank-name">${e.displayName}</span>
+                        <span class="rank-val">${val}</span>
+                    </div>`;
+                }).join('');
+                return `
+                    <div class="comp-metric-card">
+                        <div class="comp-metric-title">${metric.title}</div>
+                        <div class="comp-metric-rows">${rows}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const sessionCards = [...selectedEntries]
+                .sort((a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0))
+                .map((e, idx) => {
+                    const s = e.session;
+                    const d = s.date ? s.date.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+                    const acc = accuracyOf(s);
+                    return `
+                        <div class="compare-session-card clickable"
+                            data-compare-student-uid="${e.uid}"
+                            data-compare-session-id="${s.id}">
+                            <div style="font-weight:700;color:#333;">${e.displayName}</div>
+                            <div style="color:#888;font-size:0.85rem;margin-top:2px;">${d}</div>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;align-items:center;">
+                                <div><span style="color:#667eea;font-weight:800;">${this.formatTime(s.totalTime || 0)}</span><div style="color:#888;font-size:0.75rem;">Temps total</div></div>
+                                <div><span style="color:#28a745;font-weight:800;">${acc}%</span><div style="color:#888;font-size:0.75rem;">Précision</div></div>
+                                <div><span style="color:#fd7e14;font-weight:800;">${(s.averageSpeed || 0).toFixed(1)}</span><div style="color:#888;font-size:0.75rem;">km/h</div></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            container.innerHTML = `
+                <div class="comp-session-compare-head">
+                    Séance sélectionnée: <b>${dateLabel}</b> <span style="color:#888;">(fenêtre ±5 min)</span>
+                </div>
+                <div class="comp-metrics-grid">${metricCards}</div>
+                <div style="margin-top:16px;">
+                    <div style="font-weight:800;color:#333;margin-bottom:10px;">Sessions de la fenêtre (clic pour détail)</div>
+                    <div class="compare-sessions-list">${sessionCards}</div>
+                </div>
+            `;
+
+            container.querySelectorAll('.compare-session-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const studentUid = card.dataset.compareStudentUid;
+                    const sessionId = card.dataset.compareSessionId;
+                    if (!studentUid || !sessionId) return;
+                    const sessions = this._classCompareSessionsByStudent[studentUid] || [];
+                    if (!sessions.length) return;
+
+                    const idx = sessions.findIndex(s => s.id === sessionId);
+                    const safeIdx = idx >= 0 ? idx : 0;
+                    this._historySessions = sessions;
+                    this._detailOwnerUid = studentUid;
+                    this._detailReturnTo = { screen: 'class-view', classId };
+                    this._currentStudentUid = studentUid;
+                    this.showSessionDetail(safeIdx);
+                });
+            });
         } catch (e) {
             console.warn(e);
-            container.innerHTML = '<div class="history-empty">Erreur tableau comparatif.</div>';
+            container.innerHTML = '<div class="history-empty">Erreur du comparatif.</div>';
         }
     }
 
