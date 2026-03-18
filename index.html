@@ -3139,7 +3139,12 @@ class LaserEPSApp {
         });
 
         document.getElementById('back-to-history').addEventListener('click', () => {
-            this.showScreen('history');
+            const target = this._detailReturnTo && this._detailReturnTo.screen ? this._detailReturnTo.screen : 'history';
+            if (target === 'student-detail') {
+                this.showScreen('student-detail');
+            } else {
+                this.showScreen('history');
+            }
         });
 
         // Onglets historique (scoped to history-screen)
@@ -3874,72 +3879,21 @@ class LaserEPSApp {
         }
         container.innerHTML = '<div class="history-empty">Chargement...</div>';
         try {
-            const snap = await db.collection('users').doc(this.currentUser.uid)
-                .collection('sessions')
-                .orderBy('date', 'desc')
-                .limit(50)
-                .get();
-
-            if (snap.empty) {
+            const sessions = await this.fetchSessionsForUid(this.currentUser.uid, 50);
+            if (!sessions.length) {
                 container.innerHTML = '<div class="history-empty">Aucune session enregistrée.<br>Fais une course pour commencer !</div>';
                 return;
             }
-
-            this._historySessions = [];
-            snap.forEach(doc => this._historySessions.push({ id: doc.id, ...doc.data() }));
-
-            let html = '<div class="history-list">';
-            this._historySessions.forEach((s, i) => {
-                const d = s.date ? s.date.toDate() : new Date();
-                const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                const totalShots = (s.totalHits || 0) + (s.totalMisses || 0);
-                const accuracy = totalShots > 0 ? Math.round((s.totalHits / totalShots) * 100) : 0;
-
-                let evoHtml = '';
-                if (i < this._historySessions.length - 1) {
-                    const prev = this._historySessions[i + 1];
-                    const diff = (prev.totalTime || 0) - (s.totalTime || 0);
-                    if (diff > 0.5) {
-                        evoHtml = `<span class="history-evolution evolution-better">-${this.formatTime(diff)}</span>`;
-                    } else if (diff < -0.5) {
-                        evoHtml = `<span class="history-evolution evolution-worse">+${this.formatTime(Math.abs(diff))}</span>`;
-                    } else {
-                        evoHtml = `<span class="history-evolution evolution-same">=</span>`;
-                    }
-                }
-
-                html += `
-                <div class="history-card clickable" data-session-index="${i}">
-                    <div style="flex:1;">
-                        <div class="history-date">${dateStr}</div>
-                        <div style="color:#888;font-size:0.85rem;">${s.numberOfShootings || '?'} tirs - ${s.totalDistance || '?'}m</div>
-                    </div>
-                    <div class="history-stats">
-                        <div class="history-stat">
-                            <div class="stat-val">${this.formatTime(s.totalTime || 0)}</div>
-                            <div class="stat-lbl">Temps</div>
-                        </div>
-                        <div class="history-stat">
-                            <div class="stat-val">${accuracy}%</div>
-                            <div class="stat-lbl">Précision</div>
-                        </div>
-                        <div class="history-stat">
-                            <div class="stat-val">${(s.averageSpeed || 0).toFixed(1)}</div>
-                            <div class="stat-lbl">km/h</div>
-                        </div>
-                        ${evoHtml ? `<div class="history-stat">${evoHtml}<div class="stat-lbl">Évolution</div></div>` : ''}
-                    </div>
-                    <span class="card-arrow">›</span>
-                </div>`;
-            });
-            html += '</div>';
-            container.innerHTML = html;
-
-            container.querySelectorAll('.history-card.clickable').forEach(card => {
-                card.addEventListener('click', () => {
-                    const idx = parseInt(card.dataset.sessionIndex);
+            this._historySessions = sessions;
+            this._detailReturnTo = { screen: 'history' };
+            this.renderSessionCards({
+                sessions: this._historySessions,
+                containerEl: container,
+                onClick: (idx) => {
+                    this._detailReturnTo = { screen: 'history' };
+                    this._detailOwnerUid = this.currentUser.uid;
                     this.showSessionDetail(idx);
-                });
+                }
             });
         } catch (e) {
             console.warn('Erreur chargement historique :', e);
@@ -3947,12 +3901,96 @@ class LaserEPSApp {
         }
     }
 
+    normalizeFirestoreDate(value) {
+        if (!value) return null;
+        if (typeof value.toDate === 'function') return value.toDate();
+        if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+        if (value instanceof Date) return value;
+        return null;
+    }
+
+    async fetchSessionsForUid(uid, limit = 50) {
+        const snap = await db.collection('users').doc(uid)
+            .collection('sessions')
+            .orderBy('date', 'desc')
+            .limit(limit)
+            .get();
+        if (snap.empty) return [];
+        return snap.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                date: this.normalizeFirestoreDate(data.date)
+            };
+        });
+    }
+
+    computeAccuracyPercent(session) {
+        const totalShots = (session.totalHits || 0) + (session.totalMisses || 0);
+        return totalShots > 0 ? Math.round(((session.totalHits || 0) / totalShots) * 100) : 0;
+    }
+
+    renderSessionCards({ sessions, containerEl, onClick }) {
+        let html = '<div class="history-list">';
+        sessions.forEach((s, i) => {
+            const d = s.date || new Date();
+            const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const accuracy = this.computeAccuracyPercent(s);
+
+            let evoHtml = '';
+            if (i < sessions.length - 1) {
+                const prev = sessions[i + 1];
+                const diff = (prev.totalTime || 0) - (s.totalTime || 0);
+                if (diff > 0.5) {
+                    evoHtml = `<span class="history-evolution evolution-better">-${this.formatTime(diff)}</span>`;
+                } else if (diff < -0.5) {
+                    evoHtml = `<span class="history-evolution evolution-worse">+${this.formatTime(Math.abs(diff))}</span>`;
+                } else {
+                    evoHtml = `<span class="history-evolution evolution-same">=</span>`;
+                }
+            }
+
+            html += `
+            <div class="history-card clickable" data-session-index="${i}">
+                <div style="flex:1;">
+                    <div class="history-date">${dateStr}</div>
+                    <div style="color:#888;font-size:0.85rem;">${s.numberOfShootings || '?'} tirs - ${s.totalDistance || '?'}m</div>
+                </div>
+                <div class="history-stats">
+                    <div class="history-stat">
+                        <div class="stat-val">${this.formatTime(s.totalTime || 0)}</div>
+                        <div class="stat-lbl">Temps</div>
+                    </div>
+                    <div class="history-stat">
+                        <div class="stat-val">${accuracy}%</div>
+                        <div class="stat-lbl">Précision</div>
+                    </div>
+                    <div class="history-stat">
+                        <div class="stat-val">${(s.averageSpeed || 0).toFixed(1)}</div>
+                        <div class="stat-lbl">km/h</div>
+                    </div>
+                    ${evoHtml ? `<div class="history-stat">${evoHtml}<div class="stat-lbl">Évolution</div></div>` : ''}
+                </div>
+                <span class="card-arrow">›</span>
+            </div>`;
+        });
+        html += '</div>';
+        containerEl.innerHTML = html;
+        containerEl.querySelectorAll('.history-card.clickable').forEach(card => {
+            card.addEventListener('click', () => {
+                const idx = parseInt(card.dataset.sessionIndex);
+                onClick(idx);
+            });
+        });
+    }
+
     showSessionDetail(index) {
         const s = this._historySessions[index];
         const prev = index < this._historySessions.length - 1 ? this._historySessions[index + 1] : null;
         if (!s) return;
 
-        const d = s.date ? s.date.toDate() : new Date();
+        const d = s.date ? (s.date instanceof Date ? s.date : (typeof s.date.toDate === 'function' ? s.date.toDate() : new Date(s.date))) : new Date();
         const dateStr = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         const totalShots = (s.totalHits || 0) + (s.totalMisses || 0);
         const accuracy = totalShots > 0 ? Math.round((s.totalHits / totalShots) * 100) : 0;
@@ -4043,6 +4081,12 @@ class LaserEPSApp {
         html += '</div>';
         document.getElementById('session-detail-content').innerHTML = html;
         this._currentDetailIndex = index;
+
+        // Vue prof: pas de suppression de session d'élève
+        const deleteBtn = document.getElementById('delete-session-btn');
+        const viewingOtherUser = this._detailOwnerUid && this.currentUser && this._detailOwnerUid !== this.currentUser.uid;
+        deleteBtn.style.display = viewingOtherUser ? 'none' : 'inline-flex';
+
         this.showScreen('session-detail');
     }
 
@@ -4330,14 +4374,23 @@ class LaserEPSApp {
                 const sessionsSnap = await db.collection('users').doc(uid).collection('sessions')
                     .orderBy('date', 'desc').limit(1).get();
                 let lastSession = null;
-                if (!sessionsSnap.empty) lastSession = sessionsSnap.docs[0].data();
-                studentData.push({ uid, displayName: mData.displayName || mData.email, lastSession });
+                if (!sessionsSnap.empty) {
+                    const raw = sessionsSnap.docs[0].data();
+                    lastSession = {
+                        ...raw,
+                        date: this.normalizeFirestoreDate(raw.date)
+                    };
+                }
+                studentData.push({
+                    uid,
+                    displayName: mData.displayName || (lastSession && lastSession.displayName) || mData.email,
+                    lastSession
+                });
             }
             studentData.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
             studentsDiv.innerHTML = '<div class="student-list">' + studentData.map(st => {
                 const ls = st.lastSession;
-                const shots = ls ? (ls.totalHits || 0) + (ls.totalMisses || 0) : 0;
-                const acc = shots > 0 ? Math.round((ls.totalHits / shots) * 100) : '-';
+                const acc = ls ? this.computeAccuracyPercent(ls) : '-';
                 return `<div class="student-card" data-student-uid="${st.uid}" data-student-name="${st.displayName}">
                     <div class="sc-name">${st.displayName}</div>
                     <div class="sc-stats">
@@ -4405,32 +4458,21 @@ class LaserEPSApp {
         sessionsDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
         evoDiv.innerHTML = '';
         try {
-            const snap = await db.collection('users').doc(uid).collection('sessions')
-                .orderBy('date', 'desc').get();
-            if (snap.empty) {
+            const sessions = await this.fetchSessionsForUid(uid, 50);
+            if (!sessions.length) {
                 sessionsDiv.innerHTML = '<div class="history-empty">Aucune session enregistrée.</div>';
                 return;
             }
-            this._studentSessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            sessionsDiv.innerHTML = '<div class="history-list">' + this._studentSessions.map((s, i) => {
-                const date = s.date ? new Date(s.date.seconds * 1000) : null;
-                const dateStr = date ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-                const shots = (s.totalHits || 0) + (s.totalMisses || 0);
-                const acc = shots > 0 ? Math.round((s.totalHits / shots) * 100) : 0;
-                return `<div class="history-card" data-sd-index="${i}">
-                    <div class="hc-date">${dateStr}</div>
-                    <div class="hc-stats">
-                        <div class="hc-stat"><span class="hc-val">${this.formatTime(s.totalTime || 0)}</span><span class="hc-lbl">Temps</span></div>
-                        <div class="hc-stat"><span class="hc-val">${acc}%</span><span class="hc-lbl">Précision</span></div>
-                        <div class="hc-stat"><span class="hc-val">${(s.averageSpeed || 0).toFixed(1)}</span><span class="hc-lbl">km/h</span></div>
-                    </div>
-                </div>`;
-            }).join('') + '</div>';
-            sessionsDiv.querySelectorAll('.history-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const idx = parseInt(card.dataset.sdIndex);
-                    this.showStudentSessionDetail(idx);
-                });
+            this._studentSessions = sessions;
+            this._historySessions = sessions; // réutilise le détail élève
+            this.renderSessionCards({
+                sessions: this._studentSessions,
+                containerEl: sessionsDiv,
+                onClick: (idx) => {
+                    this._detailReturnTo = { screen: 'student-detail' };
+                    this._detailOwnerUid = uid;
+                    this.showSessionDetail(idx);
+                }
             });
         } catch (e) {
             console.warn(e);
