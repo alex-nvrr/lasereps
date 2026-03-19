@@ -2463,28 +2463,6 @@ body {
 .comp-table tr:last-child td { border-bottom: none; }
 .comp-table tr:nth-child(even) td { background: #fafafa; }
 
-/* ===== Comparatif session (fenêtre +/-5 min) ===== */
-.cv-controls {
-    background: rgba(255,255,255,0.55);
-    border: 1px solid rgba(0,0,0,0.06);
-    border-radius: 14px;
-    padding: 12px 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    margin-bottom: 14px;
-}
-.cv-controls-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    width: 100%;
-    margin-top: 8px;
-}
-.cv-controls-help {
-    color: #888;
-    font-size: 0.85rem;
-    margin-top: 6px;
-}
-
 .comp-session-compare-head {
     color: #333;
     font-weight: 700;
@@ -2562,6 +2540,65 @@ body {
 @media (max-width: 480px) {
     .comp-metrics-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== Seance cards (prof) ===== */
+.seance-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    -webkit-tap-highlight-color: transparent;
+    margin-bottom: 10px;
+}
+.seance-card:active { transform: scale(0.98); }
+.seance-card .sc-info h3 { color: #333; font-size: 1rem; margin-bottom: 2px; }
+.seance-card .sc-info .sc-code { color: #667eea; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+.seance-card .sc-info .sc-date { color: #888; font-size: 0.8rem; }
+.seance-card .sc-badge { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+.seance-rename-btn {
+    background: none;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    color: #888;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    margin-left: 6px;
+}
+.seance-rename-btn:active { background: #f0f0f0; }
+
+/* ===== Bandeau séance active (élève) ===== */
+.seance-banner {
+    background: rgba(40,167,69,0.15);
+    border: 1px solid rgba(40,167,69,0.3);
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.seance-banner .seance-info { color: #28a745; font-weight: 600; font-size: 0.95rem; }
+.seance-banner .seance-code-lbl { color: rgba(40,167,69,0.7); font-size: 0.8rem; }
+.quit-seance-btn {
+    background: rgba(220,53,69,0.12);
+    border: 1px solid rgba(220,53,69,0.3);
+    color: #dc3545;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -2627,14 +2664,15 @@ body {
                     <h1>LaserEPS</h1>
                     <p>Mode Compétition</p>
                 </div>
-                <div id="class-banner" class="class-banner" style="display:none;">
+                <div id="seance-active-banner" class="seance-banner" style="display:none;">
                     <div>
-                        <span id="class-banner-name" class="class-name"></span>
-                        <span id="class-banner-code" class="class-code"></span>
+                        <div class="seance-info" id="seance-banner-name"></div>
+                        <div class="seance-code-lbl" id="seance-banner-code"></div>
                     </div>
+                    <button id="quit-seance-btn" class="quit-seance-btn">Quitter la séance</button>
                 </div>
-                <div id="join-class-banner" style="display:none;text-align:center;margin-bottom:16px;">
-                    <button id="join-class-btn" class="join-class-btn">Rejoindre une classe</button>
+                <div id="join-seance-banner" style="display:none;text-align:center;margin-bottom:16px;">
+                    <button id="join-seance-btn" class="join-class-btn">Rejoindre une séance</button>
                 </div>
                 <div class="menu-buttons">
                     <button id="start-competition" class="menu-button">
@@ -2690,27 +2728,30 @@ body {
                 <div id="class-view-header" class="class-info-header"></div>
                 <div class="history-tabs">
                     <button class="cv-tab active" data-cvtab="students">Élèves</button>
-                    <button class="cv-tab" data-cvtab="comparative">Comparatif</button>
+                    <button class="cv-tab" data-cvtab="seances">Séances</button>
                 </div>
                 <div id="cv-panel-students" class="history-panel active">
                     <div id="cv-students-content"><div class="history-empty">Chargement...</div></div>
                 </div>
-                <div id="cv-panel-comparative" class="history-panel">
-                    <div id="cv-comparative-controls" class="cv-controls">
-                        <div style="font-weight:700;color:#333;margin-bottom:6px;">Comparer la séance</div>
-                        <div class="cv-controls-row">
-                            <input
-                                type="datetime-local"
-                                id="class-session-datetime"
-                                style="flex:1;min-width:0;"
-                            >
-                            <button id="class-compare-btn" class="action-btn btn-new" style="flex-shrink:0;">Mettre à jour</button>
-                        </div>
-                        <div class="cv-controls-help">Classement basé sur la session la plus proche dans une fenêtre +/- 5 min.</div>
-                        <datalist id="class-session-datetime-list"></datalist>
+                <div id="cv-panel-seances" class="history-panel">
+                    <div id="cv-seances-list"><div class="history-empty">Chargement...</div></div>
+                    <div class="create-class-section" style="margin-top:16px;">
+                        <h3 style="color:#333;margin-bottom:12px;">Créer une séance</h3>
+                        <input type="text" id="new-seance-name" placeholder="Nom de la séance (ex: Séance 1 - 16 mars)">
+                        <button id="create-seance-btn" class="create-class-btn">Créer la séance</button>
                     </div>
-                    <div id="cv-comparative-content"><div class="history-empty">Chargement...</div></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Vue séance (classements) -->
+        <div id="seance-view-screen" class="screen">
+            <div class="container">
+                <div class="header">
+                    <h2 id="seance-view-title">Séance</h2>
+                    <button id="back-to-class-from-seance" class="back-button">← Classe</button>
+                </div>
+                <div id="seance-view-content"><div class="history-empty">Chargement...</div></div>
             </div>
         </div>
 
@@ -2903,16 +2944,16 @@ body {
         </div>
     </div>
 
-    <!-- Modal rejoindre classe -->
-    <div id="join-class-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <!-- Modal rejoindre séance -->
+    <div id="join-seance-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
         <div style="background:white;border-radius:20px;padding:30px 24px;max-width:380px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%);">
             <div class="join-modal-content">
-                <h2 style="color:#333;margin-bottom:4px;">Rejoindre une classe</h2>
-                <p style="color:#888;font-size:0.9rem;">Entre le code donné par ton prof</p>
-                <input type="text" id="join-class-code" placeholder="CODE" maxlength="10" autocapitalize="characters">
-                <div id="join-class-error" class="join-error"></div>
-                <button id="join-class-confirm" class="join-confirm-btn">Rejoindre</button>
-                <button id="join-class-cancel" style="width:100%;padding:12px;border:none;background:transparent;color:#888;font-size:0.95rem;cursor:pointer;margin-top:8px;">Annuler</button>
+                <h2 style="color:#333;margin-bottom:4px;">Rejoindre une séance</h2>
+                <p style="color:#888;font-size:0.9rem;">Entre le code de séance donné par ton prof</p>
+                <input type="text" id="join-seance-code" placeholder="CODE" maxlength="10" autocapitalize="characters">
+                <div id="join-seance-error" class="join-error"></div>
+                <button id="join-seance-confirm" class="join-confirm-btn">Rejoindre</button>
+                <button id="join-seance-cancel" style="width:100%;padding:12px;border:none;background:transparent;color:#888;font-size:0.95rem;cursor:pointer;margin-top:8px;">Annuler</button>
             </div>
         </div>
     </div>
@@ -2974,9 +3015,12 @@ class LaserEPSApp {
         this._currentClassId = null;
         this._currentStudentUid = null;
         this._studentSessions = [];
-        this._classCompareSessionsByStudent = {};
         this._classCompareMembers = [];
-        this._cvSelectedDateTime = null;
+        this._activeSeanceId = null;
+        this._activeClassId = null;
+        this._activeSeanceName = null;
+        this._activeSeanceCode = null;
+        this._currentSeanceId = null;
         this.initAuth();
     }
 
@@ -3033,7 +3077,7 @@ class LaserEPSApp {
         } else {
             this.showScreen('home');
             this.loadLastSessionSummary();
-            this.updateClassBanner();
+            this.updateSeanceBanner();
         }
     }
 
@@ -3196,16 +3240,19 @@ class LaserEPSApp {
             this.openRoleChange();
         });
 
-        // Rejoindre une classe
-        document.getElementById('join-class-btn').addEventListener('click', () => {
-            this.openJoinClassModal();
+        // Rejoindre une séance (élève)
+        document.getElementById('join-seance-btn').addEventListener('click', () => {
+            this.openJoinSeanceModal();
         });
-        document.getElementById('join-class-cancel').addEventListener('click', () => {
-            this.closeJoinClassModal();
+        document.getElementById('join-seance-cancel').addEventListener('click', () => {
+            this.closeJoinSeanceModal();
         });
-        document.getElementById('join-class-confirm').addEventListener('click', () => {
-            const code = document.getElementById('join-class-code').value;
-            this.joinClass(code);
+        document.getElementById('join-seance-confirm').addEventListener('click', () => {
+            const code = document.getElementById('join-seance-code').value;
+            this.joinSeance(code);
+        });
+        document.getElementById('quit-seance-btn').addEventListener('click', () => {
+            this.quitActiveSeance();
         });
 
         // Créer une classe (prof)
@@ -3214,6 +3261,15 @@ class LaserEPSApp {
             if (name.trim()) {
                 this.createClass(name);
                 document.getElementById('new-class-name').value = '';
+            }
+        });
+
+        // Créer une séance (prof)
+        document.getElementById('create-seance-btn').addEventListener('click', () => {
+            const name = document.getElementById('new-seance-name').value;
+            if (name.trim()) {
+                this.createSeance(this._currentClassId, name);
+                document.getElementById('new-seance-name').value = '';
             }
         });
 
@@ -3229,13 +3285,14 @@ class LaserEPSApp {
                 document.querySelectorAll('.cv-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById('cv-panel-students').classList.toggle('active', tab.dataset.cvtab === 'students');
-                document.getElementById('cv-panel-comparative').classList.toggle('active', tab.dataset.cvtab === 'comparative');
+                document.getElementById('cv-panel-seances').classList.toggle('active', tab.dataset.cvtab === 'seances');
             });
         });
 
-        document.getElementById('class-compare-btn').addEventListener('click', () => {
-            if (!this._currentClassId) return;
-            this.buildClassSessionCompare(this._currentClassId);
+        // Retour depuis vue séance
+        document.getElementById('back-to-class-from-seance').addEventListener('click', () => {
+            this.showScreen('class-view');
+            if (this._currentClassId) this.loadClassView(this._currentClassId);
         });
 
         // Retour depuis détail élève
@@ -3269,6 +3326,9 @@ class LaserEPSApp {
             const target = this._detailReturnTo && this._detailReturnTo.screen ? this._detailReturnTo.screen : 'history';
             if (target === 'student-detail') {
                 this.showScreen('student-detail');
+            } else if (target === 'seance-view') {
+                this.showScreen('seance-view');
+                if (this._currentClassId && this._currentSeanceId) this.loadSeanceCompare(this._currentClassId, this._currentSeanceId);
             } else if (target === 'class-view') {
                 this.showScreen('class-view');
                 const clsId = this._detailReturnTo && this._detailReturnTo.classId ? this._detailReturnTo.classId : this._currentClassId;
@@ -3996,6 +4056,8 @@ class LaserEPSApp {
                         number: l.number,
                         duration: l.duration,
                     })),
+                    seanceId: this._activeSeanceId || null,
+                    classId: this._activeClassId || null,
                 });
         } catch (e) {
             console.warn('Impossible de sauvegarder la session :', e);
@@ -4038,25 +4100,6 @@ class LaserEPSApp {
         if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
         if (value instanceof Date) return value;
         return null;
-    }
-
-    dateToDatetimeLocalValue(date) {
-        if (!(date instanceof Date) || isNaN(date.getTime())) return '';
-        // Format for <input type="datetime-local"> in local time.
-        const pad = (n) => String(n).padStart(2, '0');
-        const yyyy = date.getFullYear();
-        const mm = pad(date.getMonth() + 1);
-        const dd = pad(date.getDate());
-        const hh = pad(date.getHours());
-        const mi = pad(date.getMinutes());
-        return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
-    }
-
-    datetimeLocalValueToDate(value) {
-        if (!value) return null;
-        // value is like "YYYY-MM-DDTHH:mm" in local time; Date(...) parses it as local in modern browsers.
-        const d = new Date(value);
-        return isNaN(d.getTime()) ? null : d;
     }
 
     async fetchSessionsForUid(uid, limit = 50) {
@@ -4362,67 +4405,84 @@ class LaserEPSApp {
         }
     }
 
-    // ===== CLASSE BANNER (élève) =====
-    updateClassBanner() {
-        const banner = document.getElementById('class-banner');
-        const joinBanner = document.getElementById('join-class-banner');
-        if (this.userRole === 'eleve' && this.userClasses.length > 0) {
+    // ===== SÉANCE BANNER (élève) =====
+    updateSeanceBanner() {
+        const banner = document.getElementById('seance-active-banner');
+        const joinBanner = document.getElementById('join-seance-banner');
+        if (this.userRole !== 'eleve' && this.userRole !== 'personal') {
+            banner.style.display = 'none';
+            joinBanner.style.display = 'none';
+            return;
+        }
+        if (this._activeSeanceId) {
             banner.style.display = 'flex';
             joinBanner.style.display = 'none';
-            this.loadClassBannerInfo(this.userClasses[0]);
-        } else if (this.userRole === 'eleve') {
-            banner.style.display = 'none';
-            joinBanner.style.display = 'block';
+            document.getElementById('seance-banner-name').textContent = this._activeSeanceName || 'Séance active';
+            document.getElementById('seance-banner-code').textContent = this._activeSeanceCode ? 'Code : ' + this._activeSeanceCode : '';
         } else {
             banner.style.display = 'none';
-            joinBanner.style.display = 'none';
+            joinBanner.style.display = 'block';
         }
     }
 
-    async loadClassBannerInfo(classId) {
-        try {
-            const doc = await db.collection('classes').doc(classId).get();
-            if (doc.exists) {
-                document.getElementById('class-banner-name').textContent = doc.data().name;
-                document.getElementById('class-banner-code').textContent = ' — ' + doc.data().code;
-            }
-        } catch (e) { console.warn(e); }
+    quitActiveSeance() {
+        if (!confirm('Quitter la séance ? Les prochaines courses ne seront plus rattachées.')) return;
+        this._activeSeanceId = null;
+        this._activeClassId = null;
+        this._activeSeanceName = null;
+        this._activeSeanceCode = null;
+        this.updateSeanceBanner();
     }
 
-    // ===== REJOINDRE UNE CLASSE =====
-    openJoinClassModal() {
-        document.getElementById('join-class-modal').style.display = 'flex';
-        document.getElementById('join-class-code').value = '';
-        document.getElementById('join-class-error').textContent = '';
+    // ===== REJOINDRE UNE SÉANCE =====
+    openJoinSeanceModal() {
+        document.getElementById('join-seance-modal').style.display = 'flex';
+        document.getElementById('join-seance-code').value = '';
+        document.getElementById('join-seance-error').textContent = '';
     }
 
-    closeJoinClassModal() {
-        document.getElementById('join-class-modal').style.display = 'none';
+    closeJoinSeanceModal() {
+        document.getElementById('join-seance-modal').style.display = 'none';
     }
 
-    async joinClass(code) {
-        const errDiv = document.getElementById('join-class-error');
+    async joinSeance(code) {
+        const errDiv = document.getElementById('join-seance-error');
         errDiv.textContent = '';
         const upper = code.trim().toUpperCase();
         if (!upper) { errDiv.textContent = 'Entre un code.'; return; }
         try {
-            const snap = await db.collection('classes').where('code', '==', upper).get();
-            if (snap.empty) { errDiv.textContent = 'Aucune classe trouvée avec ce code.'; return; }
-            const classDoc = snap.docs[0];
-            const classId = classDoc.id;
-            await db.collection('classes').doc(classId).collection('members').doc(this.currentUser.uid).set({
+            const seancesSnap = await db.collectionGroup('seances').where('code', '==', upper).limit(1).get();
+            let foundSeance = null;
+            let foundClassId = null;
+            let foundSeanceId = null;
+            if (!seancesSnap.empty) {
+                const doc = seancesSnap.docs[0];
+                foundSeance = doc.data();
+                foundSeanceId = doc.id;
+                foundClassId = doc.ref.parent.parent.id;
+            }
+            if (!foundSeance) { errDiv.textContent = 'Aucune séance trouvée avec ce code.'; return; }
+
+            await db.collection('classes').doc(foundClassId).collection('members').doc(this.currentUser.uid).set({
                 displayName: this.userDisplayName,
                 email: this.currentUser.email,
                 joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            if (!this.userClasses.includes(classId)) {
-                this.userClasses.push(classId);
+            }, { merge: true });
+            if (!this.userClasses.includes(foundClassId)) {
+                this.userClasses.push(foundClassId);
                 await db.collection('users').doc(this.currentUser.uid).update({
-                    classes: firebase.firestore.FieldValue.arrayUnion(classId)
+                    classes: firebase.firestore.FieldValue.arrayUnion(foundClassId)
                 });
             }
-            this.closeJoinClassModal();
-            this.updateClassBanner();
+
+            this._activeSeanceId = foundSeanceId;
+            this._activeClassId = foundClassId;
+            this._activeSeanceName = foundSeance.name || 'Séance';
+            this._activeSeanceCode = upper;
+
+            this.closeJoinSeanceModal();
+            this.updateSeanceBanner();
+            alert('Tu as rejoint la séance "' + this._activeSeanceName + '" !');
         } catch (e) {
             console.warn(e);
             errDiv.textContent = 'Erreur. Réessaie.';
@@ -4499,14 +4559,11 @@ class LaserEPSApp {
     async loadClassView(classId) {
         const headerDiv = document.getElementById('class-view-header');
         const studentsDiv = document.getElementById('cv-students-content');
-        const compDiv = document.getElementById('cv-comparative-content');
-        const datalistEl = document.getElementById('class-session-datetime-list');
-        const datetimeInputEl = document.getElementById('class-session-datetime');
+        const seancesDiv = document.getElementById('cv-seances-list');
         studentsDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
-        compDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
+        seancesDiv.innerHTML = '<div class="history-empty">Chargement...</div>';
         try {
             this._currentClassId = classId;
-            this._classCompareSessionsByStudent = {};
             this._classCompareMembers = [];
             const classDoc = await db.collection('classes').doc(classId).get();
             if (!classDoc.exists) return;
@@ -4517,28 +4574,12 @@ class LaserEPSApp {
                 <div class="cih-code" title="Copier le code" onclick="navigator.clipboard.writeText('${cls.code}').then(()=>alert('Code copié !'))">${cls.code}</div>
             `;
             const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
-            if (membersSnap.empty) {
-                studentsDiv.innerHTML = '<div class="history-empty">Aucun élève dans cette classe.</div>';
-                compDiv.innerHTML = '<div class="history-empty">Aucun élève.</div>';
-                return;
-            }
             const studentData = [];
-            const candidateMinutes = new Map(); // key(datetime-local value) -> timeMs
             for (const mDoc of membersSnap.docs) {
                 const uid = mDoc.id;
                 const mData = mDoc.data();
-                const sessions = await this.fetchSessionsForUid(uid, 50);
-                this._classCompareSessionsByStudent[uid] = sessions;
+                const sessions = await this.fetchSessionsForUid(uid, 5);
                 const lastSession = sessions && sessions.length ? sessions[0] : null;
-
-                // Prepare candidate datetime options (rounded to minute through datetime-local formatting).
-                for (const s of sessions) {
-                    if (!s.date) continue;
-                    const key = this.dateToDatetimeLocalValue(s.date);
-                    if (!key) continue;
-                    if (!candidateMinutes.has(key)) candidateMinutes.set(key, s.date.getTime());
-                }
-
                 studentData.push({
                     uid,
                     displayName: mData.displayName || (lastSession && lastSession.displayName) || mData.email,
@@ -4548,140 +4589,198 @@ class LaserEPSApp {
             studentData.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
             this._classCompareMembers = studentData;
 
-            studentsDiv.innerHTML = '<div class="student-list">' + studentData.map(st => {
-                const ls = st.lastSession;
-                const acc = ls ? this.computeAccuracyPercent(ls) : '-';
-                return `<div class="student-card" data-student-uid="${st.uid}" data-student-name="${st.displayName}">
-                    <div class="sc-name">${st.displayName}</div>
-                    <div class="sc-stats">
-                        <div class="sc-stat"><div class="sc-val">${ls ? this.formatTime(ls.totalTime || 0) : '-'}</div><div class="sc-lbl">Temps</div></div>
-                        <div class="sc-stat"><div class="sc-val">${acc}${acc !== '-' ? '%' : ''}</div><div class="sc-lbl">Précision</div></div>
-                        <div class="sc-stat"><div class="sc-val">${ls ? (ls.averageSpeed || 0).toFixed(1) : '-'}</div><div class="sc-lbl">km/h</div></div>
-                    </div>
-                </div>`;
-            }).join('') + '</div>';
-            studentsDiv.querySelectorAll('.student-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    this._currentStudentUid = card.dataset.studentUid;
-                    const name = card.dataset.studentName;
-                    document.getElementById('student-detail-title').textContent = name;
-                    this.showScreen('student-detail');
-                    this.loadStudentSessions(this._currentStudentUid);
+            if (!studentData.length) {
+                studentsDiv.innerHTML = '<div class="history-empty">Aucun élève dans cette classe.</div>';
+            } else {
+                studentsDiv.innerHTML = '<div class="student-list">' + studentData.map(st => {
+                    const ls = st.lastSession;
+                    const acc = ls ? this.computeAccuracyPercent(ls) : '-';
+                    return `<div class="student-card" data-student-uid="${st.uid}" data-student-name="${st.displayName}">
+                        <div class="sc-name">${st.displayName}</div>
+                        <div class="sc-stats">
+                            <div class="sc-stat"><div class="sc-val">${ls ? this.formatTime(ls.totalTime || 0) : '-'}</div><div class="sc-lbl">Temps</div></div>
+                            <div class="sc-stat"><div class="sc-val">${acc}${acc !== '-' ? '%' : ''}</div><div class="sc-lbl">Précision</div></div>
+                            <div class="sc-stat"><div class="sc-val">${ls ? (ls.averageSpeed || 0).toFixed(1) : '-'}</div><div class="sc-lbl">km/h</div></div>
+                        </div>
+                    </div>`;
+                }).join('') + '</div>';
+                studentsDiv.querySelectorAll('.student-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        this._currentStudentUid = card.dataset.studentUid;
+                        const name = card.dataset.studentName;
+                        document.getElementById('student-detail-title').textContent = name;
+                        this.showScreen('student-detail');
+                        this.loadStudentSessions(this._currentStudentUid);
+                    });
                 });
-            });
-
-            // Fill datetime picker list + default selection
-            const sortedKeys = [...candidateMinutes.keys()].sort((a, b) => candidateMinutes.get(b) - candidateMinutes.get(a));
-            const limitedKeys = sortedKeys.slice(0, 30);
-            if (datalistEl) {
-                datalistEl.innerHTML = limitedKeys.map(k => `<option value="${k}"></option>`).join('');
-            }
-            if (datetimeInputEl) {
-                datetimeInputEl.value = limitedKeys.length ? limitedKeys[0] : '';
             }
 
-            // Render comparatif for the default datetime
-            await this.buildClassSessionCompare(classId);
+            await this.loadSeances(classId);
         } catch (e) {
             console.warn(e);
             studentsDiv.innerHTML = '<div class="history-empty">Erreur de chargement.</div>';
         }
     }
 
-    async buildClassSessionCompare(classId) {
-        const container = document.getElementById('cv-comparative-content');
-        if (!container) return;
-
-        container.innerHTML = '<div class="history-empty">Chargement...</div>';
-
-        const inputEl = document.getElementById('class-session-datetime');
-        const targetDate = this.datetimeLocalValueToDate(inputEl ? inputEl.value : '');
-        if (!targetDate) {
-            container.innerHTML = '<div class="history-empty">Choisis une date/heure de séance.</div>';
-            return;
-        }
-
-        const targetMs = targetDate.getTime();
-        const windowMs = 5 * 60 * 1000;
-
+    // ===== PROF : SÉANCES =====
+    async createSeance(classId, name) {
+        if (!classId || !name.trim()) return;
+        const code = this.generateClassCode();
         try {
-            const members = this._classCompareMembers || [];
-            if (!members.length) {
-                container.innerHTML = '<div class="history-empty">Aucun élève.</div>';
+            await db.collection('classes').doc(classId).collection('seances').add({
+                name: name.trim(),
+                code: code,
+                profUid: this.currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await this.loadSeances(classId);
+        } catch (e) {
+            console.warn('Erreur création séance :', e);
+            alert('Erreur lors de la création de la séance.');
+        }
+    }
+
+    async loadSeances(classId) {
+        const container = document.getElementById('cv-seances-list');
+        if (!container) return;
+        container.innerHTML = '<div class="history-empty">Chargement...</div>';
+        try {
+            const snap = await db.collection('classes').doc(classId).collection('seances').orderBy('createdAt', 'desc').get();
+            if (snap.empty) {
+                container.innerHTML = '<div class="history-empty">Aucune séance. Crée-en une ci-dessous.</div>';
                 return;
             }
 
-            // Pick 1 nearest session per student inside +/-5 minutes window
-            const selectedEntries = [];
-            for (const m of members) {
-                const sessions = this._classCompareSessionsByStudent[m.uid] || [];
-                if (!sessions.length) continue;
+            const members = this._classCompareMembers || [];
+            const memberUids = members.map(m => m.uid);
 
-                let best = null;
-                let bestDiff = Infinity;
-                for (const s of sessions) {
-                    if (!s.date) continue;
-                    const diff = Math.abs(s.date.getTime() - targetMs);
-                    if (diff > windowMs) continue;
-                    if (diff < bestDiff) {
-                        bestDiff = diff;
-                        best = s;
-                    }
+            let html = '';
+            for (const doc of snap.docs) {
+                const data = doc.data();
+                const seanceId = doc.id;
+                let sessionCount = 0;
+                for (const uid of memberUids) {
+                    const sessSnap = await db.collection('users').doc(uid).collection('sessions').where('seanceId', '==', seanceId).limit(1).get();
+                    if (!sessSnap.empty) sessionCount++;
                 }
+                const createdAt = this.normalizeFirestoreDate(data.createdAt);
+                const dateStr = createdAt ? createdAt.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+                html += `
+                    <div class="seance-card" data-seance-id="${seanceId}" data-class-id="${classId}">
+                        <div class="sc-info">
+                            <h3>${data.name}</h3>
+                            <div>
+                                <span class="sc-code" title="Copier le code" data-code="${data.code}">${data.code}</span>
+                                <button class="seance-rename-btn" data-seance-id="${seanceId}" data-class-id="${classId}">Renommer</button>
+                            </div>
+                            <div class="sc-date">${dateStr}</div>
+                        </div>
+                        <div class="sc-badge">${sessionCount} élève${sessionCount > 1 ? 's' : ''}</div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
 
-                if (best) {
-                    selectedEntries.push({ uid: m.uid, displayName: m.displayName, session: best, diffMs: bestDiff });
+            container.querySelectorAll('.sc-code').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(el.dataset.code).then(() => alert('Code copié !'));
+                });
+            });
+
+            container.querySelectorAll('.seance-rename-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newName = prompt('Nouveau nom pour la séance :');
+                    if (newName && newName.trim()) {
+                        this.renameSeance(btn.dataset.classId, btn.dataset.seanceId, newName.trim());
+                    }
+                });
+            });
+
+            container.querySelectorAll('.seance-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const seanceId = card.dataset.seanceId;
+                    const classId = card.dataset.classId;
+                    this._currentSeanceId = seanceId;
+                    this._currentClassId = classId;
+                    this.showScreen('seance-view');
+                    this.loadSeanceCompare(classId, seanceId);
+                });
+            });
+        } catch (e) {
+            console.warn(e);
+            container.innerHTML = '<div class="history-empty">Erreur de chargement des séances.</div>';
+        }
+    }
+
+    async renameSeance(classId, seanceId, newName) {
+        try {
+            await db.collection('classes').doc(classId).collection('seances').doc(seanceId).update({ name: newName });
+            await this.loadSeances(classId);
+        } catch (e) {
+            console.warn(e);
+            alert('Erreur lors du renommage.');
+        }
+    }
+
+    // ===== VUE SÉANCE (classements par séance) =====
+    async loadSeanceCompare(classId, seanceId) {
+        const container = document.getElementById('seance-view-content');
+        if (!container) return;
+        container.innerHTML = '<div class="history-empty">Chargement...</div>';
+
+        try {
+            const seanceDoc = await db.collection('classes').doc(classId).collection('seances').doc(seanceId).get();
+            if (!seanceDoc.exists) {
+                container.innerHTML = '<div class="history-empty">Séance introuvable.</div>';
+                return;
+            }
+            const seanceData = seanceDoc.data();
+            document.getElementById('seance-view-title').textContent = seanceData.name;
+
+            const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
+            if (membersSnap.empty) {
+                container.innerHTML = '<div class="history-empty">Aucun élève dans cette classe.</div>';
+                return;
+            }
+
+            const selectedEntries = [];
+            const sessionsByStudent = {};
+            for (const mDoc of membersSnap.docs) {
+                const uid = mDoc.id;
+                const mData = mDoc.data();
+                const sessSnap = await db.collection('users').doc(uid).collection('sessions')
+                    .where('seanceId', '==', seanceId)
+                    .orderBy('date', 'desc')
+                    .limit(10)
+                    .get();
+                const sessions = sessSnap.docs.map(d => {
+                    const sData = d.data();
+                    return { id: d.id, ...sData, date: this.normalizeFirestoreDate(sData.date) };
+                });
+                sessionsByStudent[uid] = sessions;
+                if (sessions.length) {
+                    const best = sessions[0];
+                    const displayName = mData.displayName || mData.email || uid;
+                    selectedEntries.push({ uid, displayName, session: best });
                 }
             }
 
             if (!selectedEntries.length) {
-                const d = targetDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-                container.innerHTML = `<div class="history-empty">Aucune session trouvée autour de ${d} (±5 min).</div>`;
+                container.innerHTML = `<div class="history-empty">Aucune session enregistrée pour cette séance.<br><br>Code de la séance : <b>${seanceData.code}</b></div>`;
                 return;
             }
 
             const accuracyOf = (s) => this.computeAccuracyPercent(s);
 
             const metrics = [
-                {
-                    key: 'totalTime',
-                    title: 'Temps total',
-                    sort: (a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0),
-                    format: (s) => this.formatTime(s.totalTime || 0)
-                },
-                {
-                    key: 'totalShootingTime',
-                    title: 'Temps de tir',
-                    sort: (a, b) => (a.session.totalShootingTime || 0) - (b.session.totalShootingTime || 0),
-                    format: (s) => this.formatTime(s.totalShootingTime || 0)
-                },
-                {
-                    key: 'totalRunningTime',
-                    title: 'Temps de course',
-                    sort: (a, b) => (a.session.totalRunningTime || 0) - (b.session.totalRunningTime || 0),
-                    format: (s) => this.formatTime(s.totalRunningTime || 0)
-                },
-                {
-                    key: 'accuracy',
-                    title: 'Précision',
-                    sort: (a, b) => accuracyOf(b.session) - accuracyOf(a.session),
-                    format: (s) => `${accuracyOf(s)}%`
-                },
-                {
-                    key: 'averageSpeed',
-                    title: 'Vitesse moyenne (km/h)',
-                    sort: (a, b) => (b.session.averageSpeed || 0) - (a.session.averageSpeed || 0),
-                    format: (s) => `${(s.averageSpeed || 0).toFixed(1)}`
-                }
+                { key: 'totalTime', title: 'Temps total', sort: (a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0), format: (s) => this.formatTime(s.totalTime || 0) },
+                { key: 'totalShootingTime', title: 'Temps de tir', sort: (a, b) => (a.session.totalShootingTime || 0) - (b.session.totalShootingTime || 0), format: (s) => this.formatTime(s.totalShootingTime || 0) },
+                { key: 'totalRunningTime', title: 'Temps de course', sort: (a, b) => (a.session.totalRunningTime || 0) - (b.session.totalRunningTime || 0), format: (s) => this.formatTime(s.totalRunningTime || 0) },
+                { key: 'accuracy', title: 'Précision', sort: (a, b) => accuracyOf(b.session) - accuracyOf(a.session), format: (s) => `${accuracyOf(s)}%` },
+                { key: 'averageSpeed', title: 'Vitesse moyenne (km/h)', sort: (a, b) => (b.session.averageSpeed || 0) - (a.session.averageSpeed || 0), format: (s) => `${(s.averageSpeed || 0).toFixed(1)}` }
             ];
-
-            const dateLabel = targetDate.toLocaleString('fr-FR', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
 
             const metricCards = metrics.map(metric => {
                 const sorted = [...selectedEntries].sort(metric.sort);
@@ -4693,17 +4792,12 @@ class LaserEPSApp {
                         <span class="rank-val">${val}</span>
                     </div>`;
                 }).join('');
-                return `
-                    <div class="comp-metric-card">
-                        <div class="comp-metric-title">${metric.title}</div>
-                        <div class="comp-metric-rows">${rows}</div>
-                    </div>
-                `;
+                return `<div class="comp-metric-card"><div class="comp-metric-title">${metric.title}</div><div class="comp-metric-rows">${rows}</div></div>`;
             }).join('');
 
             const sessionCards = [...selectedEntries]
                 .sort((a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0))
-                .map((e, idx) => {
+                .map(e => {
                     const s = e.session;
                     const d = s.date ? s.date.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
                     const acc = accuracyOf(s);
@@ -4724,11 +4818,11 @@ class LaserEPSApp {
 
             container.innerHTML = `
                 <div class="comp-session-compare-head">
-                    Séance sélectionnée: <b>${dateLabel}</b> <span style="color:#888;">(fenêtre ±5 min)</span>
+                    Séance : <b>${seanceData.name}</b> <span style="color:#888;">Code : ${seanceData.code}</span>
                 </div>
                 <div class="comp-metrics-grid">${metricCards}</div>
                 <div style="margin-top:16px;">
-                    <div style="font-weight:800;color:#333;margin-bottom:10px;">Sessions de la fenêtre (clic pour détail)</div>
+                    <div style="font-weight:800;color:#333;margin-bottom:10px;">Sessions (clic pour détail)</div>
                     <div class="compare-sessions-list">${sessionCards}</div>
                 </div>
             `;
@@ -4738,14 +4832,13 @@ class LaserEPSApp {
                     const studentUid = card.dataset.compareStudentUid;
                     const sessionId = card.dataset.compareSessionId;
                     if (!studentUid || !sessionId) return;
-                    const sessions = this._classCompareSessionsByStudent[studentUid] || [];
+                    const sessions = sessionsByStudent[studentUid] || [];
                     if (!sessions.length) return;
-
                     const idx = sessions.findIndex(s => s.id === sessionId);
                     const safeIdx = idx >= 0 ? idx : 0;
                     this._historySessions = sessions;
                     this._detailOwnerUid = studentUid;
-                    this._detailReturnTo = { screen: 'class-view', classId };
+                    this._detailReturnTo = { screen: 'seance-view', classId, seanceId };
                     this._currentStudentUid = studentUid;
                     this.showSessionDetail(safeIdx);
                 });
