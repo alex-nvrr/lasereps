@@ -2668,6 +2668,7 @@ body {
                     <div>
                         <div class="seance-info" id="seance-banner-name"></div>
                         <div class="seance-code-lbl" id="seance-banner-code"></div>
+                        <div class="seance-code-lbl" id="seance-banner-format"></div>
                     </div>
                     <button id="quit-seance-btn" class="quit-seance-btn">Quitter la séance</button>
                 </div>
@@ -2738,6 +2739,27 @@ body {
                     <div class="create-class-section" style="margin-top:16px;">
                         <h3 style="color:#333;margin-bottom:12px;">Créer une séance</h3>
                         <input type="text" id="new-seance-name" placeholder="Nom de la séance (ex: Séance 1 - 16 mars)">
+                        <div class="distance-inputs" style="margin-top:10px;">
+                            <div class="input-row">
+                                <label>Tirs :</label>
+                                <input type="number" id="new-seance-shootings" value="4" min="1" max="10">
+                            </div>
+                            <div class="input-row">
+                                <label>Départ :</label>
+                                <input type="number" id="new-seance-first-distance" value="30" min="1">
+                                <span>m</span>
+                            </div>
+                            <div class="input-row">
+                                <label>Tour :</label>
+                                <input type="number" id="new-seance-other-distance" value="100" min="1">
+                                <span>m</span>
+                            </div>
+                            <div class="input-row">
+                                <label>Final :</label>
+                                <input type="number" id="new-seance-final-distance" value="100" min="1">
+                                <span>m</span>
+                            </div>
+                        </div>
                         <button id="create-seance-btn" class="create-class-btn">Créer la séance</button>
                     </div>
                 </div>
@@ -2823,6 +2845,9 @@ body {
                 <div class="header">
                     <h2>Prépare ta course !</h2>
                     <button id="back-to-home" class="back-button">← Accueil</button>
+                </div>
+                <div id="config-locked-banner" class="history-empty" style="display:none;margin-bottom:12px;">
+                    Format imposé par le prof pour cette séance (lecture seule).
                 </div>
 
                 <div class="config-section">
@@ -3020,6 +3045,7 @@ class LaserEPSApp {
         this._activeClassId = null;
         this._activeSeanceName = null;
         this._activeSeanceCode = null;
+        this._activeSeanceFormat = null;
         this._currentSeanceId = null;
         this.initAuth();
     }
@@ -3211,6 +3237,7 @@ class LaserEPSApp {
             this.setupEventListeners();
         }
         this.updateCoursePreview();
+        this.updateConfigLockState();
     }
 
     // Navigation entre écrans
@@ -3220,6 +3247,55 @@ class LaserEPSApp {
         });
         document.getElementById(`${screenName}-screen`).classList.add('active');
         this.currentScreen = screenName;
+    }
+
+    normalizeSeanceFormat(format) {
+        const fallback = {
+            numberOfShootings: this.numberOfShootings || 4,
+            distances: {
+                first: this.distances.first || 30,
+                other: this.distances.other || 100,
+                final: this.distances.final || 100
+            }
+        };
+        if (!format || typeof format !== 'object') return fallback;
+        return {
+            numberOfShootings: Math.max(1, parseInt(format.numberOfShootings, 10) || fallback.numberOfShootings),
+            distances: {
+                first: Math.max(1, parseInt(format.distances && format.distances.first, 10) || fallback.distances.first),
+                other: Math.max(1, parseInt(format.distances && format.distances.other, 10) || fallback.distances.other),
+                final: Math.max(1, parseInt(format.distances && format.distances.final, 10) || fallback.distances.final)
+            }
+        };
+    }
+
+    applySeanceFormatToConfig() {
+        if (!this._activeSeanceFormat) return;
+        const fmt = this.normalizeSeanceFormat(this._activeSeanceFormat);
+        this.numberOfShootings = fmt.numberOfShootings;
+        this.distances = { ...fmt.distances };
+        this.setNumberOfShootings(this.numberOfShootings);
+        document.getElementById('first-distance').value = this.distances.first;
+        document.getElementById('other-distances').value = this.distances.other;
+        document.getElementById('final-distance').value = this.distances.final;
+        this.updateCoursePreview();
+    }
+
+    updateConfigLockState() {
+        const locked = !!this._activeSeanceFormat;
+        const lockBanner = document.getElementById('config-locked-banner');
+        if (lockBanner) lockBanner.style.display = locked ? 'block' : 'none';
+        document.querySelectorAll('.count-button').forEach(btn => {
+            btn.disabled = locked;
+            btn.style.opacity = locked ? '0.5' : '';
+            btn.style.pointerEvents = locked ? 'none' : '';
+        });
+        ['first-distance', 'other-distances', 'final-distance'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.disabled = locked;
+            el.style.opacity = locked ? '0.7' : '';
+        });
     }
 
     // Gestion des événements
@@ -3268,7 +3344,15 @@ class LaserEPSApp {
         document.getElementById('create-seance-btn').addEventListener('click', () => {
             const name = document.getElementById('new-seance-name').value;
             if (name.trim()) {
-                this.createSeance(this._currentClassId, name);
+                const format = this.normalizeSeanceFormat({
+                    numberOfShootings: document.getElementById('new-seance-shootings').value,
+                    distances: {
+                        first: document.getElementById('new-seance-first-distance').value,
+                        other: document.getElementById('new-seance-other-distance').value,
+                        final: document.getElementById('new-seance-final-distance').value
+                    }
+                });
+                this.createSeance(this._currentClassId, name, format);
                 document.getElementById('new-seance-name').value = '';
             }
         });
@@ -3579,6 +3663,9 @@ class LaserEPSApp {
 
     // Démarrage de la course
     startCourse() {
+        if (this._activeSeanceFormat) {
+            this.applySeanceFormatToConfig();
+        }
         this.courseData.isRunning = false;
         this.courseData.startTime = null;
         this.courseData.totalTime = 0;
@@ -4058,6 +4145,10 @@ class LaserEPSApp {
                     })),
                     seanceId: this._activeSeanceId || null,
                     classId: this._activeClassId || null,
+                    formatSnapshot: {
+                        numberOfShootings: this.numberOfShootings,
+                        distances: { first: this.distances.first, other: this.distances.other, final: this.distances.final }
+                    },
                 });
         } catch (e) {
             console.warn('Impossible de sauvegarder la session :', e);
@@ -4419,10 +4510,14 @@ class LaserEPSApp {
             joinBanner.style.display = 'none';
             document.getElementById('seance-banner-name').textContent = this._activeSeanceName || 'Séance active';
             document.getElementById('seance-banner-code').textContent = this._activeSeanceCode ? 'Code séance : ' + this._activeSeanceCode : '';
+            const fmt = this._activeSeanceFormat ? this.normalizeSeanceFormat(this._activeSeanceFormat) : null;
+            document.getElementById('seance-banner-format').textContent = fmt ? `Format: ${fmt.numberOfShootings} tirs · ${fmt.distances.first}/${fmt.distances.other}/${fmt.distances.final}m` : '';
         } else {
             banner.style.display = 'none';
             joinBanner.style.display = 'block';
+            document.getElementById('seance-banner-format').textContent = '';
         }
+        this.updateConfigLockState();
     }
 
     quitActiveSeance() {
@@ -4431,6 +4526,7 @@ class LaserEPSApp {
         this._activeClassId = null;
         this._activeSeanceName = null;
         this._activeSeanceCode = null;
+        this._activeSeanceFormat = null;
         this.updateSeanceBanner();
     }
 
@@ -4479,6 +4575,12 @@ class LaserEPSApp {
             this._activeClassId = foundClassId;
             this._activeSeanceName = foundSeance.name || 'Séance';
             this._activeSeanceCode = upper;
+            this._activeSeanceFormat = foundSeance.format ? this.normalizeSeanceFormat(foundSeance.format) : null;
+            if (!foundSeance.format) {
+                alert('Cette séance n’a pas encore de format défini. Utilisation temporaire de ta configuration locale.');
+            } else {
+                this.applySeanceFormatToConfig();
+            }
 
             this.closeJoinSeanceModal();
             this.updateSeanceBanner();
@@ -4623,15 +4725,21 @@ class LaserEPSApp {
     }
 
     // ===== PROF : SÉANCES =====
-    async createSeance(classId, name) {
+    async createSeance(classId, name, format) {
         if (!classId || !name.trim()) return;
         const code = this.generateClassCode();
+        const normalizedFormat = this.normalizeSeanceFormat(format);
         try {
             await db.collection('classes').doc(classId).collection('seances').add({
                 name: name.trim(),
                 code: code,
                 profUid: this.currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                format: {
+                    numberOfShootings: normalizedFormat.numberOfShootings,
+                    distances: normalizedFormat.distances,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }
             });
             await this.loadSeances(classId);
         } catch (e) {
@@ -4665,6 +4773,7 @@ class LaserEPSApp {
                 }
                 const createdAt = this.normalizeFirestoreDate(data.createdAt);
                 const dateStr = createdAt ? createdAt.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+                const fmt = this.normalizeSeanceFormat(data.format);
                 html += `
                     <div class="seance-card" data-seance-id="${seanceId}" data-class-id="${classId}">
                         <div class="sc-info">
@@ -4672,7 +4781,9 @@ class LaserEPSApp {
                             <div>
                                 <span class="sc-code" title="Copier le code séance" data-code="${data.code}">Code séance : ${data.code}</span>
                                 <button class="seance-rename-btn" data-seance-id="${seanceId}" data-class-id="${classId}">Renommer</button>
+                                <button class="seance-rename-btn" data-edit-format-seance-id="${seanceId}" data-edit-format-class-id="${classId}">Format</button>
                             </div>
+                            <div class="sc-date">Format: ${fmt.numberOfShootings} tirs · ${fmt.distances.first}/${fmt.distances.other}/${fmt.distances.final}m</div>
                             <div class="sc-date">${dateStr}</div>
                         </div>
                         <div class="sc-badge">${sessionCount} élève${sessionCount > 1 ? 's' : ''}</div>
@@ -4690,11 +4801,16 @@ class LaserEPSApp {
 
             container.querySelectorAll('.seance-rename-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
+                    if (btn.dataset.editFormatSeanceId) return;
                     e.stopPropagation();
-                    const newName = prompt('Nouveau nom pour la séance :');
-                    if (newName && newName.trim()) {
-                        this.renameSeance(btn.dataset.classId, btn.dataset.seanceId, newName.trim());
-                    }
+                    this.openRenameSeanceModal(btn.dataset.classId, btn.dataset.seanceId);
+                });
+            });
+
+            container.querySelectorAll('[data-edit-format-seance-id]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.editSeanceFormat(btn.dataset.editFormatClassId, btn.dataset.editFormatSeanceId);
                 });
             });
 
@@ -4724,6 +4840,108 @@ class LaserEPSApp {
         }
     }
 
+    async openRenameSeanceModal(classId, seanceId) {
+        try {
+            const doc = await db.collection('classes').doc(classId).collection('seances').doc(seanceId).get();
+            if (!doc.exists) return;
+            const currentName = (doc.data().name || '').trim();
+            this.showModal('Renommer la séance', `
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <label for="modal-seance-name" style="font-weight:600;color:#333;">Nouveau nom</label>
+                    <input type="text" id="modal-seance-name" value="${currentName.replace(/"/g, '&quot;')}" placeholder="Nom de la séance" style="padding:10px;border:1px solid #ddd;border-radius:10px;font-size:1rem;">
+                </div>
+                <div style="display:flex;gap:10px;margin-top:16px;">
+                    <button id="modal-rename-cancel" class="back-button" style="flex:1;">Annuler</button>
+                    <button id="modal-rename-save" class="primary-button" style="flex:1;">Enregistrer</button>
+                </div>
+            `);
+
+            const cancelBtn = document.getElementById('modal-rename-cancel');
+            const saveBtn = document.getElementById('modal-rename-save');
+            const input = document.getElementById('modal-seance-name');
+
+            if (cancelBtn) cancelBtn.addEventListener('click', () => this.hideModal());
+            if (input) input.focus();
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async () => {
+                    const nextName = (document.getElementById('modal-seance-name').value || '').trim();
+                    if (!nextName) return;
+                    await this.renameSeance(classId, seanceId, nextName);
+                    this.hideModal();
+                });
+            }
+        } catch (e) {
+            console.warn(e);
+            alert('Erreur lors de l’ouverture du renommage.');
+        }
+    }
+
+    async editSeanceFormat(classId, seanceId) {
+        try {
+            const doc = await db.collection('classes').doc(classId).collection('seances').doc(seanceId).get();
+            if (!doc.exists) return;
+            const current = this.normalizeSeanceFormat(doc.data().format);
+            this.showModal('Format de la séance', `
+                <div class="distance-inputs" style="margin-top:0;">
+                    <div class="input-row">
+                        <label>Tirs :</label>
+                        <input type="number" id="modal-seance-shootings" value="${current.numberOfShootings}" min="1" max="10">
+                    </div>
+                    <div class="input-row">
+                        <label>Départ :</label>
+                        <input type="number" id="modal-seance-first" value="${current.distances.first}" min="1">
+                        <span>m</span>
+                    </div>
+                    <div class="input-row">
+                        <label>Tour :</label>
+                        <input type="number" id="modal-seance-other" value="${current.distances.other}" min="1">
+                        <span>m</span>
+                    </div>
+                    <div class="input-row">
+                        <label>Final :</label>
+                        <input type="number" id="modal-seance-final" value="${current.distances.final}" min="1">
+                        <span>m</span>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:16px;">
+                    <button id="modal-seance-cancel" class="back-button" style="flex:1;">Annuler</button>
+                    <button id="modal-seance-save" class="primary-button" style="flex:1;">Enregistrer</button>
+                </div>
+            `);
+
+            const cancelBtn = document.getElementById('modal-seance-cancel');
+            const saveBtn = document.getElementById('modal-seance-save');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => this.hideModal());
+            }
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async () => {
+                    const nextFmt = this.normalizeSeanceFormat({
+                        numberOfShootings: document.getElementById('modal-seance-shootings').value,
+                        distances: {
+                            first: document.getElementById('modal-seance-first').value,
+                            other: document.getElementById('modal-seance-other').value,
+                            final: document.getElementById('modal-seance-final').value
+                        }
+                    });
+                    await db.collection('classes').doc(classId).collection('seances').doc(seanceId).update({
+                        format: {
+                            numberOfShootings: nextFmt.numberOfShootings,
+                            distances: nextFmt.distances,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }
+                    });
+                    this.hideModal();
+                    await this.loadSeances(classId);
+                    if (this._currentSeanceId === seanceId) await this.loadSeanceCompare(classId, seanceId);
+                });
+            }
+        } catch (e) {
+            console.warn(e);
+            alert('Erreur lors de la mise à jour du format.');
+        }
+    }
+
     // ===== VUE SÉANCE (classements par séance) =====
     async loadSeanceCompare(classId, seanceId) {
         const container = document.getElementById('seance-view-content');
@@ -4737,6 +4955,7 @@ class LaserEPSApp {
                 return;
             }
             const seanceData = seanceDoc.data();
+            const seanceFormat = this.normalizeSeanceFormat(seanceData.format);
             document.getElementById('seance-view-title').textContent = seanceData.name;
 
             const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
@@ -4820,6 +5039,7 @@ class LaserEPSApp {
                 <div class="comp-session-compare-head">
                     Séance : <b>${seanceData.name}</b> <span style="color:#888;">Code séance : ${seanceData.code}</span>
                 </div>
+                <div class="history-empty" style="margin-bottom:10px;">Format séance: ${seanceFormat.numberOfShootings} tirs · ${seanceFormat.distances.first}/${seanceFormat.distances.other}/${seanceFormat.distances.final}m</div>
                 <div class="comp-metrics-grid">${metricCards}</div>
                 <div style="margin-top:16px;">
                     <div style="font-weight:800;color:#333;margin-bottom:10px;">Sessions (clic pour détail)</div>
