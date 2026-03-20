@@ -2279,21 +2279,6 @@ body {
 .role-confirm-btn:disabled { opacity: 0.5; cursor: default; }
 .role-confirm-btn:not(:disabled):active { transform: scale(0.97); }
 
-/* ===== Bandeau classe eleve ===== */
-.class-banner {
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 14px;
-    padding: 12px 18px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-.class-banner .class-name { color: white; font-weight: 600; font-size: 1rem; }
-.class-banner .class-code { color: rgba(255,255,255,0.7); font-size: 0.8rem; }
 .join-class-btn {
     background: rgba(255,255,255,0.2);
     border: 1px solid rgba(255,255,255,0.3);
@@ -2358,7 +2343,6 @@ body {
 .prof-class-card:active { transform: scale(0.98); }
 @media (hover:hover) { .prof-class-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.12); } }
 .prof-class-card .pcc-info h3 { color: #333; font-size: 1.1rem; margin-bottom: 4px; }
-.prof-class-card .pcc-info .pcc-code { color: #667eea; font-weight: 600; font-size: 0.9rem; }
 .prof-class-card .pcc-count { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 0.95rem; }
 .create-class-section {
     margin-top: 20px;
@@ -2403,16 +2387,6 @@ body {
     gap: 10px;
 }
 .class-info-header .cih-name { font-size: 1.3rem; font-weight: 700; color: #333; }
-.class-info-header .cih-code {
-    background: #667eea;
-    color: white;
-    padding: 6px 14px;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.95rem;
-    letter-spacing: 1px;
-    cursor: pointer;
-}
 .student-list { display: flex; flex-direction: column; gap: 10px; }
 .student-card {
     background: white;
@@ -4592,7 +4566,7 @@ class LaserEPSApp {
     }
 
     // ===== PROF : GESTION DES CLASSES =====
-    generateClassCode() {
+    generateSeanceCode() {
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let code = '';
         for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
@@ -4601,11 +4575,9 @@ class LaserEPSApp {
 
     async createClass(name) {
         if (!name.trim()) return;
-        const code = this.generateClassCode();
         try {
             const ref = await db.collection('classes').add({
                 name: name.trim(),
-                code: code,
                 profUid: this.currentUser.uid,
                 profEmail: this.currentUser.email,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -4639,7 +4611,6 @@ class LaserEPSApp {
                 <div class="prof-class-card" data-class-id="${c.id}">
                     <div class="pcc-info">
                         <h3>${c.name}</h3>
-                        <div class="pcc-code">Code classe (admin) : ${c.code}</div>
                     </div>
                     <div class="pcc-count">${c.memberCount} élève${c.memberCount > 1 ? 's' : ''}</div>
                 </div>
@@ -4673,7 +4644,6 @@ class LaserEPSApp {
             document.getElementById('class-view-title').textContent = cls.name;
             headerDiv.innerHTML = `
                 <div class="cih-name">${cls.name}</div>
-                <div class="cih-code" title="Copier le code classe (admin)" onclick="navigator.clipboard.writeText('${cls.code}').then(()=>alert('Code classe copié !'))">Code classe (admin) : ${cls.code}</div>
             `;
             const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
             const studentData = [];
@@ -4727,7 +4697,7 @@ class LaserEPSApp {
     // ===== PROF : SÉANCES =====
     async createSeance(classId, name, format) {
         if (!classId || !name.trim()) return;
-        const code = this.generateClassCode();
+        const code = this.generateSeanceCode();
         const normalizedFormat = this.normalizeSeanceFormat(format);
         try {
             await db.collection('classes').doc(classId).collection('seances').add({
