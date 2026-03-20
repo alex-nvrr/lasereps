@@ -2950,7 +2950,7 @@ body {
             <div class="join-modal-content">
                 <h2 style="color:#333;margin-bottom:4px;">Rejoindre une séance</h2>
                 <p style="color:#888;font-size:0.9rem;">Entre le code de séance donné par ton prof</p>
-                <input type="text" id="join-seance-code" placeholder="CODE" maxlength="10" autocapitalize="characters">
+                <input type="text" id="join-seance-code" placeholder="Code séance" maxlength="10" autocapitalize="characters">
                 <div id="join-seance-error" class="join-error"></div>
                 <button id="join-seance-confirm" class="join-confirm-btn">Rejoindre</button>
                 <button id="join-seance-cancel" style="width:100%;padding:12px;border:none;background:transparent;color:#888;font-size:0.95rem;cursor:pointer;margin-top:8px;">Annuler</button>
@@ -4418,7 +4418,7 @@ class LaserEPSApp {
             banner.style.display = 'flex';
             joinBanner.style.display = 'none';
             document.getElementById('seance-banner-name').textContent = this._activeSeanceName || 'Séance active';
-            document.getElementById('seance-banner-code').textContent = this._activeSeanceCode ? 'Code : ' + this._activeSeanceCode : '';
+            document.getElementById('seance-banner-code').textContent = this._activeSeanceCode ? 'Code séance : ' + this._activeSeanceCode : '';
         } else {
             banner.style.display = 'none';
             joinBanner.style.display = 'block';
@@ -4449,7 +4449,7 @@ class LaserEPSApp {
         const errDiv = document.getElementById('join-seance-error');
         errDiv.textContent = '';
         const upper = code.trim().toUpperCase();
-        if (!upper) { errDiv.textContent = 'Entre un code.'; return; }
+        if (!upper) { errDiv.textContent = 'Entre un code séance.'; return; }
         try {
             const seancesSnap = await db.collectionGroup('seances').where('code', '==', upper).limit(1).get();
             let foundSeance = null;
@@ -4461,7 +4461,7 @@ class LaserEPSApp {
                 foundSeanceId = doc.id;
                 foundClassId = doc.ref.parent.parent.id;
             }
-            if (!foundSeance) { errDiv.textContent = 'Aucune séance trouvée avec ce code.'; return; }
+            if (!foundSeance) { errDiv.textContent = 'Aucune séance trouvée avec ce code séance.'; return; }
 
             await db.collection('classes').doc(foundClassId).collection('members').doc(this.currentUser.uid).set({
                 displayName: this.userDisplayName,
@@ -4537,7 +4537,7 @@ class LaserEPSApp {
                 <div class="prof-class-card" data-class-id="${c.id}">
                     <div class="pcc-info">
                         <h3>${c.name}</h3>
-                        <div class="pcc-code">Code : ${c.code}</div>
+                        <div class="pcc-code">Code classe (admin) : ${c.code}</div>
                     </div>
                     <div class="pcc-count">${c.memberCount} élève${c.memberCount > 1 ? 's' : ''}</div>
                 </div>
@@ -4571,7 +4571,7 @@ class LaserEPSApp {
             document.getElementById('class-view-title').textContent = cls.name;
             headerDiv.innerHTML = `
                 <div class="cih-name">${cls.name}</div>
-                <div class="cih-code" title="Copier le code" onclick="navigator.clipboard.writeText('${cls.code}').then(()=>alert('Code copié !'))">${cls.code}</div>
+                <div class="cih-code" title="Copier le code classe (admin)" onclick="navigator.clipboard.writeText('${cls.code}').then(()=>alert('Code classe copié !'))">Code classe (admin) : ${cls.code}</div>
             `;
             const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
             const studentData = [];
@@ -4670,7 +4670,7 @@ class LaserEPSApp {
                         <div class="sc-info">
                             <h3>${data.name}</h3>
                             <div>
-                                <span class="sc-code" title="Copier le code" data-code="${data.code}">${data.code}</span>
+                                <span class="sc-code" title="Copier le code séance" data-code="${data.code}">Code séance : ${data.code}</span>
                                 <button class="seance-rename-btn" data-seance-id="${seanceId}" data-class-id="${classId}">Renommer</button>
                             </div>
                             <div class="sc-date">${dateStr}</div>
@@ -4684,7 +4684,7 @@ class LaserEPSApp {
             container.querySelectorAll('.sc-code').forEach(el => {
                 el.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    navigator.clipboard.writeText(el.dataset.code).then(() => alert('Code copié !'));
+                    navigator.clipboard.writeText(el.dataset.code).then(() => alert('Code séance copié !'));
                 });
             });
 
@@ -4768,7 +4768,7 @@ class LaserEPSApp {
             }
 
             if (!selectedEntries.length) {
-                container.innerHTML = `<div class="history-empty">Aucune session enregistrée pour cette séance.<br><br>Code de la séance : <b>${seanceData.code}</b></div>`;
+                container.innerHTML = `<div class="history-empty">Aucune session enregistrée pour cette séance.<br><br>Code séance : <b>${seanceData.code}</b></div>`;
                 return;
             }
 
@@ -4818,7 +4818,7 @@ class LaserEPSApp {
 
             container.innerHTML = `
                 <div class="comp-session-compare-head">
-                    Séance : <b>${seanceData.name}</b> <span style="color:#888;">Code : ${seanceData.code}</span>
+                    Séance : <b>${seanceData.name}</b> <span style="color:#888;">Code séance : ${seanceData.code}</span>
                 </div>
                 <div class="comp-metrics-grid">${metricCards}</div>
                 <div style="margin-top:16px;">
