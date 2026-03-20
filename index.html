@@ -3335,6 +3335,7 @@ class LaserEPSApp {
         const confirmBtn = document.getElementById('role-confirm-btn');
         let profCodeAttempts = 0;
         let profCodeLockedUntil = 0;
+        let profCodeSubmittedOnce = false;
 
         const updateConfirmState = () => {
             const requiresProfCode = selectedRole === 'prof' && !this.profCodeValidated;
@@ -3346,7 +3347,7 @@ class LaserEPSApp {
                 const remain = Math.max(1, Math.ceil((profCodeLockedUntil - Date.now()) / 1000));
                 profCodeError.style.display = 'block';
                 profCodeError.textContent = `Trop d'essais. Réessaie dans ${remain}s.`;
-            } else if (requiresProfCode && profCodeInput.value && !profCodeOk) {
+            } else if (requiresProfCode && profCodeSubmittedOnce && profCodeInput.value && !profCodeOk) {
                 profCodeError.style.display = 'block';
                 profCodeError.textContent = 'Code professeur invalide.';
             } else {
@@ -3369,6 +3370,7 @@ class LaserEPSApp {
                 profCodeError.textContent = '';
                 profCodeAttempts = 0;
                 profCodeLockedUntil = 0;
+                profCodeSubmittedOnce = false;
                 confirmBtn.style.display = 'block';
                 nameInput.focus();
                 updateConfirmState();
@@ -3385,6 +3387,7 @@ class LaserEPSApp {
                 return;
             }
             if (selectedRole === 'prof' && !this.profCodeValidated && profCodeInput.value !== 'PROF') {
+                profCodeSubmittedOnce = true;
                 profCodeError.style.display = 'block';
                 profCodeError.textContent = 'Code professeur invalide.';
                 profCodeAttempts += 1;
