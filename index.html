@@ -2584,6 +2584,10 @@ body {
                 <div class="auth-container">
                     <h1>LaserEPS</h1>
                     <p class="auth-subtitle">Connecte-toi pour suivre ta progression</p>
+                    <div style="display:flex;gap:8px;margin-bottom:10px;">
+                        <button id="auth-tab-email" class="auth-button secondary" style="flex:1;">Prof/Admin</button>
+                        <button id="auth-tab-student" class="auth-button secondary" style="flex:1;">Élève</button>
+                    </div>
                     <div id="auth-form-login" class="auth-form">
                         <input type="email" id="auth-email" placeholder="Adresse e-mail" autocomplete="email">
                         <input type="password" id="auth-password" placeholder="Mot de passe" autocomplete="current-password">
@@ -2591,6 +2595,17 @@ body {
                         <button id="auth-login-btn" class="auth-button primary">Se connecter</button>
                         <button id="auth-register-btn" class="auth-button secondary">Créer un compte</button>
                         <div id="auth-loading" class="auth-loading">Chargement...</div>
+                    </div>
+                    <div id="auth-form-student" class="auth-form" style="display:none;">
+                        <input type="text" id="student-seance-code" placeholder="Code séance" autocomplete="off">
+                        <input type="text" id="student-last-name" placeholder="Nom" autocomplete="family-name">
+                        <input type="text" id="student-first-name" placeholder="Prénom" autocomplete="given-name">
+                        <input type="text" id="student-suffix" placeholder="Suffixe (optionnel, ex: 2)" autocomplete="off">
+                        <input type="password" id="student-password" placeholder="Mot de passe" autocomplete="current-password">
+                        <div id="student-auth-error" class="auth-error"></div>
+                        <button id="student-login-btn" class="auth-button primary">Se connecter (élève)</button>
+                        <button id="student-register-btn" class="auth-button secondary">Créer mon compte élève</button>
+                        <div id="student-auth-loading" class="auth-loading">Chargement...</div>
                     </div>
                 </div>
             </div>
@@ -3046,10 +3061,27 @@ class LaserEPSApp {
                 try {
                     const userDoc = await db.collection('users').doc(user.uid).get();
                     if (userDoc.exists && userDoc.data().role) {
-                        this.userRole = userDoc.data().role;
-                        this.userDisplayName = userDoc.data().displayName || '';
-                        this.userClasses = userDoc.data().classes || [];
+                        const u = userDoc.data();
+                        this.userRole = u.role;
+                        this.userDisplayName = u.displayName || '';
+                        this.userClasses = u.classes || [];
+                        this._activeSeanceId = u.activeSeanceId || null;
+                        this._activeClassId = u.activeClassId || null;
+                        this._activeSeanceCode = u.activeSeanceCode || null;
+                        if (u.activeSeanceId && u.activeClassId) {
+                            try {
+                                const seanceDoc = await db.collection('classes').doc(u.activeClassId).collection('seances').doc(u.activeSeanceId).get();
+                                if (seanceDoc.exists) {
+                                    const sd = seanceDoc.data();
+                                    this._activeSeanceName = sd.name || null;
+                                    this._activeSeanceFormat = sd.format ? this.normalizeSeanceFormat(sd.format) : null;
+                                }
+                            } catch (se) {
+                                console.warn('Impossible de restaurer la séance active :', se);
+                            }
+                        }
                         document.getElementById('user-display-name').textContent = this.userDisplayName;
+                        document.getElementById('user-email-display').textContent = u.loginMode === 'class_code_name' ? '' : user.email;
                         this.routeByRole();
                     } else {
                         this.showScreen('role');
@@ -3081,6 +3113,32 @@ class LaserEPSApp {
         }
     }
 
+    normalizeStudentPart(value) {
+        return (value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '');
+    }
+
+    buildTechnicalEmail(classId, lastName, firstName, suffix = '') {
+        const ln = this.normalizeStudentPart(lastName);
+        const fn = this.normalizeStudentPart(firstName);
+        const sf = this.normalizeStudentPart(String(suffix || ''));
+        const base = `${classId}_${ln}_${fn}${sf ? '_' + sf : ''}`;
+        return `${base}@eleve.lasereps.local`;
+    }
+
+    async resolveSeanceByCode(code) {
+        const upper = (code || '').trim().toUpperCase();
+        if (!upper) return null;
+        const seancesSnap = await db.collectionGroup('seances').where('code', '==', upper).limit(1).get();
+        if (seancesSnap.empty) return null;
+        const doc = seancesSnap.docs[0];
+        const classId = doc.ref.parent.parent.id;
+        return { classId, seanceId: doc.id, seanceCode: upper, seanceData: doc.data() };
+    }
+
     setupAuthListeners() {
         const loginBtn = document.getElementById('auth-login-btn');
         const registerBtn = document.getElementById('auth-register-btn');
@@ -3089,24 +3147,59 @@ class LaserEPSApp {
         const errorDiv = document.getElementById('auth-error');
         const loadingDiv = document.getElementById('auth-loading');
 
+        const studentCodeInput = document.getElementById('student-seance-code');
+        const studentLastNameInput = document.getElementById('student-last-name');
+        const studentFirstNameInput = document.getElementById('student-first-name');
+        const studentSuffixInput = document.getElementById('student-suffix');
+        const studentPasswordInput = document.getElementById('student-password');
+        const studentErrorDiv = document.getElementById('student-auth-error');
+        const studentLoadingDiv = document.getElementById('student-auth-loading');
+        const studentLoginBtn = document.getElementById('student-login-btn');
+        const studentRegisterBtn = document.getElementById('student-register-btn');
+        const tabEmailBtn = document.getElementById('auth-tab-email');
+        const tabStudentBtn = document.getElementById('auth-tab-student');
+        const emailForm = document.getElementById('auth-form-login');
+        const studentForm = document.getElementById('auth-form-student');
+
+        const setActiveAuthTab = (tab) => {
+            const emailActive = tab === 'email';
+            emailForm.style.display = emailActive ? 'block' : 'none';
+            studentForm.style.display = emailActive ? 'none' : 'block';
+            tabEmailBtn.classList.toggle('primary', emailActive);
+            tabEmailBtn.classList.toggle('secondary', !emailActive);
+            tabStudentBtn.classList.toggle('primary', !emailActive);
+            tabStudentBtn.classList.toggle('secondary', emailActive);
+            errorDiv.textContent = '';
+            studentErrorDiv.textContent = '';
+        };
+
+        tabEmailBtn.addEventListener('click', () => setActiveAuthTab('email'));
+        tabStudentBtn.addEventListener('click', () => setActiveAuthTab('student'));
+        setActiveAuthTab('email');
+
         const setLoading = (loading) => {
             loginBtn.disabled = loading;
             registerBtn.disabled = loading;
             loadingDiv.style.display = loading ? 'block' : 'none';
         };
+        const setStudentLoading = (loading) => {
+            studentLoginBtn.disabled = loading;
+            studentRegisterBtn.disabled = loading;
+            studentLoadingDiv.style.display = loading ? 'block' : 'none';
+        };
 
-        const showError = (msg) => {
+        const showError = (msg, targetDiv) => {
             const messages = {
                 'auth/invalid-email': 'Adresse e-mail invalide.',
-                'auth/user-not-found': 'Aucun compte trouvé avec cet e-mail.',
+                'auth/user-not-found': 'Compte introuvable.',
                 'auth/wrong-password': 'Mot de passe incorrect.',
-                'auth/invalid-credential': 'E-mail ou mot de passe incorrect.',
-                'auth/email-already-in-use': 'Un compte existe déjà avec cet e-mail.',
+                'auth/invalid-credential': 'Identifiants incorrects.',
+                'auth/email-already-in-use': 'Un compte existe déjà. Ajoute un suffixe (ex: 2).',
                 'auth/weak-password': 'Le mot de passe doit faire au moins 6 caractères.',
                 'auth/too-many-requests': 'Trop de tentatives. Réessaie plus tard.',
                 'auth/missing-password': 'Entre un mot de passe.',
             };
-            errorDiv.textContent = messages[msg] || 'Erreur : ' + msg;
+            targetDiv.textContent = messages[msg] || 'Erreur : ' + msg;
         };
 
         loginBtn.addEventListener('click', async () => {
@@ -3115,7 +3208,7 @@ class LaserEPSApp {
             try {
                 await auth.signInWithEmailAndPassword(emailInput.value.trim(), passwordInput.value);
             } catch (e) {
-                showError(e.code);
+                showError(e.code, errorDiv);
             }
             setLoading(false);
         });
@@ -3126,13 +3219,105 @@ class LaserEPSApp {
             try {
                 await auth.createUserWithEmailAndPassword(emailInput.value.trim(), passwordInput.value);
             } catch (e) {
-                showError(e.code);
+                showError(e.code, errorDiv);
             }
             setLoading(false);
         });
 
+        const parseStudentForm = async () => {
+            const code = studentCodeInput.value.trim();
+            const lastName = studentLastNameInput.value.trim();
+            const firstName = studentFirstNameInput.value.trim();
+            const password = studentPasswordInput.value;
+            const suffix = studentSuffixInput.value.trim();
+            if (!code || !lastName || !firstName || !password) {
+                throw new Error('missing-fields');
+            }
+            if (password.length < 6) throw new Error('weak-password');
+            const resolved = await this.resolveSeanceByCode(code);
+            if (!resolved) throw new Error('invalid-seance-code');
+            const technicalEmail = this.buildTechnicalEmail(resolved.classId, lastName, firstName, suffix);
+            return { code, lastName, firstName, password, suffix, technicalEmail, ...resolved };
+        };
+
+        studentRegisterBtn.addEventListener('click', async () => {
+            studentErrorDiv.textContent = '';
+            setStudentLoading(true);
+            try {
+                const form = await parseStudentForm();
+                const cred = await auth.createUserWithEmailAndPassword(form.technicalEmail, form.password);
+                const displayName = `${form.firstName} ${form.lastName}`.trim();
+                await db.collection('users').doc(cred.user.uid).set({
+                    role: 'eleve',
+                    displayName: displayName,
+                    classes: [form.classId],
+                    loginMode: 'class_code_name',
+                    classId: form.classId,
+                    activeSeanceId: form.seanceId,
+                    activeClassId: form.classId,
+                    activeSeanceCode: form.seanceCode,
+                    email: form.technicalEmail
+                }, { merge: true });
+                await db.collection('classes').doc(form.classId).collection('members').doc(cred.user.uid).set({
+                    displayName: displayName,
+                    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                this._activeSeanceId = form.seanceId;
+                this._activeClassId = form.classId;
+                this._activeSeanceCode = form.seanceCode;
+                this._activeSeanceName = form.seanceData.name || 'Séance';
+                this._activeSeanceFormat = form.seanceData.format ? this.normalizeSeanceFormat(form.seanceData.format) : null;
+            } catch (e) {
+                if (e.message === 'missing-fields') {
+                    studentErrorDiv.textContent = 'Remplis tous les champs obligatoires.';
+                } else if (e.message === 'invalid-seance-code') {
+                    studentErrorDiv.textContent = 'Code séance invalide.';
+                } else if (e.message === 'weak-password') {
+                    studentErrorDiv.textContent = 'Mot de passe trop court (6 caractères minimum).';
+                } else {
+                    showError(e.code || e.message, studentErrorDiv);
+                }
+            }
+            setStudentLoading(false);
+        });
+
+        studentLoginBtn.addEventListener('click', async () => {
+            studentErrorDiv.textContent = '';
+            setStudentLoading(true);
+            try {
+                const form = await parseStudentForm();
+                await auth.signInWithEmailAndPassword(form.technicalEmail, form.password);
+                const cu = auth.currentUser;
+                if (cu) {
+                    await db.collection('users').doc(cu.uid).set({
+                        activeSeanceId: form.seanceId,
+                        activeClassId: form.classId,
+                        activeSeanceCode: form.seanceCode
+                    }, { merge: true });
+                    await db.collection('classes').doc(form.classId).collection('members').doc(cu.uid).set({
+                        displayName: `${form.firstName} ${form.lastName}`.trim(),
+                        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+            } catch (e) {
+                if (e.message === 'missing-fields') {
+                    studentErrorDiv.textContent = 'Remplis tous les champs obligatoires.';
+                } else if (e.message === 'invalid-seance-code') {
+                    studentErrorDiv.textContent = 'Code séance invalide.';
+                } else if (e.message === 'weak-password') {
+                    studentErrorDiv.textContent = 'Mot de passe trop court (6 caractères minimum).';
+                } else {
+                    showError(e.code || e.message, studentErrorDiv);
+                }
+            }
+            setStudentLoading(false);
+        });
+
         passwordInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') loginBtn.click();
+        });
+        studentPasswordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') studentLoginBtn.click();
         });
     }
 
@@ -4494,13 +4679,20 @@ class LaserEPSApp {
         this.updateConfigLockState();
     }
 
-    quitActiveSeance() {
+    async quitActiveSeance() {
         if (!confirm('Quitter la séance ? Les prochaines courses ne seront plus rattachées.')) return;
         this._activeSeanceId = null;
         this._activeClassId = null;
         this._activeSeanceName = null;
         this._activeSeanceCode = null;
         this._activeSeanceFormat = null;
+        if (this.currentUser) {
+            await db.collection('users').doc(this.currentUser.uid).set({
+                activeSeanceId: null,
+                activeClassId: null,
+                activeSeanceCode: null
+            }, { merge: true });
+        }
         this.updateSeanceBanner();
     }
 
@@ -4550,6 +4742,11 @@ class LaserEPSApp {
             this._activeSeanceName = foundSeance.name || 'Séance';
             this._activeSeanceCode = upper;
             this._activeSeanceFormat = foundSeance.format ? this.normalizeSeanceFormat(foundSeance.format) : null;
+            await db.collection('users').doc(this.currentUser.uid).set({
+                activeSeanceId: foundSeanceId,
+                activeClassId: foundClassId,
+                activeSeanceCode: upper
+            }, { merge: true });
             if (!foundSeance.format) {
                 alert('Cette séance n’a pas encore de format défini. Utilisation temporaire de ta configuration locale.');
             } else {
