@@ -2600,7 +2600,6 @@ body {
                         <input type="text" id="student-seance-code" placeholder="Code séance" autocomplete="off">
                         <input type="text" id="student-last-name" placeholder="Nom" autocomplete="family-name">
                         <input type="text" id="student-first-name" placeholder="Prénom" autocomplete="given-name">
-                        <input type="text" id="student-suffix" placeholder="Suffixe (optionnel, ex: 2)" autocomplete="off">
                         <input type="password" id="student-password" placeholder="Mot de passe" autocomplete="current-password">
                         <div id="student-auth-error" class="auth-error"></div>
                         <button id="student-login-btn" class="auth-button primary">Se connecter (élève)</button>
@@ -2635,6 +2634,9 @@ body {
                         </div>
                     </div>
                     <input type="text" id="role-display-name" class="role-name-input" placeholder="Ton prénom et nom" style="display:none;">
+                    <input type="password" id="role-prof-code" class="role-name-input" placeholder="Code professeur" style="display:none;">
+                    <div id="role-prof-help" class="auth-subtitle" style="display:none;font-size:0.85rem;margin-top:6px;">Ce code est demandé uniquement la première fois.</div>
+                    <div id="role-prof-error" class="auth-error" style="display:none;min-height:20px;"></div>
                     <button id="role-confirm-btn" class="role-confirm-btn" disabled style="display:none;">Continuer</button>
                 </div>
             </div>
@@ -3025,6 +3027,7 @@ class LaserEPSApp {
         this.currentUser = null;
         this.userRole = null;
         this.userDisplayName = null;
+        this.profCodeValidated = false;
         this.userClasses = [];
         this._currentClassId = null;
         this._currentStudentUid = null;
@@ -3064,6 +3067,7 @@ class LaserEPSApp {
                         const u = userDoc.data();
                         this.userRole = u.role;
                         this.userDisplayName = u.displayName || '';
+                        this.profCodeValidated = !!u.profCodeValidated;
                         this.userClasses = u.classes || [];
                         this._activeSeanceId = u.activeSeanceId || null;
                         this._activeClassId = u.activeClassId || null;
@@ -3096,6 +3100,7 @@ class LaserEPSApp {
                 this.currentUser = null;
                 this.userRole = null;
                 this.userDisplayName = null;
+                this.profCodeValidated = false;
                 this.userClasses = [];
                 this.showScreen('auth');
             }
@@ -3121,11 +3126,10 @@ class LaserEPSApp {
             .replace(/[^a-z0-9]/g, '');
     }
 
-    buildTechnicalEmail(classId, lastName, firstName, suffix = '') {
+    buildTechnicalEmail(classId, lastName, firstName) {
         const ln = this.normalizeStudentPart(lastName);
         const fn = this.normalizeStudentPart(firstName);
-        const sf = this.normalizeStudentPart(String(suffix || ''));
-        const base = `${classId}_${ln}_${fn}${sf ? '_' + sf : ''}`;
+        const base = `${classId}_${ln}_${fn}`;
         return `${base}@eleve.lasereps.local`;
     }
 
@@ -3150,7 +3154,6 @@ class LaserEPSApp {
         const studentCodeInput = document.getElementById('student-seance-code');
         const studentLastNameInput = document.getElementById('student-last-name');
         const studentFirstNameInput = document.getElementById('student-first-name');
-        const studentSuffixInput = document.getElementById('student-suffix');
         const studentPasswordInput = document.getElementById('student-password');
         const studentErrorDiv = document.getElementById('student-auth-error');
         const studentLoadingDiv = document.getElementById('student-auth-loading');
@@ -3194,7 +3197,7 @@ class LaserEPSApp {
                 'auth/user-not-found': 'Compte introuvable.',
                 'auth/wrong-password': 'Mot de passe incorrect.',
                 'auth/invalid-credential': 'Identifiants incorrects.',
-                'auth/email-already-in-use': 'Un compte existe déjà. Ajoute un suffixe (ex: 2).',
+                'auth/email-already-in-use': 'Un compte existe déjà pour ce nom/prénom dans cette classe.',
                 'auth/weak-password': 'Le mot de passe doit faire au moins 6 caractères.',
                 'auth/too-many-requests': 'Trop de tentatives. Réessaie plus tard.',
                 'auth/missing-password': 'Entre un mot de passe.',
@@ -3229,15 +3232,14 @@ class LaserEPSApp {
             const lastName = studentLastNameInput.value.trim();
             const firstName = studentFirstNameInput.value.trim();
             const password = studentPasswordInput.value;
-            const suffix = studentSuffixInput.value.trim();
             if (!code || !lastName || !firstName || !password) {
                 throw new Error('missing-fields');
             }
             if (password.length < 6) throw new Error('weak-password');
             const resolved = await this.resolveSeanceByCode(code);
             if (!resolved) throw new Error('invalid-seance-code');
-            const technicalEmail = this.buildTechnicalEmail(resolved.classId, lastName, firstName, suffix);
-            return { code, lastName, firstName, password, suffix, technicalEmail, ...resolved };
+            const technicalEmail = this.buildTechnicalEmail(resolved.classId, lastName, firstName);
+            return { code, lastName, firstName, password, technicalEmail, ...resolved };
         };
 
         studentRegisterBtn.addEventListener('click', async () => {
@@ -3327,11 +3329,30 @@ class LaserEPSApp {
         let selectedRole = null;
         const cards = document.querySelectorAll('.role-card');
         const nameInput = document.getElementById('role-display-name');
+        const profCodeInput = document.getElementById('role-prof-code');
+        const profCodeHelp = document.getElementById('role-prof-help');
+        const profCodeError = document.getElementById('role-prof-error');
         const confirmBtn = document.getElementById('role-confirm-btn');
+        let profCodeAttempts = 0;
+        let profCodeLockedUntil = 0;
 
         const updateConfirmState = () => {
-            const ready = selectedRole && nameInput.value.trim().length >= 2;
+            const requiresProfCode = selectedRole === 'prof' && !this.profCodeValidated;
+            const isLocked = requiresProfCode && Date.now() < profCodeLockedUntil;
+            const profCodeOk = !requiresProfCode || profCodeInput.value === 'PROF';
+            const ready = selectedRole && nameInput.value.trim().length >= 2 && profCodeOk && !isLocked;
             confirmBtn.disabled = !ready;
+            if (isLocked) {
+                const remain = Math.max(1, Math.ceil((profCodeLockedUntil - Date.now()) / 1000));
+                profCodeError.style.display = 'block';
+                profCodeError.textContent = `Trop d'essais. Réessaie dans ${remain}s.`;
+            } else if (requiresProfCode && profCodeInput.value && !profCodeOk) {
+                profCodeError.style.display = 'block';
+                profCodeError.textContent = 'Code professeur invalide.';
+            } else {
+                profCodeError.style.display = requiresProfCode ? 'block' : 'none';
+                profCodeError.textContent = '';
+            }
         };
 
         cards.forEach(card => {
@@ -3340,6 +3361,14 @@ class LaserEPSApp {
                 card.classList.add('selected');
                 selectedRole = card.dataset.role;
                 nameInput.style.display = 'block';
+                const requiresProfCode = selectedRole === 'prof' && !this.profCodeValidated;
+                profCodeInput.style.display = requiresProfCode ? 'block' : 'none';
+                profCodeHelp.style.display = requiresProfCode ? 'block' : 'none';
+                profCodeError.style.display = requiresProfCode ? 'block' : 'none';
+                profCodeInput.value = '';
+                profCodeError.textContent = '';
+                profCodeAttempts = 0;
+                profCodeLockedUntil = 0;
                 confirmBtn.style.display = 'block';
                 nameInput.focus();
                 updateConfirmState();
@@ -3347,13 +3376,30 @@ class LaserEPSApp {
         });
 
         nameInput.addEventListener('input', updateConfirmState);
+        profCodeInput.addEventListener('input', updateConfirmState);
 
         confirmBtn.addEventListener('click', async () => {
             if (!selectedRole || nameInput.value.trim().length < 2) return;
+            if (selectedRole === 'prof' && !this.profCodeValidated && Date.now() < profCodeLockedUntil) {
+                updateConfirmState();
+                return;
+            }
+            if (selectedRole === 'prof' && !this.profCodeValidated && profCodeInput.value !== 'PROF') {
+                profCodeError.style.display = 'block';
+                profCodeError.textContent = 'Code professeur invalide.';
+                profCodeAttempts += 1;
+                if (profCodeAttempts >= 3) {
+                    profCodeAttempts = 0;
+                    profCodeLockedUntil = Date.now() + 10000;
+                    setTimeout(() => updateConfirmState(), 10000);
+                }
+                updateConfirmState();
+                return;
+            }
             confirmBtn.disabled = true;
             confirmBtn.textContent = 'Chargement...';
             try {
-                await this.saveRole(selectedRole, nameInput.value.trim());
+                await this.saveRole(selectedRole, nameInput.value.trim(), profCodeInput.value);
                 this.routeByRole();
             } catch (e) {
                 console.warn('Erreur sauvegarde rôle :', e);
@@ -3363,25 +3409,41 @@ class LaserEPSApp {
         });
     }
 
-    async saveRole(role, displayName) {
+    async saveRole(role, displayName, profCode = '') {
+        if (role === 'prof' && !this.profCodeValidated && profCode !== 'PROF') {
+            throw new Error('invalid-prof-code');
+        }
         this.userRole = role;
         this.userDisplayName = displayName;
         this.userClasses = [];
+        if (role === 'prof' && profCode === 'PROF') {
+            this.profCodeValidated = true;
+        }
         document.getElementById('user-display-name').textContent = displayName;
-        await db.collection('users').doc(this.currentUser.uid).set({
+        const payload = {
             email: this.currentUser.email,
             role: role,
             displayName: displayName,
             classes: []
-        }, { merge: true });
+        };
+        if (role === 'prof' && this.profCodeValidated) payload.profCodeValidated = true;
+        await db.collection('users').doc(this.currentUser.uid).set(payload, { merge: true });
     }
 
     openRoleChange() {
         document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
         const nameInput = document.getElementById('role-display-name');
+        const profCodeInput = document.getElementById('role-prof-code');
+        const profCodeHelp = document.getElementById('role-prof-help');
+        const profCodeError = document.getElementById('role-prof-error');
         const confirmBtn = document.getElementById('role-confirm-btn');
         nameInput.value = this.userDisplayName || '';
         nameInput.style.display = this.userDisplayName ? 'block' : 'none';
+        profCodeInput.value = '';
+        profCodeInput.style.display = 'none';
+        profCodeHelp.style.display = 'none';
+        profCodeError.style.display = 'none';
+        profCodeError.textContent = '';
         confirmBtn.style.display = this.userDisplayName ? 'block' : 'none';
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Continuer';
