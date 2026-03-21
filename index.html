@@ -2572,6 +2572,35 @@ body {
     color: #333;
     text-align: right;
 }
+.seance-rank-row.clickable {
+    cursor: pointer;
+}
+.seance-rank-row.clickable:hover {
+    background: rgba(102,126,234,0.14);
+}
+.seance-rank-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.seance-rank-tab {
+    border: 1px solid rgba(102,126,234,0.25);
+    background: rgba(102,126,234,0.08);
+    color: #3342a0;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.seance-rank-tab.active {
+    background: linear-gradient(135deg, #4c6ef5, #5f3dc4);
+    color: #fff;
+    border-color: transparent;
+}
+.seance-rank-panel { display: none; }
+.seance-rank-panel.active { display: block; }
 
 .compare-sessions-list {
     display: flex;
@@ -6213,6 +6242,7 @@ class LaserEPSApp {
             const sessionsByStudent = {};
             const allSeanceSessions = [];
             const allAttemptsInSeance = [];
+
             for (const mDoc of membersSnap.docs) {
                 const uid = mDoc.id;
                 const mData = mDoc.data();
@@ -6222,12 +6252,12 @@ class LaserEPSApp {
                         .filter(s => s.seanceId === seanceId)
                         .map(s => ({ ...s, date: this.normalizeFirestoreDate(s.date) }))
                         .sort((a, b) => (b.date || 0) - (a.date || 0))
-                        .slice(0, 10);
+                        .slice(0, 20);
                 } else {
                     const sessSnap = await db.collection('users').doc(uid).collection('sessions')
                         .where('seanceId', '==', seanceId)
                         .orderBy('date', 'desc')
-                        .limit(10)
+                        .limit(20)
                         .get();
                     sessions = sessSnap.docs.map(d => {
                         const sData = d.data();
@@ -6241,11 +6271,10 @@ class LaserEPSApp {
                     const best = filtered.sessions[0];
                     const displayName = mData.displayName || mData.email || uid;
                     bestByStudent.push({ uid, displayName, session: best });
-                    filtered.sessions.forEach(s => {
-                        allAttemptsInSeance.push({ uid, displayName, session: s });
-                    });
+                    filtered.sessions.forEach(s => allAttemptsInSeance.push({ uid, displayName, session: s }));
                 }
             }
+
             this._seanceAllSessions = allSeanceSessions;
             this.refreshFormatFilterControls();
 
@@ -6258,27 +6287,34 @@ class LaserEPSApp {
             }
 
             const accuracyOf = (s) => this.computeAccuracyPercent(s);
+            const rankFromBest = (sortFn, valueFn) => [...bestByStudent].sort(sortFn).map((e, idx) => ({
+                rank: idx + 1,
+                uid: e.uid,
+                displayName: e.displayName,
+                sessionId: e.session.id,
+                value: valueFn(e.session)
+            }));
 
-            const metrics = [
-                { key: 'totalTime', title: 'Classement global (temps total)', sort: (a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0), format: (s) => this.formatTime(s.totalTime || 0) },
-                { key: 'totalShootingTime', title: 'Classement tir (temps de tir)', sort: (a, b) => (a.session.totalShootingTime || 0) - (b.session.totalShootingTime || 0), format: (s) => this.formatTime(s.totalShootingTime || 0) },
-                { key: 'totalRunningTime', title: 'Classement course (temps de course)', sort: (a, b) => (a.session.totalRunningTime || 0) - (b.session.totalRunningTime || 0), format: (s) => this.formatTime(s.totalRunningTime || 0) },
-                { key: 'averageSpeed', title: 'Classement vitesse course (km/h)', sort: (a, b) => (b.session.averageSpeed || 0) - (a.session.averageSpeed || 0), format: (s) => `${(s.averageSpeed || 0).toFixed(1)}` },
-                { key: 'accuracy', title: 'Classement précision (%)', sort: (a, b) => accuracyOf(b.session) - accuracyOf(a.session), format: (s) => `${accuracyOf(s)}%` }
-            ];
-
-            const metricCards = metrics.map(metric => {
-                const sorted = [...bestByStudent].sort(metric.sort);
-                const rows = sorted.map((e, idx) => {
-                    const val = metric.format(e.session);
-                    return `<div class="rank-row">
-                        <span class="rank-num">${idx + 1}</span>
-                        <span class="rank-name">${e.displayName}</span>
-                        <span class="rank-val">${val}</span>
-                    </div>`;
-                }).join('');
-                return `<div class="comp-metric-card"><div class="comp-metric-title">${metric.title}</div><div class="comp-metric-rows">${rows}</div></div>`;
-            }).join('');
+            const generalRanking = rankFromBest(
+                (a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0),
+                (s) => this.formatTime(s.totalTime || 0)
+            );
+            const shootingRanking = rankFromBest(
+                (a, b) => (a.session.totalShootingTime || 0) - (b.session.totalShootingTime || 0),
+                (s) => this.formatTime(s.totalShootingTime || 0)
+            );
+            const courseRanking = rankFromBest(
+                (a, b) => (a.session.totalRunningTime || 0) - (b.session.totalRunningTime || 0),
+                (s) => this.formatTime(s.totalRunningTime || 0)
+            );
+            const speedRanking = rankFromBest(
+                (a, b) => (b.session.averageSpeed || 0) - (a.session.averageSpeed || 0),
+                (s) => `${(s.averageSpeed || 0).toFixed(1)} km/h`
+            );
+            const accuracyRanking = rankFromBest(
+                (a, b) => accuracyOf(b.session) - accuracyOf(a.session),
+                (s) => `${accuracyOf(s)}%`
+            );
 
             const byLapKey = {};
             allAttemptsInSeance.forEach(entry => {
@@ -6293,12 +6329,15 @@ class LaserEPSApp {
                     if (!byLapKey[key]) byLapKey[key] = { type, number: lap.number, byStudent: {} };
                     const prev = byLapKey[key].byStudent[entry.uid];
                     if (!prev || duration < prev.duration) {
-                        const segment = { uid: entry.uid, displayName: entry.displayName, duration };
+                        const segment = { uid: entry.uid, displayName: entry.displayName, duration, sessionId: entry.session.id };
                         if (type === 'course') {
-                            const dist = this.getDistanceForCourse(lap.number);
-                            const speed = dist > 0 ? ((dist / 1000) / (duration / 3600)) : 0;
+                            const distances = entry.session.distances || {};
+                            const segmentDistance = lap.number === 1
+                                ? (distances.first || 0)
+                                : (lap.number === ((entry.session.numberOfShootings || 0) + 1) ? (distances.final || 0) : (distances.other || 0));
+                            const speed = segmentDistance > 0 ? ((segmentDistance / 1000) / (duration / 3600)) : 0;
                             segment.speed = speed;
-                            segment.distance = dist;
+                            segment.distance = segmentDistance;
                         }
                         byLapKey[key].byStudent[entry.uid] = segment;
                     }
@@ -6309,65 +6348,109 @@ class LaserEPSApp {
                 if (a.type !== b.type) return a.type === 'course' ? -1 : 1;
                 return a.number - b.number;
             });
-            const lapCards = lapEntries.map(seg => {
+            const segmentRankings = lapEntries.map(seg => {
                 const ranking = Object.values(seg.byStudent).sort((a, b) => a.duration - b.duration);
-                const rows = ranking.slice(0, 3).map((r, idx) => {
-                    const extra = seg.type === 'course'
-                        ? ` <span style="color:#888;font-size:0.82rem;">(${(r.speed || 0).toFixed(1)} km/h)</span>`
-                        : '';
-                    return `<div class="rank-row">
-                        <span class="rank-num">${idx + 1}</span>
-                        <span class="rank-name">${r.displayName}</span>
-                        <span class="rank-val">${this.formatTime(r.duration)}${extra}</span>
-                    </div>`;
-                }).join('');
                 const title = seg.type === 'course'
                     ? `Meilleur Course ${seg.number}${seg.distance ? ` (${seg.distance}m)` : ''}`
                     : `Meilleur Tir ${seg.number}`;
-                return `<div class="comp-metric-card"><div class="comp-metric-title">${title}</div><div class="comp-metric-rows">${rows || '<div class="history-empty">Pas de données.</div>'}</div></div>`;
-            }).join('');
+                return {
+                    key: `${seg.type}_${seg.number}`,
+                    title,
+                    rows: ranking.slice(0, 3).map((r, idx) => ({
+                        rank: idx + 1,
+                        uid: r.uid,
+                        displayName: r.displayName,
+                        sessionId: r.sessionId,
+                        value: seg.type === 'course'
+                            ? `${this.formatTime(r.duration)} (${(r.speed || 0).toFixed(1)} km/h)`
+                            : this.formatTime(r.duration)
+                    }))
+                };
+            });
 
-            const sessionCards = [...bestByStudent]
-                .sort((a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0))
-                .map(e => {
-                    const s = e.session;
-                    const d = s.date ? s.date.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
-                    const acc = accuracyOf(s);
-                    return `
-                        <div class="compare-session-card clickable"
-                            data-compare-student-uid="${e.uid}"
-                            data-compare-session-id="${s.id}">
-                            <div style="font-weight:700;color:#333;">${e.displayName}</div>
-                            <div style="color:#888;font-size:0.85rem;margin-top:2px;">${d}</div>
-                            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;align-items:center;">
-                                <div><span style="color:#667eea;font-weight:800;">${this.formatTime(s.totalTime || 0)}</span><div style="color:#888;font-size:0.75rem;">Temps total</div></div>
-                                <div><span style="color:#28a745;font-weight:800;">${acc}%</span><div style="color:#888;font-size:0.75rem;">Précision</div></div>
-                                <div><span style="color:#fd7e14;font-weight:800;">${(s.averageSpeed || 0).toFixed(1)}</span><div style="color:#888;font-size:0.75rem;">km/h</div></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+            const renderRankRows = (rows, emptyText = 'Pas de données pour ce classement.') => {
+                if (!rows || !rows.length) return `<div class="history-empty">${emptyText}</div>`;
+                return rows.map(r => `
+                    <div class="rank-row seance-rank-row clickable"
+                        data-rank-student-uid="${r.uid}"
+                        data-rank-session-id="${r.sessionId}">
+                        <span class="rank-num">${r.rank}</span>
+                        <span class="rank-name">${r.displayName}</span>
+                        <span class="rank-val">${r.value}</span>
+                    </div>
+                `).join('');
+            };
 
+            const activeTab = this._seanceRankActiveTab || 'general';
             container.innerHTML = `
                 <div class="comp-session-compare-head">
                     Séance : <b>${seanceData.name}</b> <span style="color:#888;">Code séance : ${seanceData.code}</span>
                 </div>
                 <div class="history-empty" style="margin-bottom:10px;">Format séance: ${seanceFormat.numberOfShootings} tirs · ${seanceFormat.distances.first}/${seanceFormat.distances.other}/${seanceFormat.distances.final}m</div>
-                <div class="comp-metrics-grid">${metricCards}</div>
-                <div style="margin-top:16px;">
-                    <div style="font-weight:800;color:#333;margin-bottom:10px;">Classements par segment (Top 3)</div>
-                    <div class="comp-metrics-grid">${lapCards || '<div class="history-empty">Pas de segments exploitables pour ce format.</div>'}</div>
+                <div class="seance-rank-tabs">
+                    <button class="seance-rank-tab ${activeTab === 'general' ? 'active' : ''}" data-rank-tab="general">Classement général</button>
+                    <button class="seance-rank-tab ${activeTab === 'shooting' ? 'active' : ''}" data-rank-tab="shooting">Tir</button>
+                    <button class="seance-rank-tab ${activeTab === 'course' ? 'active' : ''}" data-rank-tab="course">Course & vitesse</button>
+                    <button class="seance-rank-tab ${activeTab === 'accuracy' ? 'active' : ''}" data-rank-tab="accuracy">Précision</button>
+                    <button class="seance-rank-tab ${activeTab === 'section' ? 'active' : ''}" data-rank-tab="section">Par section</button>
                 </div>
-                <div style="margin-top:16px;">
-                    <div style="font-weight:800;color:#333;margin-bottom:10px;">Sessions (clic pour détail)</div>
-                    <div class="compare-sessions-list">${sessionCards}</div>
+                <div class="seance-rank-panel ${activeTab === 'general' ? 'active' : ''}" data-rank-panel="general">
+                    <div class="comp-metric-card">
+                        <div class="comp-metric-title">Classement global (temps total)</div>
+                        <div class="comp-metric-rows">${renderRankRows(generalRanking, 'Aucune donnée globale.')}</div>
+                    </div>
+                </div>
+                <div class="seance-rank-panel ${activeTab === 'shooting' ? 'active' : ''}" data-rank-panel="shooting">
+                    <div class="comp-metric-card">
+                        <div class="comp-metric-title">Classement tir (temps de tir)</div>
+                        <div class="comp-metric-rows">${renderRankRows(shootingRanking, 'Aucune donnée de tir.')}</div>
+                    </div>
+                </div>
+                <div class="seance-rank-panel ${activeTab === 'course' ? 'active' : ''}" data-rank-panel="course">
+                    <div class="comp-metrics-grid">
+                        <div class="comp-metric-card">
+                            <div class="comp-metric-title">Classement course (temps de course)</div>
+                            <div class="comp-metric-rows">${renderRankRows(courseRanking, 'Aucune donnée de course.')}</div>
+                        </div>
+                        <div class="comp-metric-card">
+                            <div class="comp-metric-title">Classement vitesse course (km/h)</div>
+                            <div class="comp-metric-rows">${renderRankRows(speedRanking, 'Aucune donnée de vitesse.')}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="seance-rank-panel ${activeTab === 'accuracy' ? 'active' : ''}" data-rank-panel="accuracy">
+                    <div class="comp-metric-card">
+                        <div class="comp-metric-title">Classement précision (%)</div>
+                        <div class="comp-metric-rows">${renderRankRows(accuracyRanking, 'Aucune donnée de précision.')}</div>
+                    </div>
+                </div>
+                <div class="seance-rank-panel ${activeTab === 'section' ? 'active' : ''}" data-rank-panel="section">
+                    <div class="comp-metrics-grid">
+                        ${segmentRankings.length
+                            ? segmentRankings.map(seg => `
+                                <div class="comp-metric-card">
+                                    <div class="comp-metric-title">${seg.title}</div>
+                                    <div class="comp-metric-rows">${renderRankRows(seg.rows, 'Pas de données sur ce segment.')}</div>
+                                </div>
+                            `).join('')
+                            : '<div class="history-empty">Pas de segments exploitables pour ce format.</div>'}
+                    </div>
                 </div>
             `;
 
-            container.querySelectorAll('.compare-session-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const studentUid = card.dataset.compareStudentUid;
-                    const sessionId = card.dataset.compareSessionId;
+            container.querySelectorAll('.seance-rank-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const nextTab = btn.dataset.rankTab || 'general';
+                    this._seanceRankActiveTab = nextTab;
+                    container.querySelectorAll('.seance-rank-tab').forEach(b => b.classList.toggle('active', b.dataset.rankTab === nextTab));
+                    container.querySelectorAll('.seance-rank-panel').forEach(p => p.classList.toggle('active', p.dataset.rankPanel === nextTab));
+                });
+            });
+
+            container.querySelectorAll('.seance-rank-row.clickable').forEach(row => {
+                row.addEventListener('click', () => {
+                    const studentUid = row.dataset.rankStudentUid;
+                    const sessionId = row.dataset.rankSessionId;
                     if (!studentUid || !sessionId) return;
                     const sessions = sessionsByStudent[studentUid] || [];
                     if (!sessions.length) return;
