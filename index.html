@@ -1757,12 +1757,16 @@ body {
     flex-wrap: wrap;
     justify-content: flex-end;
     margin: 8px 0 10px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(102,126,234,0.18);
+    border-radius: 12px;
+    padding: 8px 10px;
 }
 
 .format-filter-label {
-    color: #666;
+    color: #2f3e8e;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .format-active-chip {
@@ -1955,10 +1959,12 @@ body {
 /* ===== Historique : onglets ===== */
 .history-tabs {
     display: flex;
-    background: rgba(102,126,234,0.08);
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(102,126,234,0.2);
     border-radius: 14px;
     padding: 4px;
     margin-bottom: 20px;
+    box-shadow: 0 6px 18px rgba(66,87,214,0.12);
 }
 .history-tab,
 .cv-tab,
@@ -1971,7 +1977,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     background: transparent;
-    color: #888;
+    color: #2f3e8e;
     transition: all 0.3s ease;
     min-height: 44px;
 }
@@ -1983,9 +1989,9 @@ body {
 .history-tab.active,
 .cv-tab.active,
 .sd-tab.active {
-    background: white;
-    color: #667eea;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    background: linear-gradient(135deg, #4c6ef5, #5f3dc4);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(76,110,245,0.35);
 }
 .history-panel {
     display: none;
@@ -5003,8 +5009,7 @@ class LaserEPSApp {
             <div class="charts-grid">
                 <div class="chart-card"><h4>Temps total</h4><canvas id="chart-time"></canvas></div>
                 <div class="chart-card"><h4>Vitesse de course (km/h)</h4><canvas id="chart-speed"></canvas></div>
-                <div class="chart-card"><h4>Précision de tir (%)</h4><canvas id="chart-accuracy"></canvas></div>
-                <div class="chart-card"><h4>Temps moyen entre deux tirs (s)</h4><canvas id="chart-shooting"></canvas></div>
+                <div class="chart-card"><h4>Précision vs temps entre deux tirs</h4><canvas id="chart-precision-cadence"></canvas></div>
             </div>`;
 
         if (this._charts) this._charts.forEach(c => c.destroy());
@@ -5076,17 +5081,85 @@ class LaserEPSApp {
             const total = (s.totalHits || 0) + (s.totalMisses || 0);
             return total > 0 ? Math.round((s.totalHits / total) * 100) : 0;
         });
-        this._charts.push(createChart('chart-accuracy', accData, 243, 156, 18, false));
 
         const shootData = sessions.map(s => {
             const n = Math.max(1, s.numberOfShootings || 1);
             const avgShotSec = (s.totalShootingTime || 0) / n;
             return parseFloat(avgShotSec.toFixed(2));
         });
-        this._charts.push(createChart('chart-shooting', shootData, 220, 53, 69, true, {
-            tickFormatter: (value) => this.formatSecondsCentiseconds(value),
-            tooltipLabel: (ctx) => `Temps moyen entre deux tirs: ${this.formatSecondsCentiseconds(ctx.raw)}`
-        }));
+        {
+            const ctx = document.getElementById('chart-precision-cadence').getContext('2d');
+            const greenGrad = makeGradient(ctx, 40, 167, 69);
+            const orangeGrad = makeGradient(ctx, 243, 156, 18);
+            this._charts.push(new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Précision (%)',
+                            data: accData,
+                            yAxisID: 'yAccuracy',
+                            borderColor: 'rgb(243,156,18)',
+                            backgroundColor: orangeGrad,
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: isMobile ? 3 : 4,
+                            hoverRadius: isMobile ? 5 : 7
+                        },
+                        {
+                            label: 'Temps moyen entre deux tirs (s)',
+                            data: shootData,
+                            yAxisID: 'yShot',
+                            borderColor: 'rgb(40,167,69)',
+                            backgroundColor: greenGrad,
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: isMobile ? 3 : 4,
+                            hoverRadius: isMobile ? 5 : 7
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: {
+                            titleFont: { size: isMobile ? 11 : 13 },
+                            bodyFont: { size: isMobile ? 11 : 13 },
+                            callbacks: {
+                                label: (ctx) => {
+                                    if (ctx.dataset.yAxisID === 'yAccuracy') return `Précision: ${ctx.raw}%`;
+                                    return `Temps entre deux tirs: ${this.formatSecondsCentiseconds(ctx.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: isMobile ? 9 : 11 }, maxRotation: 45, maxTicksLimit: isMobile ? 6 : 12 } },
+                        yAccuracy: {
+                            type: 'linear',
+                            position: 'left',
+                            min: 0,
+                            max: 100,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { font: { size: isMobile ? 9 : 11 }, callback: (v) => `${v}%` }
+                        },
+                        yShot: {
+                            type: 'linear',
+                            position: 'right',
+                            reverse: false,
+                            grid: { drawOnChartArea: false },
+                            ticks: { font: { size: isMobile ? 9 : 11 }, callback: (v) => this.formatSecondsCentiseconds(v) }
+                        }
+                    }
+                }
+            }));
+        }
     }
 
     async loadLastSessionSummary() {
