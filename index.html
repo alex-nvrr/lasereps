@@ -2292,6 +2292,18 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 .join-class-btn:active { transform: scale(0.96); }
+.free-mode-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.28);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 8px;
+}
+.free-mode-btn:active { transform: scale(0.96); }
 
 /* ===== Modal rejoindre classe ===== */
 .join-modal-content { text-align: center; }
@@ -2661,10 +2673,14 @@ body {
                         <div class="seance-code-lbl" id="seance-banner-code"></div>
                         <div class="seance-code-lbl" id="seance-banner-format"></div>
                     </div>
-                    <button id="quit-seance-btn" class="quit-seance-btn">Quitter la séance</button>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button id="free-mode-btn" class="free-mode-btn">Continuer en mode libre</button>
+                        <button id="quit-seance-btn" class="quit-seance-btn">Quitter la séance</button>
+                    </div>
                 </div>
                 <div id="join-seance-banner" style="display:none;text-align:center;margin-bottom:16px;">
                     <button id="join-seance-btn" class="join-class-btn">Rejoindre une séance</button>
+                    <button id="free-mode-btn-no-seance" class="free-mode-btn">Mode libre (sans séance)</button>
                 </div>
                 <div class="menu-buttons">
                     <button id="start-competition" class="menu-button">
@@ -3553,6 +3569,12 @@ class LaserEPSApp {
         });
         document.getElementById('quit-seance-btn').addEventListener('click', () => {
             this.quitActiveSeance();
+        });
+        document.getElementById('free-mode-btn').addEventListener('click', () => {
+            this.enterFreeMode();
+        });
+        document.getElementById('free-mode-btn-no-seance').addEventListener('click', () => {
+            this.enterFreeMode();
         });
 
         // Créer une classe (prof)
@@ -4761,6 +4783,14 @@ class LaserEPSApp {
         this.updateSeanceBanner();
     }
 
+    async enterFreeMode() {
+        if (this._activeSeanceId) {
+            await this.quitActiveSeance();
+        }
+        this.showScreen('config');
+        this.updateConfigLockState();
+    }
+
     // ===== REJOINDRE UNE SÉANCE =====
     openJoinSeanceModal() {
         document.getElementById('join-seance-modal').style.display = 'flex';
@@ -4820,7 +4850,8 @@ class LaserEPSApp {
 
             this.closeJoinSeanceModal();
             this.updateSeanceBanner();
-            alert('Tu as rejoint la séance "' + this._activeSeanceName + '" !');
+            alert('Séance rejointe : "' + this._activeSeanceName + '". Format chargé, tu peux démarrer ta course.');
+            this.showScreen('config');
         } catch (e) {
             console.warn(e);
             errDiv.textContent = 'Erreur. Réessaie.';
