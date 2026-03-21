@@ -2665,7 +2665,7 @@ body {
                         <button id="logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                     <h1>LaserEPS</h1>
-                    <p>Mode Compétition</p>
+                    <p>Choisis ton action</p>
                 </div>
                 <div id="seance-active-banner" class="seance-banner" style="display:none;">
                     <div>
@@ -2686,15 +2686,22 @@ body {
                     <button id="start-competition" class="menu-button">
                         <div class="button-icon">🎯</div>
                         <div class="button-text">
-                            <h3>Mode compétition</h3>
-                            <p>Course avec tirs alternés</p>
+                            <h3>Faire une séance libre</h3>
+                            <p>Choisir ton format et lancer</p>
+                        </div>
+                    </button>
+                    <button id="choice-join-seance" class="menu-button">
+                        <div class="button-icon" style="background: linear-gradient(135deg, #28a745, #20c997);">🔑</div>
+                        <div class="button-text">
+                            <h3>Rejoindre une séance</h3>
+                            <p>Entrer le code du prof</p>
                         </div>
                     </button>
                     <button id="show-history" class="menu-button">
                         <div class="button-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">📊</div>
                         <div class="button-text">
-                            <h3>Mon historique</h3>
-                            <p>Voir mes résultats et mon évolution</p>
+                            <h3>Voir mon historique</h3>
+                            <p>Sessions + statistiques d'évolution</p>
                         </div>
                     </button>
                 </div>
@@ -3560,6 +3567,9 @@ class LaserEPSApp {
         document.getElementById('join-seance-btn').addEventListener('click', () => {
             this.openJoinSeanceModal();
         });
+        document.getElementById('choice-join-seance').addEventListener('click', () => {
+            this.openJoinSeanceModal();
+        });
         document.getElementById('join-seance-cancel').addEventListener('click', () => {
             this.closeJoinSeanceModal();
         });
@@ -3682,7 +3692,7 @@ class LaserEPSApp {
 
         // Navigation
         document.getElementById('start-competition').addEventListener('click', () => {
-            this.showScreen('config');
+            this.enterFreeMode();
         });
 
         document.getElementById('back-to-home').addEventListener('click', () => {
@@ -4646,7 +4656,9 @@ class LaserEPSApp {
 
         const sessions = [...this._historySessions].reverse();
         const labels = sessions.map(s => {
-            const d = s.date ? s.date.toDate() : new Date();
+            const d = s.date
+                ? (s.date instanceof Date ? s.date : (typeof s.date.toDate === 'function' ? s.date.toDate() : new Date(s.date)))
+                : new Date();
             return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
         });
 
@@ -4655,7 +4667,7 @@ class LaserEPSApp {
                 <div class="chart-card"><h4>Temps total</h4><canvas id="chart-time"></canvas></div>
                 <div class="chart-card"><h4>Vitesse de course (km/h)</h4><canvas id="chart-speed"></canvas></div>
                 <div class="chart-card"><h4>Précision de tir (%)</h4><canvas id="chart-accuracy"></canvas></div>
-                <div class="chart-card"><h4>Temps de tir moyen (s)</h4><canvas id="chart-shooting"></canvas></div>
+                <div class="chart-card"><h4>Cadence de tir (tirs/min)</h4><canvas id="chart-shooting"></canvas></div>
             </div>`;
 
         if (this._charts) this._charts.forEach(c => c.destroy());
@@ -4712,10 +4724,12 @@ class LaserEPSApp {
         this._charts.push(createChart('chart-accuracy', accData, 243, 156, 18, false));
 
         const shootData = sessions.map(s => {
-            const n = s.numberOfShootings || 1;
-            return parseFloat(((s.totalShootingTime || 0) / n).toFixed(1));
+            const n = Math.max(1, s.numberOfShootings || 1);
+            const avgShotSec = (s.totalShootingTime || 0) / n;
+            const cadence = avgShotSec > 0 ? (60 / avgShotSec) : 0;
+            return parseFloat(cadence.toFixed(1));
         });
-        this._charts.push(createChart('chart-shooting', shootData, 220, 53, 69, true));
+        this._charts.push(createChart('chart-shooting', shootData, 220, 53, 69, false));
     }
 
     async loadLastSessionSummary() {
@@ -4760,7 +4774,7 @@ class LaserEPSApp {
             document.getElementById('seance-banner-format').textContent = fmt ? `Format: ${fmt.numberOfShootings} tirs · ${fmt.distances.first}/${fmt.distances.other}/${fmt.distances.final}m` : '';
         } else {
             banner.style.display = 'none';
-            joinBanner.style.display = 'block';
+            joinBanner.style.display = 'none';
             document.getElementById('seance-banner-format').textContent = '';
         }
         this.updateConfigLockState();
@@ -4777,7 +4791,9 @@ class LaserEPSApp {
             await db.collection('users').doc(this.currentUser.uid).set({
                 activeSeanceId: null,
                 activeClassId: null,
-                activeSeanceCode: null
+                activeSeanceCode: null,
+                activeSeanceName: null,
+                activeSeanceFormat: null
             }, { merge: true });
         }
         this.updateSeanceBanner();
@@ -4840,7 +4856,9 @@ class LaserEPSApp {
             await db.collection('users').doc(this.currentUser.uid).set({
                 activeSeanceId: foundSeanceId,
                 activeClassId: foundClassId,
-                activeSeanceCode: upper
+                activeSeanceCode: upper,
+                activeSeanceName: this._activeSeanceName,
+                activeSeanceFormat: this._activeSeanceFormat
             }, { merge: true });
             if (!foundSeance.format) {
                 alert('Cette séance n’a pas encore de format défini. Utilisation temporaire de ta configuration locale.');
@@ -4854,7 +4872,14 @@ class LaserEPSApp {
             this.showScreen('config');
         } catch (e) {
             console.warn(e);
-            errDiv.textContent = 'Erreur. Réessaie.';
+            const code = (e && e.code) ? String(e.code) : '';
+            if (code.includes('failed-precondition')) {
+                errDiv.textContent = 'Index Firestore manquant (seances.code en collection group).';
+            } else if (code.includes('permission-denied')) {
+                errDiv.textContent = 'Accès refusé. Vérifie les règles Firestore de lecture sur les séances.';
+            } else {
+                errDiv.textContent = 'Erreur. Réessaie.';
+            }
         }
     }
 
