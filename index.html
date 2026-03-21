@@ -1750,6 +1750,66 @@ body {
     font-size: 1.1rem;
 }
 
+.format-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin: 8px 0 10px;
+}
+
+.format-filter-label {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.format-active-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #d9e2ff;
+    background: #f5f8ff;
+    color: #4c6ef5;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    padding: 4px 10px;
+}
+
+.format-filter-select {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    max-width: 100%;
+}
+
+@media (max-width: 768px) {
+    .format-filter-row {
+        justify-content: stretch;
+        align-items: flex-start;
+        gap: 6px;
+        margin: 6px 0 12px;
+    }
+    .format-filter-label {
+        width: 100%;
+        font-size: 0.86rem;
+        margin-bottom: 2px;
+    }
+    .format-active-chip {
+        width: 100%;
+        border-radius: 12px;
+        justify-content: center;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+    .format-filter-select {
+        width: 100%;
+        min-height: 42px;
+        font-size: 16px; /* Avoid iOS zoom on focus */
+    }
+}
+
 .history-header-bar {
     display: flex;
     justify-content: space-between;
@@ -2786,11 +2846,11 @@ body {
                     <h2 id="seance-view-title">Séance</h2>
                     <button id="back-to-class-from-seance" class="back-button">← Classe</button>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:10px;">
-                    <span style="color:#666;font-size:0.9rem;">Comparaison</span>
-                    <select id="seance-format-filter" style="padding:8px 10px;border-radius:10px;border:1px solid #d9d9d9;background:#fff;">
-                        <option value="strict">Même format uniquement</option>
-                        <option value="all">Tous formats</option>
+                <div class="format-filter-row">
+                    <span class="format-filter-label">Format comparé</span>
+                    <span id="seance-format-chip" class="format-active-chip">Chargement...</span>
+                    <select id="seance-format-filter" class="format-filter-select">
+                        <option value="all">Tous les formats</option>
                     </select>
                 </div>
                 <div id="seance-view-content"><div class="history-empty">Chargement...</div></div>
@@ -2808,11 +2868,11 @@ body {
                     <button class="sd-tab active" data-sdtab="sessions">Sessions</button>
                     <button class="sd-tab" data-sdtab="evolution">Évolution</button>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:10px;">
-                    <span style="color:#666;font-size:0.9rem;">Comparaison</span>
-                    <select id="student-format-filter" style="padding:8px 10px;border-radius:10px;border:1px solid #d9d9d9;background:#fff;">
-                        <option value="strict">Même format uniquement</option>
-                        <option value="all">Tous formats</option>
+                <div class="format-filter-row">
+                    <span class="format-filter-label">Format comparé</span>
+                    <span id="student-format-chip" class="format-active-chip">Chargement...</span>
+                    <select id="student-format-filter" class="format-filter-select">
+                        <option value="all">Tous les formats</option>
                     </select>
                 </div>
                 <div id="sd-panel-sessions" class="history-panel active">
@@ -2835,11 +2895,11 @@ body {
                     <button class="history-tab active" data-tab="sessions">Sessions</button>
                     <button class="history-tab" data-tab="evolution">Évolution</button>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin:8px 0 10px;">
-                    <span style="color:#666;font-size:0.9rem;">Comparaison</span>
-                    <select id="history-format-filter" style="padding:8px 10px;border-radius:10px;border:1px solid #d9d9d9;background:#fff;">
-                        <option value="strict">Même format uniquement</option>
-                        <option value="all">Tous formats</option>
+                <div class="format-filter-row">
+                    <span class="format-filter-label">Format comparé</span>
+                    <span id="history-format-chip" class="format-active-chip">Chargement...</span>
+                    <select id="history-format-filter" class="format-filter-select">
+                        <option value="all">Tous les formats</option>
                     </select>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin:8px 0 12px;">
@@ -3086,7 +3146,10 @@ class LaserEPSApp {
         this._activeSeanceCode = null;
         this._activeSeanceFormat = null;
         this._currentSeanceId = null;
-        this._formatFilterMode = this.storageEnabled ? (localStorage.getItem('lasereps-format-filter-mode') || 'strict') : 'strict';
+        this._historyAllSessions = [];
+        this._studentAllSessions = [];
+        this._seanceAllSessions = [];
+        this._selectedFormatKey = this.storageEnabled ? (localStorage.getItem('lasereps-selected-format-key') || '') : '';
         this.initAuth();
     }
 
@@ -3157,7 +3220,7 @@ class LaserEPSApp {
     }
 
     routeByRole() {
-        this.syncFormatFilterControls();
+        this.refreshFormatFilterControls();
         if (this.userRole === 'prof') {
             this.showScreen('prof');
             this.loadClasses();
@@ -3536,34 +3599,81 @@ class LaserEPSApp {
         return this.formatKeyFromFormat(this.getSessionFormat(session));
     }
 
-    getReferenceFormatKey(sessions, preferredFormat = null) {
-        if (preferredFormat) return this.formatKeyFromFormat(preferredFormat);
-        if (!sessions || !sessions.length) return null;
-        return this.getSessionFormatKey(sessions[0]);
-    }
-
-    filterSessionsByCurrentMode(sessions, preferredFormat = null) {
+    filterSessionsBySelectedFormat(sessions) {
         const allSessions = Array.isArray(sessions) ? sessions : [];
-        const referenceKey = this.getReferenceFormatKey(allSessions, preferredFormat);
-        if (this._formatFilterMode === 'all' || !referenceKey) {
-            return { sessions: allSessions, referenceKey, removed: 0 };
+        if (this._selectedFormatKey === 'all') {
+            return { sessions: allSessions, removed: 0 };
         }
-        const filtered = allSessions.filter(s => this.getSessionFormatKey(s) === referenceKey);
-        return { sessions: filtered, referenceKey, removed: Math.max(0, allSessions.length - filtered.length) };
+        const filtered = allSessions.filter(s => this.getSessionFormatKey(s) === this._selectedFormatKey);
+        return { sessions: filtered, removed: Math.max(0, allSessions.length - filtered.length) };
     }
 
-    syncFormatFilterControls() {
-        ['history-format-filter', 'seance-format-filter', 'student-format-filter'].forEach(id => {
+    formatLabelFromFormat(format) {
+        const fmt = this.normalizeSeanceFormat(format);
+        return `${fmt.numberOfShootings} tirs · ${fmt.distances.first}/${fmt.distances.other}/${fmt.distances.final}m`;
+    }
+
+    collectSessionsForFormatOptions() {
+        return [
+            ...(this._historyAllSessions || []),
+            ...(this._studentAllSessions || []),
+            ...(this._seanceAllSessions || [])
+        ];
+    }
+
+    getFormatOptionsFromSessions(sessions) {
+        const byKey = new Map();
+        (sessions || []).forEach(s => {
+            const fmt = this.getSessionFormat(s);
+            const key = this.formatKeyFromFormat(fmt);
+            if (!byKey.has(key)) byKey.set(key, { key, label: this.formatLabelFromFormat(fmt), count: 0 });
+            byKey.get(key).count += 1;
+        });
+        return Array.from(byKey.values()).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+    }
+
+    getSelectedFormatLabel(options) {
+        if (!options || !options.length) return 'Tous les formats';
+        if (this._selectedFormatKey === 'all') return 'Tous les formats';
+        const hit = options.find(o => o.key === this._selectedFormatKey);
+        return hit ? hit.label : 'Tous les formats';
+    }
+
+    updateFormatChips(options) {
+        const label = this.getSelectedFormatLabel(options);
+        ['history-format-chip', 'seance-format-chip', 'student-format-chip'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.value = this._formatFilterMode;
+            if (el) el.textContent = label;
         });
     }
 
-    setFormatFilterMode(mode) {
-        const next = mode === 'all' ? 'all' : 'strict';
-        this._formatFilterMode = next;
-        if (this.storageEnabled) localStorage.setItem('lasereps-format-filter-mode', next);
-        this.syncFormatFilterControls();
+    refreshFormatFilterControls() {
+        const options = this.getFormatOptionsFromSessions(this.collectSessionsForFormatOptions());
+        const availableKeys = new Set(options.map(o => o.key));
+        if (!this._selectedFormatKey) {
+            this._selectedFormatKey = options.length ? options[0].key : 'all';
+            if (this.storageEnabled) localStorage.setItem('lasereps-selected-format-key', this._selectedFormatKey);
+        } else if (this._selectedFormatKey !== 'all' && !availableKeys.has(this._selectedFormatKey)) {
+            this._selectedFormatKey = options.length ? options[0].key : 'all';
+            if (this.storageEnabled) localStorage.setItem('lasereps-selected-format-key', this._selectedFormatKey);
+        }
+        ['history-format-filter', 'seance-format-filter', 'student-format-filter'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const optsHtml = ['<option value="all">Tous les formats</option>']
+                .concat(options.map(o => `<option value="${o.key}">${o.label} (${o.count})</option>`))
+                .join('');
+            el.innerHTML = optsHtml;
+            el.value = this._selectedFormatKey || 'all';
+            el.disabled = options.length === 0;
+        });
+        this.updateFormatChips(options);
+    }
+
+    setSelectedFormatKey(key) {
+        this._selectedFormatKey = key || 'all';
+        if (this.storageEnabled) localStorage.setItem('lasereps-selected-format-key', this._selectedFormatKey);
+        this.refreshFormatFilterControls();
     }
 
     applySeanceFormatToConfig() {
@@ -3712,7 +3822,7 @@ class LaserEPSApp {
             this.showScreen('home');
         });
         document.getElementById('history-format-filter').addEventListener('change', async (e) => {
-            this.setFormatFilterMode(e.target.value);
+            this.setSelectedFormatKey(e.target.value);
             await this.loadHistory();
             const activeTab = document.querySelector('#history-screen .history-tab.active');
             if (activeTab && activeTab.dataset.tab === 'evolution') await this.loadEvolutionCharts();
@@ -3724,11 +3834,11 @@ class LaserEPSApp {
             await this.deleteFakeSessions();
         });
         document.getElementById('seance-format-filter').addEventListener('change', async (e) => {
-            this.setFormatFilterMode(e.target.value);
+            this.setSelectedFormatKey(e.target.value);
             if (this._currentClassId && this._currentSeanceId) await this.loadSeanceCompare(this._currentClassId, this._currentSeanceId);
         });
         document.getElementById('student-format-filter').addEventListener('change', async (e) => {
-            this.setFormatFilterMode(e.target.value);
+            this.setSelectedFormatKey(e.target.value);
             if (this._currentStudentUid) await this.loadStudentSessions(this._currentStudentUid);
             const activeSdTab = document.querySelector('#student-detail-screen .sd-tab.active');
             if (activeSdTab && activeSdTab.dataset.sdtab === 'evolution') this.loadStudentEvolutionCharts();
@@ -4493,16 +4603,15 @@ class LaserEPSApp {
         container.innerHTML = '<div class="history-empty">Chargement...</div>';
         try {
             const sessions = await this.fetchSessionsForUid(this.currentUser.uid, 50);
+            this._historyAllSessions = sessions;
+            this.refreshFormatFilterControls();
             if (!sessions.length) {
                 container.innerHTML = '<div class="history-empty">Aucune session enregistrée.<br>Fais une course pour commencer !</div>';
                 return;
             }
-            const preferred = this._activeSeanceFormat || null;
-            const filtered = this.filterSessionsByCurrentMode(sessions, preferred);
+            const filtered = this.filterSessionsBySelectedFormat(sessions);
             if (!filtered.sessions.length) {
-                container.innerHTML = this._formatFilterMode === 'strict'
-                    ? '<div class="history-empty">Aucune session avec le même format.<br>Passe sur "Tous formats" pour tout voir.</div>'
-                    : '<div class="history-empty">Aucune session enregistrée.</div>';
+                container.innerHTML = '<div class="history-empty">Aucune session pour ce format. Choisis un autre format ou "Tous les formats".</div>';
                 this._historySessions = [];
                 return;
             }
@@ -4517,9 +4626,6 @@ class LaserEPSApp {
                     this.showSessionDetail(idx);
                 }
             });
-            if (this._formatFilterMode === 'all') {
-                container.innerHTML = '<div class="history-empty" style="margin-bottom:10px;">Mode Tous formats actif.</div>' + container.innerHTML;
-            }
         } catch (e) {
             console.warn('Erreur chargement historique :', e);
             container.innerHTML = '<div class="history-empty">Erreur de chargement. Vérifie ta connexion.</div>';
@@ -4881,9 +4987,7 @@ class LaserEPSApp {
     async loadEvolutionCharts() {
         const container = document.getElementById('evolution-content');
         if (!this._historySessions || this._historySessions.length < 2) {
-            container.innerHTML = this._formatFilterMode === 'strict'
-                ? '<div class="history-empty">Pas assez de sessions comparables (même format).<br>Passe en "Tous formats" si besoin.</div>'
-                : '<div class="history-empty">Il faut au moins 2 sessions pour afficher l\'évolution.</div>';
+            container.innerHTML = '<div class="history-empty">Pas assez de données pour l’évolution du format sélectionné.</div>';
             return;
         }
 
@@ -4896,7 +5000,6 @@ class LaserEPSApp {
         });
 
         container.innerHTML = `
-            ${this._formatFilterMode === 'all' ? '<div class="history-empty" style="margin-bottom:8px;">Mode Tous formats : interprète "Temps total" avec prudence.</div>' : ''}
             <div class="charts-grid">
                 <div class="chart-card"><h4>Temps total</h4><canvas id="chart-time"></canvas></div>
                 <div class="chart-card"><h4>Vitesse de course (km/h)</h4><canvas id="chart-speed"></canvas></div>
@@ -5506,6 +5609,7 @@ class LaserEPSApp {
 
             const selectedEntries = [];
             const sessionsByStudent = {};
+            const allSeanceSessions = [];
             for (const mDoc of membersSnap.docs) {
                 const uid = mDoc.id;
                 const mData = mDoc.data();
@@ -5518,7 +5622,8 @@ class LaserEPSApp {
                     const sData = d.data();
                     return { id: d.id, ...sData, date: this.normalizeFirestoreDate(sData.date) };
                 });
-                const filtered = this.filterSessionsByCurrentMode(sessions, seanceFormat);
+                allSeanceSessions.push(...sessions);
+                const filtered = this.filterSessionsBySelectedFormat(sessions);
                 sessionsByStudent[uid] = filtered.sessions;
                 if (filtered.sessions.length) {
                     const best = filtered.sessions[0];
@@ -5526,11 +5631,11 @@ class LaserEPSApp {
                     selectedEntries.push({ uid, displayName, session: best });
                 }
             }
+            this._seanceAllSessions = allSeanceSessions;
+            this.refreshFormatFilterControls();
 
             if (!selectedEntries.length) {
-                container.innerHTML = this._formatFilterMode === 'strict'
-                    ? `<div class="history-empty">Aucune session comparable avec le même format pour cette séance.<br><br>Code séance : <b>${seanceData.code}</b></div>`
-                    : `<div class="history-empty">Aucune session enregistrée pour cette séance.<br><br>Code séance : <b>${seanceData.code}</b></div>`;
+                container.innerHTML = `<div class="history-empty">Aucune session pour ce format dans cette séance.<br><br>Code séance : <b>${seanceData.code}</b></div>`;
                 return;
             }
 
@@ -5583,7 +5688,6 @@ class LaserEPSApp {
                     Séance : <b>${seanceData.name}</b> <span style="color:#888;">Code séance : ${seanceData.code}</span>
                 </div>
                 <div class="history-empty" style="margin-bottom:10px;">Format séance: ${seanceFormat.numberOfShootings} tirs · ${seanceFormat.distances.first}/${seanceFormat.distances.other}/${seanceFormat.distances.final}m</div>
-                ${this._formatFilterMode === 'all' ? '<div class="history-empty" style="margin-bottom:10px;">Mode Tous formats actif pour les sessions de cette séance.</div>' : ''}
                 <div class="comp-metrics-grid">${metricCards}</div>
                 <div style="margin-top:16px;">
                     <div style="font-weight:800;color:#333;margin-bottom:10px;">Sessions (clic pour détail)</div>
@@ -5621,16 +5725,15 @@ class LaserEPSApp {
         evoDiv.innerHTML = '';
         try {
             const sessions = await this.fetchSessionsForUid(uid, 50);
+            this._studentAllSessions = sessions;
+            this.refreshFormatFilterControls();
             if (!sessions.length) {
                 sessionsDiv.innerHTML = '<div class="history-empty">Aucune session enregistrée.</div>';
                 return;
             }
-            const preferred = this._activeSeanceFormat || null;
-            const filtered = this.filterSessionsByCurrentMode(sessions, preferred);
+            const filtered = this.filterSessionsBySelectedFormat(sessions);
             if (!filtered.sessions.length) {
-                sessionsDiv.innerHTML = this._formatFilterMode === 'strict'
-                    ? '<div class="history-empty">Aucune session comparable (même format) pour cet élève.</div>'
-                    : '<div class="history-empty">Aucune session enregistrée.</div>';
+                sessionsDiv.innerHTML = '<div class="history-empty">Aucune session pour ce format.</div>';
                 this._studentSessions = [];
                 this._historySessions = [];
                 return;
@@ -5706,9 +5809,7 @@ class LaserEPSApp {
     loadStudentEvolutionCharts() {
         const container = document.getElementById('sd-evolution-content');
         if (!this._studentSessions || this._studentSessions.length < 2) {
-            container.innerHTML = this._formatFilterMode === 'strict'
-                ? '<div class="history-empty">Pas assez de sessions comparables pour l\'évolution.</div>'
-                : '<div class="history-empty">Il faut au moins 2 sessions pour voir l\'évolution.</div>';
+            container.innerHTML = '<div class="history-empty">Pas assez de données pour l’évolution du format sélectionné.</div>';
             return;
         }
         const sessions = [...this._studentSessions].reverse();
@@ -5727,7 +5828,7 @@ class LaserEPSApp {
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         };
-        container.innerHTML = `${this._formatFilterMode === 'all' ? '<div class="history-empty" style="margin-bottom:8px;">Mode Tous formats actif.</div>' : ''}<div class="charts-grid">
+        container.innerHTML = `<div class="charts-grid">
             <div class="chart-card"><h4>Temps total</h4><div style="height:200px"><canvas id="sd-chart-time"></canvas></div></div>
             <div class="chart-card"><h4>Précision</h4><div style="height:200px"><canvas id="sd-chart-acc"></canvas></div></div>
             <div class="chart-card"><h4>Vitesse moyenne</h4><div style="height:200px"><canvas id="sd-chart-speed"></canvas></div></div>
