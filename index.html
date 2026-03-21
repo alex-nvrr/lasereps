@@ -5281,6 +5281,121 @@ class LaserEPSApp {
         return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
+    async ensureDemoSeancesForClass(classId) {
+        const existingSnap = await db.collection('classes').doc(classId).collection('seances').get();
+        const existing = existingSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (existing.length >= 3) {
+            return existing.slice(0, 3).map(s => ({
+                id: s.id,
+                format: this.normalizeSeanceFormat(s.format)
+            }));
+        }
+
+        const formats = [
+            this.normalizeSeanceFormat({ numberOfShootings: 4, distances: { first: 30, other: 400, final: 370 } }),
+            this.normalizeSeanceFormat({ numberOfShootings: 4, distances: { first: 30, other: 300, final: 300 } }),
+            this.normalizeSeanceFormat({ numberOfShootings: 5, distances: { first: 30, other: 250, final: 250 } })
+        ];
+        const seanceNames = ['Séance démo A', 'Séance démo B', 'Séance démo C'];
+        const created = [];
+        for (let i = 0; i < 3; i++) {
+            const sRef = await db.collection('classes').doc(classId).collection('seances').add({
+                name: seanceNames[i],
+                code: this.generateSeanceCode(),
+                profUid: this.currentUser.uid,
+                isDemoData: true,
+                demoOwnerUid: this.currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                format: {
+                    numberOfShootings: formats[i].numberOfShootings,
+                    distances: formats[i].distances,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }
+            });
+            created.push({ id: sRef.id, format: formats[i] });
+        }
+        return created;
+    }
+
+    async populateDemoMembersForClass(classId, desiredCount = 24) {
+        const seances = await this.ensureDemoSeancesForClass(classId);
+        const formats = seances.map(s => this.normalizeSeanceFormat(s.format));
+        const firstNames = ['Lina', 'Nolan', 'Ines', 'Tom', 'Yanis', 'Emma', 'Rayan', 'Jade', 'Sami', 'Mila', 'Noah', 'Lea', 'Adam', 'Sarah', 'Ilyes', 'Nina', 'Lucas', 'Manon', 'Ethan', 'Chloe', 'Amine', 'Camille', 'Ayden', 'Zoey', 'Mathis', 'Louna'];
+        const lastNames = ['Martin', 'Bernard', 'Dubois', 'Thomas', 'Robert', 'Petit', 'Garcia', 'Roux', 'Fournier', 'Girard', 'Andre', 'Morel'];
+        const baseDate = Date.now();
+        let createdStudents = 0;
+        let createdSessions = 0;
+
+        for (let i = 0; i < desiredCount; i++) {
+            const fn = firstNames[i % firstNames.length];
+            const ln = lastNames[(i * 3) % lastNames.length];
+            const fakeUid = `demo_${this.currentUser.uid.slice(0, 8)}_${Date.now().toString(36)}_${i}`;
+            const displayName = `${fn} ${ln}`;
+            const demoSessions = [];
+            const sessionsPerStudent = this.randomInt(6, 10);
+            let offsetDays = this.randomInt(8, 28);
+
+            for (let j = 0; j < sessionsPerStudent; j++) {
+                const seance = seances[(i + j) % seances.length];
+                const isLinked = j % 4 !== 0;
+                const fmt = isLinked ? this.normalizeSeanceFormat(seance.format) : formats[(i + j + 1) % formats.length];
+                const laps = this.buildDemoLapTimes(fmt, {
+                    courseBase: this.randomInt(20, 36) - Math.min(4, Math.floor(j / 3)),
+                    shootBase: this.randomInt(7, 16) - Math.min(2, Math.floor(j / 4))
+                });
+                const targets = Array.from({ length: fmt.numberOfShootings }).map(() => {
+                    const hit = this.randomInt(2, 5);
+                    const miss = this.randomInt(0, Math.max(0, 5 - hit));
+                    return { hitCount: hit, missCount: miss };
+                });
+                const totalShootingTime = laps.filter(l => l.type === 'shooting').reduce((s, l) => s + l.duration, 0);
+                const totalRunningTime = laps.filter(l => l.type === 'course').reduce((s, l) => s + l.duration, 0);
+                const totalTime = parseFloat((totalShootingTime + totalRunningTime).toFixed(1));
+                const totalHits = targets.reduce((s, t) => s + t.hitCount, 0);
+                const totalMisses = targets.reduce((s, t) => s + t.missCount, 0);
+                const totalDistance = fmt.distances.first + fmt.distances.final + (fmt.numberOfShootings - 1) * fmt.distances.other;
+                const avgSpeed = totalRunningTime > 0 ? (totalDistance / 1000) / (totalRunningTime / 3600) : 0;
+                const date = new Date(baseDate - (offsetDays * 24 * 60 * 60 * 1000) - this.randomInt(7, 20) * 3600000);
+                offsetDays -= this.randomInt(1, 3);
+
+                demoSessions.push({
+                    id: `demo_session_${i}_${j}_${Date.now().toString(36)}`,
+                    date: firebase.firestore.Timestamp.fromDate(date),
+                    displayName,
+                    totalTime,
+                    totalShootingTime,
+                    totalRunningTime,
+                    totalDistance,
+                    numberOfShootings: fmt.numberOfShootings,
+                    totalHits,
+                    totalMisses,
+                    averageSpeed: parseFloat(avgSpeed.toFixed(2)),
+                    distances: { ...fmt.distances },
+                    targets,
+                    lapTimes: laps,
+                    seanceId: isLinked ? seance.id : null,
+                    classId: isLinked ? classId : null,
+                    formatSnapshot: { numberOfShootings: fmt.numberOfShootings, distances: { ...fmt.distances } },
+                    isDemoData: true,
+                    demoOwnerUid: this.currentUser.uid
+                });
+                createdSessions += 1;
+            }
+
+            await db.collection('classes').doc(classId).collection('members').doc(fakeUid).set({
+                displayName,
+                email: `${fn.toLowerCase()}.${ln.toLowerCase()}.demo@lasereps.local`,
+                joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                isDemoData: true,
+                demoOwnerUid: this.currentUser.uid,
+                demoSessions
+            }, { merge: true });
+            createdStudents += 1;
+        }
+
+        return { createdStudents, createdSessions };
+    }
+
     async createProfessorDemoDataset() {
         if (!this.currentUser || this.userRole !== 'prof') return;
         try {
@@ -5300,106 +5415,11 @@ class LaserEPSApp {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             const demoClassId = classRef.id;
-
-            const formats = [
-                this.normalizeSeanceFormat({ numberOfShootings: 4, distances: { first: 30, other: 400, final: 370 } }),
-                this.normalizeSeanceFormat({ numberOfShootings: 4, distances: { first: 30, other: 300, final: 300 } }),
-                this.normalizeSeanceFormat({ numberOfShootings: 5, distances: { first: 30, other: 250, final: 250 } })
-            ];
-            const seanceNames = ['Séance démo A', 'Séance démo B', 'Séance démo C'];
-            const seances = [];
-            for (let i = 0; i < 3; i++) {
-                const sRef = await db.collection('classes').doc(demoClassId).collection('seances').add({
-                    name: seanceNames[i],
-                    code: this.generateSeanceCode(),
-                    profUid: this.currentUser.uid,
-                    isDemoData: true,
-                    demoOwnerUid: this.currentUser.uid,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    format: {
-                        numberOfShootings: formats[i].numberOfShootings,
-                        distances: formats[i].distances,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }
-                });
-                seances.push({ id: sRef.id, format: formats[i] });
-            }
-
-            const firstNames = ['Lina', 'Nolan', 'Ines', 'Tom', 'Yanis', 'Emma', 'Rayan', 'Jade', 'Sami', 'Mila', 'Noah', 'Lea', 'Adam', 'Sarah', 'Ilyes', 'Nina'];
-            const lastNames = ['Martin', 'Bernard', 'Dubois', 'Thomas', 'Robert', 'Petit', 'Garcia', 'Roux', 'Fournier', 'Girard'];
-            const studentCount = this.randomInt(12, 18);
-            const baseDate = Date.now();
-            let createdSessions = 0;
-
-            for (let i = 0; i < studentCount; i++) {
-                const fn = firstNames[i % firstNames.length];
-                const ln = lastNames[(i * 3) % lastNames.length];
-                const fakeUid = `demo_${this.currentUser.uid.slice(0, 8)}_${Date.now().toString(36)}_${i}`;
-                const displayName = `${fn} ${ln}`;
-                const demoSessions = [];
-
-                const sessionsPerStudent = this.randomInt(6, 10);
-                let offsetDays = this.randomInt(8, 28);
-                for (let j = 0; j < sessionsPerStudent; j++) {
-                    const seance = seances[(i + j) % seances.length];
-                    const isLinked = j % 4 !== 0;
-                    const fmt = isLinked ? seance.format : formats[(i + j + 1) % formats.length];
-                    const laps = this.buildDemoLapTimes(fmt, {
-                        courseBase: this.randomInt(20, 36) - Math.min(4, Math.floor(j / 3)),
-                        shootBase: this.randomInt(7, 16) - Math.min(2, Math.floor(j / 4))
-                    });
-                    const targets = Array.from({ length: fmt.numberOfShootings }).map(() => {
-                        const hit = this.randomInt(2, 5);
-                        const miss = this.randomInt(0, Math.max(0, 5 - hit));
-                        return { hitCount: hit, missCount: miss };
-                    });
-                    const totalShootingTime = laps.filter(l => l.type === 'shooting').reduce((s, l) => s + l.duration, 0);
-                    const totalRunningTime = laps.filter(l => l.type === 'course').reduce((s, l) => s + l.duration, 0);
-                    const totalTime = parseFloat((totalShootingTime + totalRunningTime).toFixed(1));
-                    const totalHits = targets.reduce((s, t) => s + t.hitCount, 0);
-                    const totalMisses = targets.reduce((s, t) => s + t.missCount, 0);
-                    const totalDistance = fmt.distances.first + fmt.distances.final + (fmt.numberOfShootings - 1) * fmt.distances.other;
-                    const avgSpeed = totalRunningTime > 0 ? (totalDistance / 1000) / (totalRunningTime / 3600) : 0;
-                    const date = new Date(baseDate - (offsetDays * 24 * 60 * 60 * 1000) - this.randomInt(7, 20) * 3600000);
-                    offsetDays -= this.randomInt(1, 3);
-
-                    demoSessions.push({
-                        id: `demo_session_${i}_${j}_${Date.now().toString(36)}`,
-                        date: firebase.firestore.Timestamp.fromDate(date),
-                        displayName,
-                        totalTime,
-                        totalShootingTime,
-                        totalRunningTime,
-                        totalDistance,
-                        numberOfShootings: fmt.numberOfShootings,
-                        totalHits,
-                        totalMisses,
-                        averageSpeed: parseFloat(avgSpeed.toFixed(2)),
-                        distances: { ...fmt.distances },
-                        targets,
-                        lapTimes: laps,
-                        seanceId: isLinked ? seance.id : null,
-                        classId: isLinked ? demoClassId : null,
-                        formatSnapshot: { numberOfShootings: fmt.numberOfShootings, distances: { ...fmt.distances } },
-                        isDemoData: true,
-                        demoOwnerUid: this.currentUser.uid
-                    });
-                    createdSessions += 1;
-                }
-
-                await db.collection('classes').doc(demoClassId).collection('members').doc(fakeUid).set({
-                    displayName,
-                    email: `${fn.toLowerCase()}.${ln.toLowerCase()}.demo@lasereps.local`,
-                    joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    isDemoData: true,
-                    demoOwnerUid: this.currentUser.uid,
-                    demoSessions
-                }, { merge: true });
-            }
+            const result = await this.populateDemoMembersForClass(demoClassId, 24);
 
             await this.loadClasses();
             this.showScreen('prof');
-            alert(`Classe démo créée: ${studentCount} faux élèves, ${createdSessions} sessions.`);
+            alert(`Classe démo créée: ${result.createdStudents} faux élèves, ${result.createdSessions} sessions.`);
         } catch (e) {
             console.warn('Erreur création démo prof :', e);
             alert('Impossible de créer la démo prof. Vérifie les règles Firestore.');
@@ -5890,7 +5910,34 @@ class LaserEPSApp {
             this._classCompareMembers = studentData;
 
             if (!studentData.length) {
-                studentsDiv.innerHTML = '<div class="history-empty">Aucun élève dans cette classe.</div>';
+                if (cls.isDemoData) {
+                    studentsDiv.innerHTML = `
+                        <div class="history-empty">
+                            Aucun élève dans cette classe démo.<br><br>
+                            <button id="regen-demo-students-btn" class="primary-button">Générer des élèves démo</button>
+                        </div>
+                    `;
+                    const regenBtn = document.getElementById('regen-demo-students-btn');
+                    if (regenBtn) {
+                        regenBtn.addEventListener('click', async () => {
+                            regenBtn.disabled = true;
+                            regenBtn.textContent = 'Génération...';
+                            try {
+                                const result = await this.populateDemoMembersForClass(classId, 24);
+                                await this.loadClassView(classId);
+                                alert(`${result.createdStudents} élèves démo et ${result.createdSessions} sessions générés.`);
+                            } catch (e) {
+                                console.warn('Erreur génération élèves démo :', e);
+                                alert('Impossible de générer les élèves démo.');
+                            } finally {
+                                regenBtn.disabled = false;
+                                regenBtn.textContent = 'Générer des élèves démo';
+                            }
+                        });
+                    }
+                } else {
+                    studentsDiv.innerHTML = '<div class="history-empty">Aucun élève dans cette classe.</div>';
+                }
             } else {
                 studentsDiv.innerHTML = '<div class="student-list">' + studentData.map(st => {
                     const ls = st.lastSession;
