@@ -2238,39 +2238,47 @@ body {
 
 /* ===== Home : résumé dernière session ===== */
 .last-session-summary {
-    margin-top: 20px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 16px;
-    padding: 16px 20px;
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid rgba(180, 83, 9, 0.2);
+    border-radius: var(--radius);
+    padding: 18px 22px;
     text-align: center;
     display: none;
+    box-shadow: var(--shadow-sm);
 }
 .last-session-summary.visible {
     display: block;
 }
 .last-session-summary .summary-title {
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.7);
-    margin-bottom: 8px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--primary-hover);
+    margin-bottom: 12px;
 }
 .last-session-summary .summary-stats {
     display: flex;
     justify-content: center;
-    gap: 24px;
+    gap: 28px;
     flex-wrap: wrap;
 }
 .last-session-summary .s-stat {
     text-align: center;
+    min-width: 72px;
 }
 .last-session-summary .s-val {
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: white;
+    font-weight: 800;
+    font-size: 1.35rem;
+    color: var(--primary);
+    letter-spacing: -0.02em;
 }
 .last-session-summary .s-lbl {
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.65);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
 }
 
 /* ===== Responsive mobile global pour nouveaux composants ===== */
