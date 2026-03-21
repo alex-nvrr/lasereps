@@ -2609,7 +2609,6 @@ body {
                         <div id="auth-loading" class="auth-loading">Chargement...</div>
                     </div>
                     <div id="auth-form-student" class="auth-form" style="display:none;">
-                        <input type="text" id="student-seance-code" placeholder="Code séance" autocomplete="off">
                         <input type="text" id="student-last-name" placeholder="Nom" autocomplete="family-name">
                         <input type="text" id="student-first-name" placeholder="Prénom" autocomplete="given-name">
                         <input type="password" id="student-password" placeholder="Mot de passe" autocomplete="current-password">
@@ -3108,7 +3107,8 @@ class LaserEPSApp {
                             }
                         }
                         document.getElementById('user-display-name').textContent = this.userDisplayName;
-                        document.getElementById('user-email-display').textContent = u.loginMode === 'class_code_name' ? '' : user.email;
+                        const hideEmail = u.role === 'eleve' || u.loginMode === 'class_code_name' || u.loginMode === 'name_password';
+                        document.getElementById('user-email-display').textContent = hideEmail ? '' : user.email;
                         this.routeByRole();
                     } else {
                         this.showScreen('role');
@@ -3149,10 +3149,10 @@ class LaserEPSApp {
             .replace(/[^a-z0-9]/g, '');
     }
 
-    buildTechnicalEmail(classId, lastName, firstName) {
+    buildTechnicalEmail(lastName, firstName) {
         const ln = this.normalizeStudentPart(lastName);
         const fn = this.normalizeStudentPart(firstName);
-        const base = `${classId}_${ln}_${fn}`;
+        const base = `${ln}_${fn}`;
         return `${base}@eleve.lasereps.local`;
     }
 
@@ -3174,7 +3174,6 @@ class LaserEPSApp {
         const errorDiv = document.getElementById('auth-error');
         const loadingDiv = document.getElementById('auth-loading');
 
-        const studentCodeInput = document.getElementById('student-seance-code');
         const studentLastNameInput = document.getElementById('student-last-name');
         const studentFirstNameInput = document.getElementById('student-first-name');
         const studentPasswordInput = document.getElementById('student-password');
@@ -3220,7 +3219,7 @@ class LaserEPSApp {
                 'auth/user-not-found': 'Compte introuvable.',
                 'auth/wrong-password': 'Mot de passe incorrect.',
                 'auth/invalid-credential': 'Identifiants incorrects.',
-                'auth/email-already-in-use': 'Un compte existe déjà pour ce nom/prénom dans cette classe.',
+                'auth/email-already-in-use': 'Un compte existe déjà pour ce nom/prénom.',
                 'auth/weak-password': 'Le mot de passe doit faire au moins 6 caractères.',
                 'auth/too-many-requests': 'Trop de tentatives. Réessaie plus tard.',
                 'auth/missing-password': 'Entre un mot de passe.',
@@ -3251,18 +3250,15 @@ class LaserEPSApp {
         });
 
         const parseStudentForm = async () => {
-            const code = studentCodeInput.value.trim();
             const lastName = studentLastNameInput.value.trim();
             const firstName = studentFirstNameInput.value.trim();
             const password = studentPasswordInput.value;
-            if (!code || !lastName || !firstName || !password) {
+            if (!lastName || !firstName || !password) {
                 throw new Error('missing-fields');
             }
             if (password.length < 6) throw new Error('weak-password');
-            const resolved = await this.resolveSeanceByCode(code);
-            if (!resolved) throw new Error('invalid-seance-code');
-            const technicalEmail = this.buildTechnicalEmail(resolved.classId, lastName, firstName);
-            return { code, lastName, firstName, password, technicalEmail, ...resolved };
+            const technicalEmail = this.buildTechnicalEmail(lastName, firstName);
+            return { lastName, firstName, password, technicalEmail };
         };
 
         studentRegisterBtn.addEventListener('click', async () => {
@@ -3275,28 +3271,18 @@ class LaserEPSApp {
                 await db.collection('users').doc(cred.user.uid).set({
                     role: 'eleve',
                     displayName: displayName,
-                    classes: [form.classId],
-                    loginMode: 'class_code_name',
-                    classId: form.classId,
-                    activeSeanceId: form.seanceId,
-                    activeClassId: form.classId,
-                    activeSeanceCode: form.seanceCode,
+                    classes: [],
+                    loginMode: 'name_password',
                     email: form.technicalEmail
                 }, { merge: true });
-                await db.collection('classes').doc(form.classId).collection('members').doc(cred.user.uid).set({
-                    displayName: displayName,
-                    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-                this._activeSeanceId = form.seanceId;
-                this._activeClassId = form.classId;
-                this._activeSeanceCode = form.seanceCode;
-                this._activeSeanceName = form.seanceData.name || 'Séance';
-                this._activeSeanceFormat = form.seanceData.format ? this.normalizeSeanceFormat(form.seanceData.format) : null;
+                this._activeSeanceId = null;
+                this._activeClassId = null;
+                this._activeSeanceCode = null;
+                this._activeSeanceName = null;
+                this._activeSeanceFormat = null;
             } catch (e) {
                 if (e.message === 'missing-fields') {
                     studentErrorDiv.textContent = 'Remplis tous les champs obligatoires.';
-                } else if (e.message === 'invalid-seance-code') {
-                    studentErrorDiv.textContent = 'Code séance invalide.';
                 } else if (e.message === 'weak-password') {
                     studentErrorDiv.textContent = 'Mot de passe trop court (6 caractères minimum).';
                 } else {
@@ -3312,23 +3298,9 @@ class LaserEPSApp {
             try {
                 const form = await parseStudentForm();
                 await auth.signInWithEmailAndPassword(form.technicalEmail, form.password);
-                const cu = auth.currentUser;
-                if (cu) {
-                    await db.collection('users').doc(cu.uid).set({
-                        activeSeanceId: form.seanceId,
-                        activeClassId: form.classId,
-                        activeSeanceCode: form.seanceCode
-                    }, { merge: true });
-                    await db.collection('classes').doc(form.classId).collection('members').doc(cu.uid).set({
-                        displayName: `${form.firstName} ${form.lastName}`.trim(),
-                        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                }
             } catch (e) {
                 if (e.message === 'missing-fields') {
                     studentErrorDiv.textContent = 'Remplis tous les champs obligatoires.';
-                } else if (e.message === 'invalid-seance-code') {
-                    studentErrorDiv.textContent = 'Code séance invalide.';
                 } else if (e.message === 'weak-password') {
                     studentErrorDiv.textContent = 'Mot de passe trop court (6 caractères minimum).';
                 } else {
