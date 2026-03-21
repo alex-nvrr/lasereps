@@ -5004,7 +5004,7 @@ class LaserEPSApp {
                 <div class="chart-card"><h4>Temps total</h4><canvas id="chart-time"></canvas></div>
                 <div class="chart-card"><h4>Vitesse de course (km/h)</h4><canvas id="chart-speed"></canvas></div>
                 <div class="chart-card"><h4>Précision de tir (%)</h4><canvas id="chart-accuracy"></canvas></div>
-                <div class="chart-card"><h4>Cadence de tir (tirs/min)</h4><canvas id="chart-shooting"></canvas></div>
+                <div class="chart-card"><h4>Temps moyen entre deux tirs (s)</h4><canvas id="chart-shooting"></canvas></div>
             </div>`;
 
         if (this._charts) this._charts.forEach(c => c.destroy());
@@ -5081,10 +5081,12 @@ class LaserEPSApp {
         const shootData = sessions.map(s => {
             const n = Math.max(1, s.numberOfShootings || 1);
             const avgShotSec = (s.totalShootingTime || 0) / n;
-            const cadence = avgShotSec > 0 ? (60 / avgShotSec) : 0;
-            return parseFloat(cadence.toFixed(1));
+            return parseFloat(avgShotSec.toFixed(2));
         });
-        this._charts.push(createChart('chart-shooting', shootData, 220, 53, 69, false));
+        this._charts.push(createChart('chart-shooting', shootData, 220, 53, 69, true, {
+            tickFormatter: (value) => this.formatSecondsCentiseconds(value),
+            tooltipLabel: (ctx) => `Temps moyen entre deux tirs: ${this.formatSecondsCentiseconds(ctx.raw)}`
+        }));
     }
 
     async loadLastSessionSummary() {
@@ -5965,6 +5967,11 @@ class LaserEPSApp {
         const minutes = Math.floor(safe / 60);
         const secs = safe % 60;
         return `${minutes.toString().padStart(2, '0')}'${secs.toString().padStart(2, '0')}`;
+    }
+
+    formatSecondsCentiseconds(seconds) {
+        const safe = Math.max(0, Number(seconds) || 0);
+        return `${safe.toFixed(2)} s`;
     }
 
     // Modales
