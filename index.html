@@ -2686,8 +2686,8 @@ body {
                     <button id="start-competition" class="menu-button">
                         <div class="button-icon">🎯</div>
                         <div class="button-text">
-                            <h3>Faire une séance libre</h3>
-                            <p>Choisir ton format et lancer</p>
+                            <h3 id="primary-action-title">Faire une séance libre</h3>
+                            <p id="primary-action-desc">Choisir ton format et lancer</p>
                         </div>
                     </button>
                     <button id="choice-join-seance" class="menu-button">
@@ -3692,7 +3692,8 @@ class LaserEPSApp {
 
         // Navigation
         document.getElementById('start-competition').addEventListener('click', () => {
-            this.enterFreeMode();
+            this.showScreen('config');
+            this.updateConfigLockState();
         });
 
         document.getElementById('back-to-home').addEventListener('click', () => {
@@ -4760,9 +4761,13 @@ class LaserEPSApp {
     updateSeanceBanner() {
         const banner = document.getElementById('seance-active-banner');
         const joinBanner = document.getElementById('join-seance-banner');
+        const primaryTitle = document.getElementById('primary-action-title');
+        const primaryDesc = document.getElementById('primary-action-desc');
         if (this.userRole !== 'eleve' && this.userRole !== 'personal') {
             banner.style.display = 'none';
             joinBanner.style.display = 'none';
+            if (primaryTitle) primaryTitle.textContent = 'Faire une séance libre';
+            if (primaryDesc) primaryDesc.textContent = 'Choisir ton format et lancer';
             return;
         }
         if (this._activeSeanceId) {
@@ -4772,10 +4777,14 @@ class LaserEPSApp {
             document.getElementById('seance-banner-code').textContent = this._activeSeanceCode ? 'Code séance : ' + this._activeSeanceCode : '';
             const fmt = this._activeSeanceFormat ? this.normalizeSeanceFormat(this._activeSeanceFormat) : null;
             document.getElementById('seance-banner-format').textContent = fmt ? `Format: ${fmt.numberOfShootings} tirs · ${fmt.distances.first}/${fmt.distances.other}/${fmt.distances.final}m` : '';
+            if (primaryTitle) primaryTitle.textContent = 'Lancer la séance active';
+            if (primaryDesc) primaryDesc.textContent = 'Format prof déjà appliqué';
         } else {
             banner.style.display = 'none';
             joinBanner.style.display = 'none';
             document.getElementById('seance-banner-format').textContent = '';
+            if (primaryTitle) primaryTitle.textContent = 'Faire une séance libre';
+            if (primaryDesc) primaryDesc.textContent = 'Choisir ton format et lancer';
         }
         this.updateConfigLockState();
     }
@@ -4868,8 +4877,18 @@ class LaserEPSApp {
 
             this.closeJoinSeanceModal();
             this.updateSeanceBanner();
-            alert('Séance rejointe : "' + this._activeSeanceName + '". Format chargé, tu peux démarrer ta course.');
             this.showScreen('config');
+            this.showModal('Séance rejointe', `
+                <p style="margin-bottom:12px;">"${this._activeSeanceName}"</p>
+                <p style="color:#555;">Format chargé, tu peux démarrer ta course.</p>
+                <div class="modal-actions" style="margin-top:16px;justify-content:flex-end;">
+                    <button id="join-seance-start-btn" class="primary-button" style="min-width:130px;">C'est parti</button>
+                </div>
+            `);
+            const startBtn = document.getElementById('join-seance-start-btn');
+            if (startBtn) {
+                startBtn.addEventListener('click', () => this.hideModal());
+            }
         } catch (e) {
             console.warn(e);
             const code = (e && e.code) ? String(e.code) : '';
