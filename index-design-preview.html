@@ -2532,7 +2532,7 @@ body {
 }
 .prof-alerts-title {
     font-weight: 800;
-    color: #23307e;
+    color: var(--primary-hover);
     margin-bottom: 10px;
 }
 .prof-alerts-table {
@@ -2546,17 +2546,17 @@ body {
     align-items: center;
     padding: 8px 10px;
     border-radius: 10px;
-    background: #f8f9ff;
-    border: 1px solid #edf0ff;
+    background: rgba(180, 83, 9, 0.04);
+    border: 1px solid rgba(180, 83, 9, 0.12);
 }
 .prof-alert-row.header {
-    background: #eef2ff;
+    background: rgba(180, 83, 9, 0.11);
     font-weight: 700;
-    color: #2d3a8d;
+    color: var(--primary-hover);
 }
 .prof-alert-row.clickable { cursor: pointer; }
-.prof-alert-row.clickable:hover { background: #eef2ff; }
-.prof-alert-cell-strong { font-weight: 700; color: #26316e; }
+.prof-alert-row.clickable:hover { background: rgba(180, 83, 9, 0.09); }
+.prof-alert-cell-strong { font-weight: 700; color: var(--text); }
 .prof-alert-badge {
     display: inline-flex;
     align-items: center;
@@ -2570,15 +2570,19 @@ body {
 .prof-alert-badge.ok { background: #e8f7ec; color: #1f8a43; }
 .prof-alert-badge.watch { background: #fff3cd; color: #9a6a00; }
 .prof-alert-badge.alert { background: #ffe5e8; color: #ba1f31; }
-.prof-alert-badge.na { background: #edf0f4; color: #6b7280; }
+.prof-alert-badge.na { background: #f1f5f4; color: #6b7280; }
 .prof-alert-action-btn {
-    border: 1px solid rgba(180,83,9,0.3);
+    border: 1px solid rgba(180,83,9,0.45);
     background: #fff;
-    color: #3342a0;
+    color: var(--primary);
     border-radius: 999px;
     font-weight: 700;
     font-size: 0.78rem;
     padding: 6px 10px;
+}
+.prof-alert-action-btn:hover {
+    background: rgba(180, 83, 9, 0.08);
+    color: var(--primary-hover);
 }
 .alert-coaching-card {
     background: rgba(255,255,255,0.97);
@@ -2589,7 +2593,7 @@ body {
 }
 .alert-coaching-title {
     font-weight: 800;
-    color: #27337b;
+    color: var(--primary-hover);
     margin-bottom: 8px;
 }
 .alert-coaching-item {
@@ -2634,7 +2638,7 @@ body {
 .comp-table tr:nth-child(even) td { background: #fafafa; }
 
 .comp-session-compare-head {
-    color: #1f2a66;
+    color: var(--primary-hover);
     font-weight: 800;
     margin-bottom: 10px;
     text-align: center;
@@ -2645,7 +2649,7 @@ body {
     box-shadow: 0 3px 12px rgba(0,0,0,0.08);
 }
 .seance-head-code {
-    color: #3342a0;
+    color: var(--primary);
     font-weight: 700;
 }
 .seance-format-pill {
@@ -2653,7 +2657,7 @@ body {
     text-align: center;
     background: rgba(255,255,255,0.96);
     border: 1px solid rgba(180,83,9,0.22);
-    color: #21307c;
+    color: var(--primary-hover);
     border-radius: 12px;
     padding: 9px 12px;
     font-weight: 700;
@@ -2730,8 +2734,8 @@ body {
 }
 .seance-rank-tab {
     border: 1px solid rgba(180,83,9,0.35);
-    background: #eef2ff;
-    color: #223079;
+    background: rgba(180, 83, 9, 0.07);
+    color: var(--primary-hover);
     font-weight: 700;
     border-radius: 999px;
     padding: 8px 12px;
@@ -5360,10 +5364,10 @@ class LaserEPSApp {
             const rows = priorities.map((p, i) => {
                 const width = Math.max(8, Math.round((p.delta / maxDelta) * 100));
                 const title = p.segmentType === 'course' ? `Course ${p.segmentNumber}` : `Tir ${p.segmentNumber}`;
-                const impactBg = p.impact === 'fort' ? '#ffe3e3' : (p.impact === 'moyen' ? '#fff3bf' : '#e7f5ff');
-                const impactColor = p.impact === 'fort' ? '#c92a2a' : (p.impact === 'moyen' ? '#e67700' : '#1971c2');
+                const impactBg = p.impact === 'fort' ? '#ffe3e3' : (p.impact === 'moyen' ? '#fff3bf' : 'rgba(180,83,9,0.1)');
+                const impactColor = p.impact === 'fort' ? '#c92a2a' : (p.impact === 'moyen' ? '#e67700' : '#b45309');
                 return `
-                    <div style="background:#fff;border-radius:12px;padding:12px;border:1px solid #eef1ff;">
+                    <div style="background:#fff;border-radius:12px;padding:12px;border:1px solid rgba(180,83,9,0.16);">
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
                             <div style="font-weight:700;color:var(--primary-hover);">Priorité #${i + 1} - ${title}</div>
                             <span style="background:${impactBg};color:${impactColor};padding:4px 8px;border-radius:999px;font-size:0.78rem;font-weight:700;">Impact ${p.impact}</span>
@@ -5371,8 +5375,8 @@ class LaserEPSApp {
                         <div style="margin-top:6px;color:#555;font-size:0.9rem;">
                             Actuel: <b>${this.formatTime(p.currentDuration)}</b> · Référence: <b>${this.formatTime(p.referenceDuration)}</b> · Écart: <b style="color:#c92a2a;">+${p.delta.toFixed(1)}s</b>
                         </div>
-                        <div style="margin-top:8px;height:8px;background:#f1f3ff;border-radius:999px;overflow:hidden;">
-                            <div style="height:100%;width:${width}%;background:linear-gradient(90deg,#ff8787,#ff6b6b);"></div>
+                        <div style="margin-top:8px;height:8px;background:rgba(180,83,9,0.1);border-radius:999px;overflow:hidden;">
+                            <div style="height:100%;width:${width}%;background:linear-gradient(90deg,#ea580c,#b45309);"></div>
                         </div>
                         <div style="margin-top:8px;color:#334155;font-size:0.9rem;">${p.suggestion}</div>
                     </div>`;
@@ -5394,7 +5398,7 @@ class LaserEPSApp {
                     <h3>Analyse split</h3>
                     <div style="color:#6b7280;font-size:0.88rem;margin-bottom:10px;">${refText}</div>
                     <div style="display:flex;flex-direction:column;gap:10px;">${rows}</div>
-                    <div style="margin-top:12px;background:#f8f9ff;border:1px solid #e4e9ff;border-radius:12px;padding:12px;">
+                    <div style="margin-top:12px;background:rgba(180,83,9,0.06);border:1px solid rgba(180,83,9,0.18);border-radius:12px;padding:12px;">
                         <div style="font-weight:800;color:var(--primary-hover);margin-bottom:6px;">Plan d'action prochaine séance</div>
                         <ul style="margin:0;padding-left:18px;color:#334155;">${actionPlan}</ul>
                     </div>
