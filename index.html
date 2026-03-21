@@ -2786,6 +2786,13 @@ body {
                     <h2 id="seance-view-title">Séance</h2>
                     <button id="back-to-class-from-seance" class="back-button">← Classe</button>
                 </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:10px;">
+                    <span style="color:#666;font-size:0.9rem;">Comparaison</span>
+                    <select id="seance-format-filter" style="padding:8px 10px;border-radius:10px;border:1px solid #d9d9d9;background:#fff;">
+                        <option value="strict">Même format uniquement</option>
+                        <option value="all">Tous formats</option>
+                    </select>
+                </div>
                 <div id="seance-view-content"><div class="history-empty">Chargement...</div></div>
             </div>
         </div>
@@ -2800,6 +2807,13 @@ body {
                 <div class="history-tabs">
                     <button class="sd-tab active" data-sdtab="sessions">Sessions</button>
                     <button class="sd-tab" data-sdtab="evolution">Évolution</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:10px;">
+                    <span style="color:#666;font-size:0.9rem;">Comparaison</span>
+                    <select id="student-format-filter" style="padding:8px 10px;border-radius:10px;border:1px solid #d9d9d9;background:#fff;">
+                        <option value="strict">Même format uniquement</option>
+                        <option value="all">Tous formats</option>
+                    </select>
                 </div>
                 <div id="sd-panel-sessions" class="history-panel active">
                     <div id="sd-sessions-content"><div class="history-empty">Chargement...</div></div>
@@ -2820,6 +2834,13 @@ body {
                 <div class="history-tabs">
                     <button class="history-tab active" data-tab="sessions">Sessions</button>
                     <button class="history-tab" data-tab="evolution">Évolution</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin:8px 0 10px;">
+                    <span style="color:#666;font-size:0.9rem;">Comparaison</span>
+                    <select id="history-format-filter" style="padding:8px 10px;border-radius:10px;border:1px solid #d9d9d9;background:#fff;">
+                        <option value="strict">Même format uniquement</option>
+                        <option value="all">Tous formats</option>
+                    </select>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin:8px 0 12px;">
                     <button id="seed-demo-btn" class="back-button" style="background:#eef3ff;color:#4c6ef5;border-color:#cfd8ff;">Générer des séances test</button>
@@ -3065,6 +3086,7 @@ class LaserEPSApp {
         this._activeSeanceCode = null;
         this._activeSeanceFormat = null;
         this._currentSeanceId = null;
+        this._formatFilterMode = this.storageEnabled ? (localStorage.getItem('lasereps-format-filter-mode') || 'strict') : 'strict';
         this.initAuth();
     }
 
@@ -3135,6 +3157,7 @@ class LaserEPSApp {
     }
 
     routeByRole() {
+        this.syncFormatFilterControls();
         if (this.userRole === 'prof') {
             this.showScreen('prof');
             this.loadClasses();
@@ -3492,6 +3515,57 @@ class LaserEPSApp {
         };
     }
 
+    formatKeyFromFormat(format) {
+        const fmt = this.normalizeSeanceFormat(format);
+        return `${fmt.numberOfShootings}|${fmt.distances.first}|${fmt.distances.other}|${fmt.distances.final}`;
+    }
+
+    getSessionFormat(session) {
+        const fallback = {
+            numberOfShootings: session && session.numberOfShootings ? session.numberOfShootings : this.numberOfShootings,
+            distances: {
+                first: session && session.distances && session.distances.first ? session.distances.first : this.distances.first,
+                other: session && session.distances && session.distances.other ? session.distances.other : this.distances.other,
+                final: session && session.distances && session.distances.final ? session.distances.final : this.distances.final
+            }
+        };
+        return this.normalizeSeanceFormat((session && session.formatSnapshot) ? session.formatSnapshot : fallback);
+    }
+
+    getSessionFormatKey(session) {
+        return this.formatKeyFromFormat(this.getSessionFormat(session));
+    }
+
+    getReferenceFormatKey(sessions, preferredFormat = null) {
+        if (preferredFormat) return this.formatKeyFromFormat(preferredFormat);
+        if (!sessions || !sessions.length) return null;
+        return this.getSessionFormatKey(sessions[0]);
+    }
+
+    filterSessionsByCurrentMode(sessions, preferredFormat = null) {
+        const allSessions = Array.isArray(sessions) ? sessions : [];
+        const referenceKey = this.getReferenceFormatKey(allSessions, preferredFormat);
+        if (this._formatFilterMode === 'all' || !referenceKey) {
+            return { sessions: allSessions, referenceKey, removed: 0 };
+        }
+        const filtered = allSessions.filter(s => this.getSessionFormatKey(s) === referenceKey);
+        return { sessions: filtered, referenceKey, removed: Math.max(0, allSessions.length - filtered.length) };
+    }
+
+    syncFormatFilterControls() {
+        ['history-format-filter', 'seance-format-filter', 'student-format-filter'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = this._formatFilterMode;
+        });
+    }
+
+    setFormatFilterMode(mode) {
+        const next = mode === 'all' ? 'all' : 'strict';
+        this._formatFilterMode = next;
+        if (this.storageEnabled) localStorage.setItem('lasereps-format-filter-mode', next);
+        this.syncFormatFilterControls();
+    }
+
     applySeanceFormatToConfig() {
         if (!this._activeSeanceFormat) return;
         const fmt = this.normalizeSeanceFormat(this._activeSeanceFormat);
@@ -3637,11 +3711,27 @@ class LaserEPSApp {
         document.getElementById('back-to-home-from-history').addEventListener('click', () => {
             this.showScreen('home');
         });
+        document.getElementById('history-format-filter').addEventListener('change', async (e) => {
+            this.setFormatFilterMode(e.target.value);
+            await this.loadHistory();
+            const activeTab = document.querySelector('#history-screen .history-tab.active');
+            if (activeTab && activeTab.dataset.tab === 'evolution') await this.loadEvolutionCharts();
+        });
         document.getElementById('seed-demo-btn').addEventListener('click', async () => {
             await this.generateFakeSessions();
         });
         document.getElementById('clear-seed-demo-btn').addEventListener('click', async () => {
             await this.deleteFakeSessions();
+        });
+        document.getElementById('seance-format-filter').addEventListener('change', async (e) => {
+            this.setFormatFilterMode(e.target.value);
+            if (this._currentClassId && this._currentSeanceId) await this.loadSeanceCompare(this._currentClassId, this._currentSeanceId);
+        });
+        document.getElementById('student-format-filter').addEventListener('change', async (e) => {
+            this.setFormatFilterMode(e.target.value);
+            if (this._currentStudentUid) await this.loadStudentSessions(this._currentStudentUid);
+            const activeSdTab = document.querySelector('#student-detail-screen .sd-tab.active');
+            if (activeSdTab && activeSdTab.dataset.sdtab === 'evolution') this.loadStudentEvolutionCharts();
         });
 
         document.getElementById('back-to-history').addEventListener('click', () => {
@@ -4407,7 +4497,16 @@ class LaserEPSApp {
                 container.innerHTML = '<div class="history-empty">Aucune session enregistrée.<br>Fais une course pour commencer !</div>';
                 return;
             }
-            this._historySessions = sessions;
+            const preferred = this._activeSeanceFormat || null;
+            const filtered = this.filterSessionsByCurrentMode(sessions, preferred);
+            if (!filtered.sessions.length) {
+                container.innerHTML = this._formatFilterMode === 'strict'
+                    ? '<div class="history-empty">Aucune session avec le même format.<br>Passe sur "Tous formats" pour tout voir.</div>'
+                    : '<div class="history-empty">Aucune session enregistrée.</div>';
+                this._historySessions = [];
+                return;
+            }
+            this._historySessions = filtered.sessions;
             this._detailReturnTo = { screen: 'history' };
             this.renderSessionCards({
                 sessions: this._historySessions,
@@ -4418,6 +4517,9 @@ class LaserEPSApp {
                     this.showSessionDetail(idx);
                 }
             });
+            if (this._formatFilterMode === 'all') {
+                container.innerHTML = '<div class="history-empty" style="margin-bottom:10px;">Mode Tous formats actif.</div>' + container.innerHTML;
+            }
         } catch (e) {
             console.warn('Erreur chargement historique :', e);
             container.innerHTML = '<div class="history-empty">Erreur de chargement. Vérifie ta connexion.</div>';
@@ -4517,6 +4619,8 @@ class LaserEPSApp {
         const dateStr = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         const totalShots = (s.totalHits || 0) + (s.totalMisses || 0);
         const accuracy = totalShots > 0 ? Math.round((s.totalHits / totalShots) * 100) : 0;
+        const fmt = this.getSessionFormat(s);
+        const fmtLabel = `${fmt.numberOfShootings} tirs · ${fmt.distances.first}/${fmt.distances.other}/${fmt.distances.final}m`;
 
         const comp = (current, previous, lowerIsBetter) => {
             if (!prev || previous == null || current == null) return '';
@@ -4535,6 +4639,7 @@ class LaserEPSApp {
             <div style="text-align:center;margin-bottom:20px;">
                 <div style="color:#888;font-size:0.95rem;">${dateStr}</div>
                 <div style="color:#555;font-size:0.85rem;margin-top:4px;">${s.numberOfShootings || '?'} tirs - ${s.totalDistance || '?'}m</div>
+                <div style="color:#777;font-size:0.8rem;margin-top:2px;">Format: ${fmtLabel}</div>
             </div>
             <div class="detail-summary">
                 <div class="detail-summary-card">
@@ -4776,7 +4881,9 @@ class LaserEPSApp {
     async loadEvolutionCharts() {
         const container = document.getElementById('evolution-content');
         if (!this._historySessions || this._historySessions.length < 2) {
-            container.innerHTML = '<div class="history-empty">Il faut au moins 2 sessions pour afficher l\'évolution.</div>';
+            container.innerHTML = this._formatFilterMode === 'strict'
+                ? '<div class="history-empty">Pas assez de sessions comparables (même format).<br>Passe en "Tous formats" si besoin.</div>'
+                : '<div class="history-empty">Il faut au moins 2 sessions pour afficher l\'évolution.</div>';
             return;
         }
 
@@ -4789,6 +4896,7 @@ class LaserEPSApp {
         });
 
         container.innerHTML = `
+            ${this._formatFilterMode === 'all' ? '<div class="history-empty" style="margin-bottom:8px;">Mode Tous formats : interprète "Temps total" avec prudence.</div>' : ''}
             <div class="charts-grid">
                 <div class="chart-card"><h4>Temps total</h4><canvas id="chart-time"></canvas></div>
                 <div class="chart-card"><h4>Vitesse de course (km/h)</h4><canvas id="chart-speed"></canvas></div>
@@ -5410,16 +5518,19 @@ class LaserEPSApp {
                     const sData = d.data();
                     return { id: d.id, ...sData, date: this.normalizeFirestoreDate(sData.date) };
                 });
-                sessionsByStudent[uid] = sessions;
-                if (sessions.length) {
-                    const best = sessions[0];
+                const filtered = this.filterSessionsByCurrentMode(sessions, seanceFormat);
+                sessionsByStudent[uid] = filtered.sessions;
+                if (filtered.sessions.length) {
+                    const best = filtered.sessions[0];
                     const displayName = mData.displayName || mData.email || uid;
                     selectedEntries.push({ uid, displayName, session: best });
                 }
             }
 
             if (!selectedEntries.length) {
-                container.innerHTML = `<div class="history-empty">Aucune session enregistrée pour cette séance.<br><br>Code séance : <b>${seanceData.code}</b></div>`;
+                container.innerHTML = this._formatFilterMode === 'strict'
+                    ? `<div class="history-empty">Aucune session comparable avec le même format pour cette séance.<br><br>Code séance : <b>${seanceData.code}</b></div>`
+                    : `<div class="history-empty">Aucune session enregistrée pour cette séance.<br><br>Code séance : <b>${seanceData.code}</b></div>`;
                 return;
             }
 
@@ -5472,6 +5583,7 @@ class LaserEPSApp {
                     Séance : <b>${seanceData.name}</b> <span style="color:#888;">Code séance : ${seanceData.code}</span>
                 </div>
                 <div class="history-empty" style="margin-bottom:10px;">Format séance: ${seanceFormat.numberOfShootings} tirs · ${seanceFormat.distances.first}/${seanceFormat.distances.other}/${seanceFormat.distances.final}m</div>
+                ${this._formatFilterMode === 'all' ? '<div class="history-empty" style="margin-bottom:10px;">Mode Tous formats actif pour les sessions de cette séance.</div>' : ''}
                 <div class="comp-metrics-grid">${metricCards}</div>
                 <div style="margin-top:16px;">
                     <div style="font-weight:800;color:#333;margin-bottom:10px;">Sessions (clic pour détail)</div>
@@ -5513,8 +5625,18 @@ class LaserEPSApp {
                 sessionsDiv.innerHTML = '<div class="history-empty">Aucune session enregistrée.</div>';
                 return;
             }
-            this._studentSessions = sessions;
-            this._historySessions = sessions; // réutilise le détail élève
+            const preferred = this._activeSeanceFormat || null;
+            const filtered = this.filterSessionsByCurrentMode(sessions, preferred);
+            if (!filtered.sessions.length) {
+                sessionsDiv.innerHTML = this._formatFilterMode === 'strict'
+                    ? '<div class="history-empty">Aucune session comparable (même format) pour cet élève.</div>'
+                    : '<div class="history-empty">Aucune session enregistrée.</div>';
+                this._studentSessions = [];
+                this._historySessions = [];
+                return;
+            }
+            this._studentSessions = filtered.sessions;
+            this._historySessions = filtered.sessions; // réutilise le détail élève
             this.renderSessionCards({
                 sessions: this._studentSessions,
                 containerEl: sessionsDiv,
@@ -5584,12 +5706,16 @@ class LaserEPSApp {
     loadStudentEvolutionCharts() {
         const container = document.getElementById('sd-evolution-content');
         if (!this._studentSessions || this._studentSessions.length < 2) {
-            container.innerHTML = '<div class="history-empty">Il faut au moins 2 sessions pour voir l\'évolution.</div>';
+            container.innerHTML = this._formatFilterMode === 'strict'
+                ? '<div class="history-empty">Pas assez de sessions comparables pour l\'évolution.</div>'
+                : '<div class="history-empty">Il faut au moins 2 sessions pour voir l\'évolution.</div>';
             return;
         }
         const sessions = [...this._studentSessions].reverse();
         const labels = sessions.map((s, i) => {
-            const d = s.date ? new Date(s.date.seconds * 1000) : null;
+            const d = s.date
+                ? (s.date instanceof Date ? s.date : (typeof s.date.toDate === 'function' ? s.date.toDate() : (typeof s.date.seconds === 'number' ? new Date(s.date.seconds * 1000) : new Date(s.date))))
+                : null;
             return d ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : `#${i + 1}`;
         });
         const makeChart = (id, label, data, color) => {
@@ -5601,7 +5727,7 @@ class LaserEPSApp {
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         };
-        container.innerHTML = `<div class="charts-grid">
+        container.innerHTML = `${this._formatFilterMode === 'all' ? '<div class="history-empty" style="margin-bottom:8px;">Mode Tous formats actif.</div>' : ''}<div class="charts-grid">
             <div class="chart-card"><h4>Temps total</h4><div style="height:200px"><canvas id="sd-chart-time"></canvas></div></div>
             <div class="chart-card"><h4>Précision</h4><div style="height:200px"><canvas id="sd-chart-acc"></canvas></div></div>
             <div class="chart-card"><h4>Vitesse moyenne</h4><div style="height:200px"><canvas id="sd-chart-speed"></canvas></div></div>
