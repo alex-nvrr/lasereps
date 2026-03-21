@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LaserEPS - Mode Compétition</title>
+    <link rel="icon" href="assets/logo.png" type="image/png">
     <style>
 
 :root {
@@ -140,11 +141,30 @@ body {
     color: var(--text);
 }
 
-.header h1 {
+.header h1:not(.header-title-brand) {
     font-size: 3rem;
     font-weight: 700;
     margin-bottom: 10px;
     letter-spacing: -0.02em;
+}
+
+/* Logo app (accueil) — h1 pour le SEO, taille visuelle = image */
+.header h1.header-title-brand {
+    margin: 0 auto 12px;
+    padding: 0;
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+}
+
+.header .app-logo {
+    width: min(220px, 52vw);
+    max-height: min(240px, 36vh);
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    filter: drop-shadow(0 8px 28px rgba(180, 83, 9, 0.22));
 }
 
 .header h2 {
@@ -1322,8 +1342,13 @@ body {
         padding: 15px;
     }
     
-    .header h1 {
+    .header h1:not(.header-title-brand) {
         font-size: 2.5rem;
+    }
+    
+    .header .app-logo {
+        width: min(180px, 58vw);
+        max-height: 200px;
     }
     
     .header h2 {
@@ -3217,7 +3242,9 @@ body {
                         <button id="change-role-btn" class="logout-button" style="background:var(--bg-subtle);">Changer de mode</button>
                         <button id="logout-btn" class="logout-button">Déconnexion</button>
                     </div>
-                    <h1>LaserEPS</h1>
+                    <h1 class="header-title-brand">
+                        <img src="assets/logo.png" alt="LaserEPS" class="app-logo" width="512" height="512" decoding="async">
+                    </h1>
                 </div>
                 <div id="seance-active-banner" class="seance-banner" style="display:none;">
                     <div>
