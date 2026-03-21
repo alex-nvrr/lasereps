@@ -155,6 +155,7 @@ body {
     font-size: 0;
     line-height: 0;
     letter-spacing: 0;
+    background: transparent;
 }
 
 .header .app-logo {
@@ -164,7 +165,9 @@ body {
     object-fit: contain;
     display: block;
     margin: 0 auto;
-    filter: drop-shadow(0 8px 28px rgba(180, 83, 9, 0.22));
+    background: transparent;
+    /* Ombre légère sur le médaillon seulement (PNG avec transparence hors du cercle) */
+    filter: drop-shadow(0 4px 14px rgba(180, 83, 9, 0.14));
 }
 
 .header h2 {
