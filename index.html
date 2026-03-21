@@ -5018,19 +5018,34 @@ class LaserEPSApp {
         };
 
         const isMobile = window.innerWidth < 500;
-        const chartOptions = (reverse) => ({
+        const chartOptions = (reverse, cfg = {}) => ({
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { display: false }, tooltip: { titleFont: { size: isMobile ? 11 : 13 }, bodyFont: { size: isMobile ? 11 : 13 } } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    titleFont: { size: isMobile ? 11 : 13 },
+                    bodyFont: { size: isMobile ? 11 : 13 },
+                    callbacks: cfg.tooltipLabel ? { label: cfg.tooltipLabel } : {}
+                }
+            },
             scales: {
                 x: { grid: { display: false }, ticks: { font: { size: isMobile ? 9 : 11 }, maxRotation: 45, maxTicksLimit: isMobile ? 6 : 12 } },
-                y: { reverse: !!reverse, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: isMobile ? 9 : 11 }, maxTicksLimit: 6 } }
+                y: {
+                    reverse: !!reverse,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        font: { size: isMobile ? 9 : 11 },
+                        maxTicksLimit: 6,
+                        callback: cfg.tickFormatter || undefined
+                    }
+                }
             },
             elements: { point: { radius: isMobile ? 3 : 4, hoverRadius: isMobile ? 5 : 7 }, line: { tension: 0.35 } }
         });
 
-        const createChart = (id, data, r, g, b, reverse) => {
+        const createChart = (id, data, r, g, b, reverse, cfg = {}) => {
             const ctx = document.getElementById(id).getContext('2d');
             return new Chart(ctx, {
                 type: 'line',
@@ -5044,12 +5059,15 @@ class LaserEPSApp {
                         fill: true,
                     }]
                 },
-                options: chartOptions(reverse)
+                options: chartOptions(reverse, cfg)
             });
         };
 
-        const timeData = sessions.map(s => parseFloat(((s.totalTime || 0) / 60).toFixed(2)));
-        this._charts.push(createChart('chart-time', timeData, 102, 126, 234, true));
+        const timeData = sessions.map(s => Math.max(0, Math.round(s.totalTime || 0)));
+        this._charts.push(createChart('chart-time', timeData, 102, 126, 234, true, {
+            tickFormatter: (value) => this.formatTimeChart(value),
+            tooltipLabel: (ctx) => `Temps total: ${this.formatTimeChart(ctx.raw)}`
+        }));
 
         const speedData = sessions.map(s => parseFloat((s.averageSpeed || 0).toFixed(1)));
         this._charts.push(createChart('chart-speed', speedData, 40, 167, 69, false));
@@ -5819,13 +5837,31 @@ class LaserEPSApp {
                 : null;
             return d ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : `#${i + 1}`;
         });
-        const makeChart = (id, label, data, color) => {
+        const makeChart = (id, label, data, color, isTime = false) => {
             const existing = Chart.getChart(id);
             if (existing) existing.destroy();
             new Chart(document.getElementById(id), {
                 type: 'line',
                 data: { labels, datasets: [{ label, data, borderColor: color, backgroundColor: color + '22', fill: true, tension: 0.3, pointRadius: 4 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: isTime ? {
+                                label: (ctx) => `Temps total: ${this.formatTimeChart(ctx.raw)}`
+                            } : {}
+                        }
+                    },
+                    scales: isTime ? {
+                        y: {
+                            ticks: {
+                                callback: (value) => this.formatTimeChart(value)
+                            }
+                        }
+                    } : {}
+                }
             });
         };
         container.innerHTML = `<div class="charts-grid">
@@ -5833,7 +5869,7 @@ class LaserEPSApp {
             <div class="chart-card"><h4>Précision</h4><div style="height:200px"><canvas id="sd-chart-acc"></canvas></div></div>
             <div class="chart-card"><h4>Vitesse moyenne</h4><div style="height:200px"><canvas id="sd-chart-speed"></canvas></div></div>
         </div>`;
-        makeChart('sd-chart-time', 'Temps (s)', sessions.map(s => s.totalTime || 0), '#667eea');
+        makeChart('sd-chart-time', 'Temps total', sessions.map(s => Math.max(0, Math.round(s.totalTime || 0))), '#667eea', true);
         makeChart('sd-chart-acc', 'Précision (%)', sessions.map(s => {
             const shots = (s.totalHits || 0) + (s.totalMisses || 0);
             return shots > 0 ? Math.round((s.totalHits / shots) * 100) : 0;
@@ -5922,6 +5958,13 @@ class LaserEPSApp {
         const secs = Math.floor(seconds % 60);
         const dec = Math.floor((seconds % 1) * 10);
         return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${dec}`;
+    }
+
+    formatTimeChart(seconds) {
+        const safe = Math.max(0, Math.round(Number(seconds) || 0));
+        const minutes = Math.floor(safe / 60);
+        const secs = safe % 60;
+        return `${minutes.toString().padStart(2, '0')}'${secs.toString().padStart(2, '0')}`;
     }
 
     // Modales
