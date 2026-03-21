@@ -2888,6 +2888,61 @@ body {
 }
 .seance-banner .seance-info { color: #28a745; font-weight: 600; font-size: 0.95rem; }
 .seance-banner .seance-code-lbl { color: rgba(40,167,69,0.7); font-size: 0.8rem; }
+
+/* ===== Session en attente de sync (hors-ligne partiel) ===== */
+.pending-sync-banner {
+    background: rgba(253, 126, 20, 0.12);
+    border: 1px solid rgba(253, 126, 20, 0.35);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+}
+.pending-sync-inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.pending-sync-msg strong {
+    display: block;
+    color: #d9480f;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+.pending-sync-sub {
+    display: block;
+    color: #666;
+    font-size: 0.85rem;
+    line-height: 1.35;
+    max-width: 520px;
+}
+.pending-sync-retry-btn {
+    background: #fff;
+    border: 1px solid rgba(253, 126, 20, 0.5);
+    color: #d9480f;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.pending-local-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(253, 126, 20, 0.2);
+    color: #d9480f;
+    vertical-align: middle;
+}
+.save-session-btn.saved.pending-local {
+    background: linear-gradient(135deg, #fd7e14, #f59f00);
+}
+
 .quit-seance-btn {
     background: rgba(220,53,69,0.12);
     border: 1px solid rgba(220,53,69,0.3);
@@ -2994,6 +3049,7 @@ body {
                     <button id="join-seance-btn" class="join-class-btn">Rejoindre une séance</button>
                     <button id="free-mode-btn-no-seance" class="free-mode-btn">Mode libre (sans séance)</button>
                 </div>
+                <div id="pending-sync-banner-home" class="pending-sync-banner" style="display:none;" aria-live="polite"></div>
                 <div class="menu-buttons">
                     <button id="start-competition" class="menu-button">
                         <div class="button-icon">🎯</div>
@@ -3164,6 +3220,7 @@ body {
                     <button id="clear-seed-demo-btn" class="back-button" style="background:#fff4f4;color:#d6336c;border-color:#ffd0db;">Supprimer les séances test</button>
                 </div>
                 <div id="panel-sessions" class="history-panel active">
+                    <div id="pending-sync-banner-history" class="pending-sync-banner" style="display:none;" aria-live="polite"></div>
                     <div id="history-content">
                         <div class="history-empty">Chargement...</div>
                     </div>
@@ -3359,6 +3416,11 @@ const auth = firebase.auth();
 const db = firebase.firestore();
     </script>
     <script>
+// Session hors-ligne : une seule entrée « dernière course non synchronisée »
+const LASEREPS_PENDING_SESSION_KEY = 'lasereps-pending-session';
+const LASEREPS_PENDING_LOCAL_SESSION_ID = '__pending_local__';
+const LASEREPS_PENDING_MAX_BYTES = 4500000;
+
 // État global de l'application
 class LaserEPSApp {
     constructor() {
@@ -3407,6 +3469,11 @@ class LaserEPSApp {
         this._studentAllSessions = [];
         this._seanceAllSessions = [];
         this._selectedFormatKey = this.storageEnabled ? (localStorage.getItem('lasereps-selected-format-key') || '') : '';
+        this._onlineListenerAttached = false;
+        this._pendingRetryListenerAttached = false;
+        this._pendingSyncTimer = null;
+        this._lastOnlineSyncAttempt = 0;
+        this._sessionSavePendingCloud = false;
         this.initAuth();
     }
 
@@ -3419,6 +3486,202 @@ class LaserEPSApp {
         } catch (error) {
             console.warn('Stockage local indisponible.', error);
             return false;
+        }
+    }
+
+    getPendingSessionRecord() {
+        if (!this.storageEnabled) return null;
+        try {
+            const raw = localStorage.getItem(LASEREPS_PENDING_SESSION_KEY);
+            if (!raw) return null;
+            const o = JSON.parse(raw);
+            if (!o || typeof o !== 'object' || !o.payload || typeof o.uid !== 'string') return null;
+            return o;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    clearPendingSession() {
+        if (!this.storageEnabled) return;
+        try {
+            localStorage.removeItem(LASEREPS_PENDING_SESSION_KEY);
+        } catch (e) { /* ignore */ }
+    }
+
+    savePendingSessionLocally(uid, payload, err) {
+        if (!this.storageEnabled) return false;
+        const record = {
+            localId: `pending_${Date.now()}`,
+            uid,
+            savedAt: new Date().toISOString(),
+            attemptCount: 0,
+            lastError: err
+                ? { code: err.code || '', message: String(err.message || err).slice(0, 500) }
+                : {},
+            payload
+        };
+        try {
+            const str = JSON.stringify(record);
+            if (str.length > LASEREPS_PENDING_MAX_BYTES) {
+                alert('Les données de cette session sont trop volumineuses pour être sauvegardées sur cet appareil.');
+                return false;
+            }
+            localStorage.setItem(LASEREPS_PENDING_SESSION_KEY, str);
+            return true;
+        } catch (e) {
+            console.warn('Impossible d\'écrire la session en attente :', e);
+            alert('Impossible de sauvegarder la session sur cet appareil (stockage plein ou indisponible).');
+            return false;
+        }
+    }
+
+    getPendingSessionAsSessionObject() {
+        const rec = this.getPendingSessionRecord();
+        if (!rec || !this.currentUser || rec.uid !== this.currentUser.uid) return null;
+        let d = rec.payload && rec.payload.date;
+        try {
+            d = d ? new Date(d) : new Date();
+            if (Number.isNaN(d.getTime())) d = new Date();
+        } catch (e) {
+            d = new Date();
+        }
+        return {
+            id: LASEREPS_PENDING_LOCAL_SESSION_ID,
+            _pendingLocal: true,
+            ...rec.payload,
+            date: d
+        };
+    }
+
+    buildSessionPayloadPlain() {
+        const totalShootingTime = this.courseData.lapTimes
+            .filter(l => l.type === 'shooting')
+            .reduce((s, l) => s + (isNaN(l.duration) || l.duration < 0 ? 0 : l.duration), 0);
+        const totalRunningTime = this.courseData.totalTime - totalShootingTime;
+        const totalHits = this.courseData.targets.reduce((s, t) => s + (t.hitCount || 0), 0);
+        const totalMisses = this.courseData.targets.reduce((s, t) => s + (t.missCount || 0), 0);
+        return {
+            date: new Date().toISOString(),
+            displayName: this.userDisplayName || '',
+            totalTime: this.courseData.totalTime,
+            totalShootingTime,
+            totalRunningTime,
+            totalDistance: this.courseData.totalDistance,
+            numberOfShootings: this.numberOfShootings,
+            totalHits,
+            totalMisses,
+            averageSpeed: this.calculateAverageSpeed(totalRunningTime),
+            distances: { first: this.distances.first, other: this.distances.other, final: this.distances.final },
+            targets: this.courseData.targets.map(t => ({
+                hitCount: t.hitCount || 0,
+                missCount: t.missCount || 0,
+            })),
+            lapTimes: this.courseData.lapTimes.map(l => ({
+                type: l.type,
+                number: l.number,
+                duration: l.duration,
+            })),
+            seanceId: this._activeSeanceId || null,
+            classId: this._activeClassId || null,
+            formatSnapshot: {
+                numberOfShootings: this.numberOfShootings,
+                distances: { first: this.distances.first, other: this.distances.other, final: this.distances.final }
+            },
+        };
+    }
+
+    updatePendingSyncBanners() {
+        const home = document.getElementById('pending-sync-banner-home');
+        const hist = document.getElementById('pending-sync-banner-history');
+        const rec = this.getPendingSessionRecord();
+        const eligible = !!(this.currentUser && rec && rec.uid === this.currentUser.uid);
+        const attempts = rec && rec.attemptCount ? ` (tentatives : ${rec.attemptCount})` : '';
+        const html = eligible
+            ? `<div class="pending-sync-inner">
+                <div class="pending-sync-msg">
+                    <strong>Envoi cloud en attente${attempts}</strong>
+                    <span class="pending-sync-sub">Ta dernière session est enregistrée sur cet appareil. Elle sera envoyée dès que la connexion le permettra.</span>
+                </div>
+                <button type="button" class="pending-sync-retry-btn" data-pending-retry>Réessayer l'envoi</button>
+            </div>`
+            : '';
+        [home, hist].forEach(el => {
+            if (!el) return;
+            if (eligible) {
+                el.style.display = 'block';
+                el.innerHTML = html;
+            } else {
+                el.style.display = 'none';
+                el.innerHTML = '';
+            }
+        });
+    }
+
+    schedulePendingSessionSync() {
+        if (this._pendingSyncTimer) clearTimeout(this._pendingSyncTimer);
+        this._pendingSyncTimer = setTimeout(() => {
+            this._pendingSyncTimer = null;
+            this.syncPendingSessionToFirestore({ auto: true });
+        }, 2000);
+    }
+
+    async syncPendingSessionToFirestore(opts = {}) {
+        const auto = !!opts.auto;
+        if (!this.currentUser) {
+            if (!auto) alert('Connecte-toi pour synchroniser ta session.');
+            return;
+        }
+        const rec = this.getPendingSessionRecord();
+        if (!rec || rec.uid !== this.currentUser.uid) {
+            this.updatePendingSyncBanners();
+            return;
+        }
+        if (!navigator.onLine) {
+            if (!auto) alert('Pas de connexion réseau. Réessaie quand tu seras en ligne.');
+            return;
+        }
+        const now = Date.now();
+        if (auto && now - this._lastOnlineSyncAttempt < 30000) return;
+        this._lastOnlineSyncAttempt = now;
+
+        const payload = { ...rec.payload };
+        try {
+            payload.date = firebase.firestore.Timestamp.fromDate(new Date(rec.payload.date));
+        } catch (e) {
+            payload.date = firebase.firestore.Timestamp.now();
+        }
+
+        try {
+            await db.collection('users').doc(rec.uid).collection('sessions').add(payload);
+            this.clearPendingSession();
+            this._sessionSavePendingCloud = false;
+            this.updatePendingSyncBanners();
+            if (this.currentScreen === 'results' && this._sessionSaved) {
+                const saveBtn = document.getElementById('save-session-btn');
+                const text = document.getElementById('save-session-text');
+                if (saveBtn && text) {
+                    saveBtn.classList.remove('pending-local');
+                    text.textContent = 'Session enregistrée';
+                    const icon = saveBtn.querySelector('.save-icon');
+                    if (icon) icon.textContent = '✅';
+                }
+            }
+            if (!auto) {
+                this.showModal('Synchronisé', '<p style="margin:0;color:#333;">Ta session a bien été envoyée sur le cloud.</p>');
+            }
+            if (this.currentScreen === 'history') await this.loadHistory();
+        } catch (e) {
+            console.warn('Sync session en attente échouée :', e);
+            rec.attemptCount = (rec.attemptCount || 0) + 1;
+            rec.lastError = { code: e.code || '', message: String(e.message || e).slice(0, 500) };
+            try {
+                localStorage.setItem(LASEREPS_PENDING_SESSION_KEY, JSON.stringify(rec));
+            } catch (le) { console.warn(le); }
+            this.updatePendingSyncBanners();
+            if (!auto) {
+                alert('L\'envoi a échoué. Réessaie dans un instant ou vérifie ta connexion.');
+            }
         }
     }
 
@@ -3464,6 +3727,7 @@ class LaserEPSApp {
                     console.warn('Erreur lecture profil :', e);
                     this.showScreen('home');
                     this.loadLastSessionSummary();
+                    this.updatePendingSyncBanners();
                 }
             } else {
                 this.currentUser = null;
@@ -3471,6 +3735,7 @@ class LaserEPSApp {
                 this.userDisplayName = null;
                 this.profCodeValidated = false;
                 this.userClasses = [];
+                this.updatePendingSyncBanners();
                 this.showScreen('auth');
             }
         });
@@ -3486,6 +3751,7 @@ class LaserEPSApp {
             this.loadLastSessionSummary();
             this.updateSeanceBanner();
         }
+        this.updatePendingSyncBanners();
     }
 
     normalizeStudentPart(value) {
@@ -3964,6 +4230,20 @@ class LaserEPSApp {
 
     // Gestion des événements
     setupEventListeners() {
+        if (!this._pendingRetryListenerAttached) {
+            this._pendingRetryListenerAttached = true;
+            document.body.addEventListener('click', (e) => {
+                if (e.target.closest('[data-pending-retry]')) {
+                    e.preventDefault();
+                    this.syncPendingSessionToFirestore({ auto: false });
+                }
+            });
+        }
+        if (!this._onlineListenerAttached) {
+            this._onlineListenerAttached = true;
+            window.addEventListener('online', () => this.schedulePendingSessionSync());
+        }
+
         // Déconnexion
         document.getElementById('logout-btn').addEventListener('click', () => {
             auth.signOut();
@@ -4223,15 +4503,34 @@ class LaserEPSApp {
             if (this._sessionSaved) return;
             const btn = document.getElementById('save-session-btn');
             const text = document.getElementById('save-session-text');
+            const postActions = document.getElementById('post-save-actions');
             text.textContent = 'Enregistrement...';
             btn.disabled = true;
-            this._sessionSaved = true;
-            await this.saveSessionToFirestore();
-            btn.classList.add('saved');
-            btn.querySelector('.save-icon').textContent = '✅';
-            text.textContent = 'Session enregistrée';
+            btn.classList.remove('saved', 'pending-local');
+            const result = await this.saveSessionToFirestore();
             btn.disabled = false;
-            document.getElementById('post-save-actions').classList.add('visible');
+            if (result.cloud) {
+                this._sessionSaved = true;
+                this._sessionSavePendingCloud = false;
+                btn.classList.add('saved');
+                btn.querySelector('.save-icon').textContent = '✅';
+                text.textContent = 'Session enregistrée';
+                postActions.classList.add('visible');
+            } else if (result.local) {
+                this._sessionSaved = true;
+                this._sessionSavePendingCloud = true;
+                btn.classList.add('saved', 'pending-local');
+                btn.querySelector('.save-icon').textContent = '⏳';
+                text.textContent = 'Sauvegardée sur l’appareil (sync en attente)';
+                postActions.classList.add('visible');
+            } else {
+                this._sessionSaved = false;
+                this._sessionSavePendingCloud = false;
+                btn.querySelector('.save-icon').textContent = '💾';
+                text.textContent = 'Enregistrer la session';
+                postActions.classList.remove('visible');
+                alert('Impossible d’enregistrer la session pour le moment. Réessaie quand la connexion sera meilleure.');
+            }
         });
 
         // Voir historique depuis résultats
@@ -4803,11 +5102,18 @@ class LaserEPSApp {
         const postActions = document.getElementById('post-save-actions');
         if (this._sessionSaved) {
             saveBtn.classList.add('saved');
-            document.getElementById('save-session-text').textContent = 'Session enregistrée';
-            saveBtn.querySelector('.save-icon').textContent = '✅';
+            if (this._sessionSavePendingCloud) {
+                saveBtn.classList.add('pending-local');
+                document.getElementById('save-session-text').textContent = 'Sauvegardée sur l’appareil (sync en attente)';
+                saveBtn.querySelector('.save-icon').textContent = '⏳';
+            } else {
+                saveBtn.classList.remove('pending-local');
+                document.getElementById('save-session-text').textContent = 'Session enregistrée';
+                saveBtn.querySelector('.save-icon').textContent = '✅';
+            }
             postActions.classList.add('visible');
         } else {
-            saveBtn.classList.remove('saved');
+            saveBtn.classList.remove('saved', 'pending-local');
             document.getElementById('save-session-text').textContent = 'Enregistrer la session';
             saveBtn.querySelector('.save-icon').textContent = '💾';
             postActions.classList.remove('visible');
@@ -5070,46 +5376,35 @@ class LaserEPSApp {
     }
 
     async saveSessionToFirestore() {
-        if (!this.currentUser) return;
+        if (!this.currentUser) {
+            return { cloud: false, local: false };
+        }
+        const uid = this.currentUser.uid;
+        const payloadPlain = this.buildSessionPayloadPlain();
+        const payloadCloud = {
+            ...payloadPlain,
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+        };
         try {
-            const totalShootingTime = this.courseData.lapTimes
-                .filter(l => l.type === 'shooting')
-                .reduce((s, l) => s + (isNaN(l.duration) || l.duration < 0 ? 0 : l.duration), 0);
-            const totalRunningTime = this.courseData.totalTime - totalShootingTime;
-            const totalHits = this.courseData.targets.reduce((s, t) => s + (t.hitCount || 0), 0);
-            const totalMisses = this.courseData.targets.reduce((s, t) => s + (t.missCount || 0), 0);
-
-            await db.collection('users').doc(this.currentUser.uid)
-                .collection('sessions').add({
-                    date: firebase.firestore.FieldValue.serverTimestamp(),
-                    displayName: this.userDisplayName || '',
-                    totalTime: this.courseData.totalTime,
-                    totalShootingTime: totalShootingTime,
-                    totalRunningTime: totalRunningTime,
-                    totalDistance: this.courseData.totalDistance,
-                    numberOfShootings: this.numberOfShootings,
-                    totalHits: totalHits,
-                    totalMisses: totalMisses,
-                    averageSpeed: this.calculateAverageSpeed(totalRunningTime),
-                    distances: { first: this.distances.first, other: this.distances.other, final: this.distances.final },
-                    targets: this.courseData.targets.map(t => ({
-                        hitCount: t.hitCount || 0,
-                        missCount: t.missCount || 0,
-                    })),
-                    lapTimes: this.courseData.lapTimes.map(l => ({
-                        type: l.type,
-                        number: l.number,
-                        duration: l.duration,
-                    })),
-                    seanceId: this._activeSeanceId || null,
-                    classId: this._activeClassId || null,
-                    formatSnapshot: {
-                        numberOfShootings: this.numberOfShootings,
-                        distances: { first: this.distances.first, other: this.distances.other, final: this.distances.final }
-                    },
-                });
+            await db.collection('users').doc(uid).collection('sessions').add(payloadCloud);
+            const pending = this.getPendingSessionRecord();
+            if (pending && pending.uid === uid) {
+                this.clearPendingSession();
+            }
+            this._sessionSavePendingCloud = false;
+            this.updatePendingSyncBanners();
+            return { cloud: true };
         } catch (e) {
             console.warn('Impossible de sauvegarder la session :', e);
+            const localOk = this.savePendingSessionLocally(uid, payloadPlain, e);
+            this.updatePendingSyncBanners();
+            if (localOk) {
+                this.showModal(
+                    'Session sauvegardée sur cet appareil',
+                    '<p style="margin:0;color:#333;line-height:1.5;">L’envoi vers le cloud est en attente (réseau indisponible ou erreur serveur). Tu peux réessayer depuis l’accueil, l’historique ou automatiquement à la reconnexion.</p>'
+                );
+            }
+            return { cloud: false, local: localOk, error: e };
         }
     }
 
@@ -5117,18 +5412,27 @@ class LaserEPSApp {
         const container = document.getElementById('history-content');
         if (!this.currentUser) {
             container.innerHTML = '<div class="history-empty">Connecte-toi pour voir ton historique.</div>';
+            this.updatePendingSyncBanners();
             return;
         }
         container.innerHTML = '<div class="history-empty">Chargement...</div>';
         try {
-            const sessions = await this.fetchSessionsForUid(this.currentUser.uid, 50);
-            this._historyAllSessions = sessions;
+            let cloudSessions = [];
+            try {
+                cloudSessions = await this.fetchSessionsForUid(this.currentUser.uid, 50);
+            } catch (fetchErr) {
+                console.warn('Historique cloud indisponible :', fetchErr);
+            }
+            const pendingSess = this.getPendingSessionAsSessionObject();
+            const merged = pendingSess ? [pendingSess, ...cloudSessions] : cloudSessions;
+            this._historyAllSessions = merged;
             this.refreshFormatFilterControls();
-            if (!sessions.length) {
+            this.updatePendingSyncBanners();
+            if (!merged.length) {
                 container.innerHTML = '<div class="history-empty">Aucune session enregistrée.<br>Fais une course pour commencer !</div>';
                 return;
             }
-            const filtered = this.filterSessionsBySelectedFormat(sessions);
+            const filtered = this.filterSessionsBySelectedFormat(merged);
             if (!filtered.sessions.length) {
                 container.innerHTML = '<div class="history-empty">Aucune session pour ce format. Choisis un autre format ou "Tous les formats".</div>';
                 this._historySessions = [];
@@ -5148,6 +5452,7 @@ class LaserEPSApp {
         } catch (e) {
             console.warn('Erreur chargement historique :', e);
             container.innerHTML = '<div class="history-empty">Erreur de chargement. Vérifie ta connexion.</div>';
+            this.updatePendingSyncBanners();
         }
     }
 
@@ -5382,10 +5687,14 @@ class LaserEPSApp {
                 }
             }
 
+            const pendingBadge = s._pendingLocal
+                ? '<span class="pending-local-badge" title="Pas encore envoyée au cloud">Hors ligne</span>'
+                : '';
+
             html += `
             <div class="history-card clickable" data-session-index="${i}">
                 <div style="flex:1;">
-                    <div class="history-date">${dateStr}</div>
+                    <div class="history-date">${dateStr}${pendingBadge}</div>
                     <div style="color:#888;font-size:0.85rem;">${s.numberOfShootings || '?'} tirs - ${s.totalDistance || '?'}m</div>
                 </div>
                 <div class="history-stats">
@@ -5441,7 +5750,14 @@ class LaserEPSApp {
 
         const prevAccuracy = prev ? ((prev.totalHits || 0) / Math.max(1, (prev.totalHits || 0) + (prev.totalMisses || 0)) * 100) : null;
 
+        const pendingNotice = s._pendingLocal
+            ? `<div style="background:rgba(253,126,20,0.12);border:1px solid rgba(253,126,20,0.35);border-radius:12px;padding:10px 14px;margin-bottom:16px;color:#8a4b12;font-size:0.88rem;line-height:1.4;">
+                <strong>Session en attente d’envoi cloud.</strong> Elle est stockée sur cet appareil uniquement. Utilise « Réessayer l’envoi » depuis l’accueil ou l’historique.
+            </div>`
+            : '';
+
         let html = `
+            ${pendingNotice}
             <div style="text-align:center;margin-bottom:20px;">
                 <div style="color:#888;font-size:0.95rem;">${dateStr}</div>
                 <div style="color:#555;font-size:0.85rem;margin-top:4px;">${s.numberOfShootings || '?'} tirs - ${s.totalDistance || '?'}m</div>
@@ -5529,6 +5845,15 @@ class LaserEPSApp {
         const s = this._historySessions[this._currentDetailIndex];
         if (!s || !s.id) return;
         if (!confirm('Supprimer définitivement cette session ?')) return;
+        if (s._pendingLocal && s.id === LASEREPS_PENDING_LOCAL_SESSION_ID) {
+            this.clearPendingSession();
+            this._sessionSavePendingCloud = false;
+            this._historySessions.splice(this._currentDetailIndex, 1);
+            this.updatePendingSyncBanners();
+            this.showScreen('history');
+            await this.loadHistory();
+            return;
+        }
         try {
             await db.collection('users').doc(this.currentUser.uid)
                 .collection('sessions').doc(s.id).delete();
@@ -7410,6 +7735,7 @@ class LaserEPSApp {
     // Réinitialisation
     resetCourse() {
         this._sessionSaved = false;
+        this._sessionSavePendingCloud = false;
         
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
