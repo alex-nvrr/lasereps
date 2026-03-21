@@ -2455,8 +2455,16 @@ body {
 }
 .prof-class-card:active { transform: scale(0.98); }
 @media (hover:hover) { .prof-class-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.12); } }
-.prof-class-card .pcc-info h3 { color: #333; font-size: 1.1rem; margin-bottom: 4px; }
-.prof-class-card .pcc-count { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; padding: 8px 14px; border-radius: 12px; font-weight: 700; font-size: 0.95rem; }
+.prof-class-card .pcc-info h3 { color: var(--text); font-size: 1.1rem; margin-bottom: 4px; }
+.prof-class-card .pcc-count {
+    background: linear-gradient(145deg, var(--accent-secondary) 0%, var(--primary) 42%, var(--primary-hover) 100%);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 12px rgba(180, 83, 9, 0.35);
+}
 .create-class-section {
     margin-top: 20px;
     background: white;
@@ -2481,9 +2489,25 @@ body {
     border-radius: 12px;
     font-size: 1rem;
     font-weight: 600;
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
+    background: linear-gradient(135deg, var(--accent-secondary), var(--primary), var(--primary-hover));
+    color: #fff;
     cursor: pointer;
+    box-shadow: 0 4px 16px rgba(180, 83, 9, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.create-class-btn:hover {
+    box-shadow: 0 6px 22px rgba(180, 83, 9, 0.45);
+    transform: translateY(-1px);
+}
+.create-class-btn:active {
+    transform: translateY(0);
+}
+
+/* Titres écrans prof */
+#prof-screen .header h2,
+#class-view-screen .header h2,
+#seance-view-screen .header h2 {
+    color: var(--primary-hover);
 }
 
 /* ===== Vue classe (prof) ===== */
@@ -3133,12 +3157,12 @@ body {
                     <div class="history-empty">Chargement...</div>
                 </div>
                 <div class="create-class-section">
-                    <h3 style="color:#333;margin-bottom:12px;">Créer une classe</h3>
+                    <h3 style="color:var(--text);margin-bottom:12px;">Créer une classe</h3>
                     <input type="text" id="new-class-name" placeholder="Nom de la classe (ex: 3eB EPS)">
                     <button id="create-class-btn" class="create-class-btn">Créer la classe</button>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-                        <button id="create-prof-demo-btn" class="back-button" style="background:var(--primary-muted);color:var(--primary);border-color:rgba(180,83,9,0.35);">Créer une classe démo (prof)</button>
-                        <button id="delete-prof-demo-btn" class="back-button" style="background:#fff4f4;color:#d6336c;border-color:#ffd0db;">Supprimer la classe démo</button>
+                        <button id="create-prof-demo-btn" class="back-button" style="background:var(--primary-muted);color:var(--primary-hover);border-color:rgba(180,83,9,0.4);">Créer une classe démo (prof)</button>
+                        <button id="delete-prof-demo-btn" class="back-button" style="background:rgba(180,83,9,0.06);color:#7f1d1d;border-color:rgba(127,29,29,0.35);">Supprimer la classe démo</button>
                     </div>
                 </div>
             </div>
@@ -3162,7 +3186,7 @@ body {
                 <div id="cv-panel-seances" class="history-panel">
                     <div id="cv-seances-list"><div class="history-empty">Chargement...</div></div>
                     <div class="create-class-section" style="margin-top:16px;">
-                        <h3 style="color:#333;margin-bottom:12px;">Créer une séance</h3>
+                        <h3 style="color:var(--text);margin-bottom:12px;">Créer une séance</h3>
                         <input type="text" id="new-seance-name" placeholder="Nom de la séance (ex: Séance 1 - 16 mars)">
                         <div class="distance-inputs" style="margin-top:10px;">
                             <div class="input-row">
