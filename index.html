@@ -2702,6 +2702,7 @@ body {
     padding: 8px 12px;
     font-size: 0.85rem;
     cursor: pointer;
+    white-space: nowrap;
 }
 .seance-rank-tab.active {
     background: linear-gradient(135deg, #4c6ef5, #5f3dc4);
@@ -2730,6 +2731,83 @@ body {
 
 @media (max-width: 480px) {
     .comp-metrics-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .comp-metric-card {
+        padding: 10px;
+        border-radius: 12px;
+    }
+    .comp-metric-title {
+        font-size: 0.94rem;
+        margin-bottom: 7px;
+    }
+    .rank-row {
+        min-height: 46px;
+        padding: 10px 10px;
+        gap: 10px;
+    }
+    .rank-num {
+        width: 28px;
+        font-size: 0.92rem;
+    }
+    .rank-name {
+        font-size: 0.96rem;
+    }
+    .rank-val {
+        font-size: 0.98rem;
+    }
+
+    .seance-rank-tabs {
+        position: sticky;
+        top: 8px;
+        z-index: 30;
+        margin-bottom: 10px;
+        padding: 8px;
+        background: rgba(255,255,255,0.98);
+        box-shadow: 0 6px 16px rgba(26, 36, 96, 0.15);
+        backdrop-filter: blur(2px);
+    }
+    .seance-rank-tab {
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+    .seance-rank-panel.active {
+        padding-top: 2px;
+    }
+
+    .prof-alerts-section {
+        padding: 10px;
+    }
+    .prof-alerts-title {
+        font-size: 0.96rem;
+        margin-bottom: 8px;
+    }
+    .prof-alert-row {
+        gap: 7px;
+        padding: 10px;
+        border-radius: 12px;
+    }
+    .prof-alert-row > div {
+        min-height: 22px;
+    }
+    .prof-alert-badge {
+        min-height: 28px;
+        min-width: 92px;
+        font-size: 0.78rem;
+    }
+    .prof-alert-action-btn {
+        min-height: 44px;
+        width: 100%;
+        font-size: 0.86rem;
+        padding: 10px 12px;
+    }
+
+    .student-card {
+        padding: 14px 14px;
+        border-radius: 12px;
+    }
 }
 
 /* ===== Seance cards (prof) ===== */
