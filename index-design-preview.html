@@ -2206,7 +2206,7 @@ body {
     box-shadow: 0 4px 18px rgba(0,0,0,0.06);
 }
 .chart-card h4 {
-    color: #333;
+    color: var(--primary-hover);
     margin-bottom: 14px;
     font-size: 1rem;
 }
@@ -6365,13 +6365,15 @@ class LaserEPSApp {
         };
 
         const timeData = sessions.map(s => Math.max(0, Math.round(s.totalTime || 0)));
-        this._charts.push(createChart('chart-time', timeData, 102, 126, 234, true, {
+        /* Cuivre métal : RGB = #b45309 */
+        this._charts.push(createChart('chart-time', timeData, 180, 83, 9, true, {
             tickFormatter: (value) => this.formatTimeChart(value),
             tooltipLabel: (ctx) => `Temps total: ${this.formatTimeChart(ctx.raw)}`
         }));
 
         const speedData = sessions.map(s => parseFloat((s.averageSpeed || 0).toFixed(1)));
-        this._charts.push(createChart('chart-speed', speedData, 40, 167, 69, false));
+        /* Accent ambre / bronze clair : #d97706 */
+        this._charts.push(createChart('chart-speed', speedData, 217, 119, 6, false));
 
         const accData = sessions.map(s => {
             const total = (s.totalHits || 0) + (s.totalMisses || 0);
@@ -6385,8 +6387,9 @@ class LaserEPSApp {
         });
         {
             const ctx = document.getElementById('chart-precision-cadence').getContext('2d');
-            const greenGrad = makeGradient(ctx, 40, 167, 69);
-            const orangeGrad = makeGradient(ctx, 243, 156, 18);
+            /* Deux tons cuivre : bronze foncé #92400e + cuivre #b45309 */
+            const bronzeGrad = makeGradient(ctx, 146, 64, 14);
+            const copperGrad = makeGradient(ctx, 180, 83, 9);
             this._charts.push(new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -6396,8 +6399,8 @@ class LaserEPSApp {
                             label: 'Précision (%)',
                             data: accData,
                             yAxisID: 'yAccuracy',
-                            borderColor: 'rgb(243,156,18)',
-                            backgroundColor: orangeGrad,
+                            borderColor: 'rgb(180,83,9)',
+                            backgroundColor: copperGrad,
                             borderWidth: 2.5,
                             fill: true,
                             tension: 0.35,
@@ -6408,8 +6411,8 @@ class LaserEPSApp {
                             label: 'Temps moyen entre deux tirs (s)',
                             data: shootData,
                             yAxisID: 'yShot',
-                            borderColor: 'rgb(40,167,69)',
-                            backgroundColor: greenGrad,
+                            borderColor: 'rgb(146,64,14)',
+                            backgroundColor: bronzeGrad,
                             borderWidth: 2.5,
                             fill: true,
                             tension: 0.35,
@@ -7488,8 +7491,8 @@ class LaserEPSApp {
         makeChart('sd-chart-acc', 'Précision (%)', sessions.map(s => {
             const shots = (s.totalHits || 0) + (s.totalMisses || 0);
             return shots > 0 ? Math.round((s.totalHits / shots) * 100) : 0;
-        }), '#28a745');
-        makeChart('sd-chart-speed', 'km/h', sessions.map(s => s.averageSpeed || 0), '#fd7e14');
+        }), '#d97706');
+        makeChart('sd-chart-speed', 'km/h', sessions.map(s => s.averageSpeed || 0), '#92400e');
     }
 
     displayResults() {
