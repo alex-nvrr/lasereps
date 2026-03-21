@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaserEPS — Nuancier des thèmes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #e8ecf1;
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 24px 16px 80px;
+        }
+        .page-head {
+            max-width: 1100px;
+            margin: 0 auto 28px;
+        }
+        .page-head h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .page-head p {
+            color: #64748b;
+            margin-top: 8px;
+            line-height: 1.5;
+            max-width: 640px;
+        }
+        .page-head a {
+            color: #2563eb;
+            font-weight: 600;
+        }
+        .grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .section-title {
+            grid-column: 1 / -1;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #64748b;
+            margin: 8px 0 4px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .section-title:first-of-type {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+        .theme-card {
+            background: #fff;
+            border-radius: 16px;
+            border: 2px solid rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+            cursor: pointer;
+            transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+        }
+        .theme-card:hover {
+            box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+        }
+        .theme-card.selected {
+            border-color: #0f172a;
+            box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
+        }
+        .theme-card:focus {
+            outline: none;
+        }
+        .theme-card:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+        .preview-wrap {
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .mini-app {
+            border-radius: 12px;
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            padding: 14px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+        }
+        .mini-head {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+        .mini-btn {
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--preview-on, #fff);
+            background: linear-gradient(135deg, var(--preview-p), var(--preview-ph));
+            margin-bottom: 8px;
+            cursor: default;
+        }
+        .mini-btn-sec {
+            background: transparent;
+            color: var(--preview-p);
+            border: 2px solid var(--preview-p);
+        }
+        .mini-chip {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: var(--preview-muted);
+            color: var(--preview-p);
+        }
+        .theme-meta {
+            padding: 14px 16px 16px;
+        }
+        .theme-meta h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .theme-meta .desc {
+            font-size: 0.82rem;
+            color: #64748b;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+        .swatches {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        .panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid rgba(15, 23, 42, 0.1);
+            box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.08);
+            padding: 16px 20px 20px;
+            z-index: 50;
+        }
+        .panel-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .panel h3 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .panel textarea {
+            width: 100%;
+            min-height: 120px;
+            font-family: ui-monospace, monospace;
+            font-size: 11px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            resize: vertical;
+            background: #f8fafc;
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #fff;
+        }
+        .btn-primary:hover { opacity: 0.92; }
+        .btn-ghost {
+            background: #f1f5f9;
+            color: #334155;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-120%);
+            background: #0f172a;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            z-index: 100;
+            transition: transform 0.25s ease;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="page-head">
+        <h1>Nuancier LaserEPS</h1>
+        <p>
+            Clique sur un thème pour le prévisualiser. Copie ensuite le bloc CSS et remplace le <strong>:root { … }</strong> en haut du fichier
+            <a href="index.html">index.html</a> (lignes ~9–36). Le fond blanc / gris clair reste identique ; seules les couleurs d’accent changent.
+            Les sections <strong>« Tendances plus actuelles »</strong> et <strong>« Encore plus »</strong> ajoutent des ambiances niche (miel, forêt, charbon-or, néon, désert, etc.).
+        </p>
+    </div>
+
+    <div class="grid" id="theme-grid" role="list"></div>
+
+    <div class="panel">
+        <div class="panel-inner">
+            <h3>Variables à coller dans <code>index.html</code> (remplace tout le bloc <code>:root</code>)</h3>
+            <textarea id="snippet" readonly aria-label="Snippet CSS"></textarea>
+            <p id="rgba-hint" style="font-size:0.8rem;color:#64748b;margin-top:10px;line-height:1.45;"></p>
+            <div class="actions">
+                <button type="button" class="btn btn-primary" id="copy-btn">Copier dans le presse-papiers</button>
+                <button type="button" class="btn btn-ghost" id="open-index">Ouvrir index.html</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status">Copié !</div>
+
+    <script>
+        function hexToRgb(hex) {
+            const h = hex.replace('#', '');
+            const n = h.length === 3
+                ? h.split('').map(c => c + c).join('')
+                : h;
+            const num = parseInt(n, 16);
+            return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+        }
+        function mutedRgba(hex, a) {
+            const { r, g, b } = hexToRgb(hex);
+            return `rgba(${r}, ${g}, ${b}, ${a})`;
+        }
+
+        const BASE = {
+            bg: '#f0f2f5',
+            bgSubtle: '#e8ecf1',
+            surface: '#ffffff',
+            text: '#1e293b',
+            textMuted: '#64748b',
+            border: 'rgba(15, 23, 42, 0.08)',
+            shadow: '0 4px 24px rgba(15, 23, 42, 0.06)',
+            shadowSm: '0 1px 3px rgba(15, 23, 42, 0.06)',
+            radius: '14px',
+            radiusSm: '10px',
+            success: '#16a34a',
+            successMuted: 'rgba(22, 163, 74, 0.12)',
+            warning: '#d97706',
+            warningMuted: 'rgba(217, 119, 6, 0.12)',
+            danger: '#dc2626',
+            dangerMuted: 'rgba(220, 38, 38, 0.1)',
+            successBorder: 'rgba(34, 197, 94, 0.35)',
+            successBg: 'rgba(34, 197, 94, 0.12)',
+            orangeStrong: '#c2410c',
+            orangeBorder: 'rgba(234, 88, 12, 0.4)',
+        };
+
+        const THEME_SECTIONS = [
+            {
+                title: 'Classiques & polyvalents',
+                themes: [
+                    {
+                        id: 'teal',
+                        name: 'Teal (actuel)',
+                        desc: 'Vert-bleu discret, déjà dans ton app.',
+                        primary: '#0d9488',
+                        primaryHover: '#0f766e',
+                        accentSecondary: '#0ea5e9',
+                    },
+                    {
+                        id: 'slate-blue',
+                        name: 'Bleu ardoise',
+                        desc: 'Style SaaS pro, très lisible.',
+                        primary: '#2563eb',
+                        primaryHover: '#1d4ed8',
+                        accentSecondary: '#38bdf8',
+                    },
+                    {
+                        id: 'indigo',
+                        name: 'Indigo',
+                        desc: 'Violet bleuté, moins flashy que l’ancien full gradient.',
+                        primary: '#4f46e5',
+                        primaryHover: '#4338ca',
+                        accentSecondary: '#818cf8',
+                    },
+                    {
+                        id: 'coral',
+                        name: 'Corail / rose',
+                        desc: 'Dynamique, côté sport / énergie.',
+                        primary: '#e11d48',
+                        primaryHover: '#be123c',
+                        accentSecondary: '#fb7185',
+                    },
+                    {
+                        id: 'terracotta',
+                        name: 'Terracotta',
+                        desc: 'Orange chaleureux, bon contraste sur blanc.',
+                        primary: '#ea580c',
+                        primaryHover: '#c2410c',
+                        accentSecondary: '#fb923c',
+                    },
+                    {
+                        id: 'navy',
+                        name: 'Bleu nuit',
+                        desc: 'Boutons sombres élégants, très contraste.',
+                        primary: '#0f172a',
+                        primaryHover: '#020617',
+                        accentSecondary: '#0891b2',
+                    },
+                    {
+                        id: 'amber',
+                        name: 'Ambre',
+                        desc: 'Chaleureux et visible.',
+                        primary: '#d97706',
+                        primaryHover: '#b45309',
+                        accentSecondary: '#fbbf24',
+                    },
+                    {
+                        id: 'cyan',
+                        name: 'Cyan océan',
+                        desc: 'Frais, tech, distinct du vert teal.',
+                        primary: '#0891b2',
+                        primaryHover: '#0e7490',
+                        accentSecondary: '#22d3ee',
+                    },
+                ],
+            },
+            {
+                title: 'Tendances plus actuelles · product & créa',
+                themes: [
+                    {
+                        id: 'graphite',
+                        name: 'Graphite (Linear-like)',
+                        desc: 'Zinc très foncé, look outil produit / devtool 2025.',
+                        primary: '#27272a',
+                        primaryHover: '#18181b',
+                        accentSecondary: '#a1a1aa',
+                    },
+                    {
+                        id: 'steel-mono',
+                        name: 'Acier monochrome',
+                        desc: 'Slate uniforme, précision “Suisse / premium”.',
+                        primary: '#64748b',
+                        primaryHover: '#475569',
+                        accentSecondary: '#94a3b8',
+                    },
+                    {
+                        id: 'electric-violet',
+                        name: 'Violet électrique',
+                        desc: 'Accent néon soft, très UI moderne sans dégradé violet partout.',
+                        primary: '#7c3aed',
+                        primaryHover: '#6d28d9',
+                        accentSecondary: '#a78bfa',
+                    },
+                    {
+                        id: 'fuchsia-pulse',
+                        name: 'Fuchsia pulse',
+                        desc: 'Statement créatif, marques jeunes / événementiel.',
+                        primary: '#c026d3',
+                        primaryHover: '#a21caf',
+                        accentSecondary: '#e879f9',
+                    },
+                    {
+                        id: 'lime-pop',
+                        name: 'Lime pop',
+                        desc: 'Néon clair sur interface claire ; texte bouton foncé.',
+                        primary: '#bef264',
+                        primaryHover: '#a3e635',
+                        accentSecondary: '#4d7c0f',
+                        primaryTextOn: '#0f172a',
+                    },
+                    {
+                        id: 'rose-editorial',
+                        name: 'Rose éditorial',
+                        desc: 'Mode magazine / lifestyle, très 2024 Instagram-pro.',
+                        primary: '#f43f5e',
+                        primaryHover: '#e11d48',
+                        accentSecondary: '#fda4af',
+                    },
+                    {
+                        id: 'sage-mist',
+                        name: 'Brume sauge',
+                        desc: 'Vert grisé “quiet luxury”, pas le teal classique.',
+                        primary: '#6b9080',
+                        primaryHover: '#52796f',
+                        accentSecondary: '#a4c3b2',
+                    },
+                    {
+                        id: 'ice-glass',
+                        name: 'Glace / ice UI',
+                        desc: 'Bleu ciel net, dashboards et apps santé / data.',
+                        primary: '#0284c7',
+                        primaryHover: '#0369a1',
+                        accentSecondary: '#7dd3fc',
+                    },
+                    {
+                        id: 'copper-metal',
+                        name: 'Cuivre métal',
+                        desc: 'Chaleur industrielle chic, peu vu dans les apps sport.',
+                        primary: '#b45309',
+                        primaryHover: '#92400e',
+                        accentSecondary: '#d97706',
+                    },
+                    {
+                        id: 'ink-academic',
+                        name: 'Encre académique',
+                        desc: 'Bleu profond institutionnel, sérieux sans être noir.',
+                        primary: '#1e40af',
+                        primaryHover: '#1d4ed8',
+                        accentSecondary: '#60a5fa',
+                    },
+                    {
+                        id: 'aurora-teal',
+                        name: 'Aurore bleu-vert',
+                        desc: 'Entre cyan et pétrole ; plus “digital art” que teal classique.',
+                        primary: '#0e7490',
+                        primaryHover: '#155e75',
+                        accentSecondary: '#22d3ee',
+                    },
+                    {
+                        id: 'wine-night',
+                        name: 'Nuit bordeaux',
+                        desc: 'Somptueux, clubs / premium / soirée — à manier avec parcimonie.',
+                        primary: '#7f1d1d',
+                        primaryHover: '#450a0a',
+                        accentSecondary: '#dc2626',
+                    },
+                ],
+            },
+            {
+                title: 'Encore plus · niches, ambiances & contrastes',
+                themes: [
+                    {
+                        id: 'periwinkle',
+                        name: 'Pervenche douce',
+                        desc: 'Indigo très pastel, UI douce type bien-être / méditation.',
+                        primary: '#6366f1',
+                        primaryHover: '#4f46e5',
+                        accentSecondary: '#a5b4fc',
+                    },
+                    {
+                        id: 'lavender-haze',
+                        name: 'Brume lavande',
+                        desc: 'Violet poussiéreux, mode déco / créatif féminin.',
+                        primary: '#a855f7',
+                        primaryHover: '#9333ea',
+                        accentSecondary: '#d8b4fe',
+                    },
+                    {
+                        id: 'peach-fuzz',
+                        name: 'Pêche velours',
+                        desc: 'Beige rosé chaud, loin de l’orange terracotta ; accueillant.',
+                        primary: '#d4a574',
+                        primaryHover: '#b8956a',
+                        accentSecondary: '#fde8d4',
+                        primaryTextOn: '#1c1917',
+                    },
+                    {
+                        id: 'honey-butter',
+                        name: 'Miel & beurre',
+                        desc: 'Jaune doux, bouton clair ; texte foncé pour lisibilité.',
+                        primary: '#fcd34d',
+                        primaryHover: '#fbbf24',
+                        accentSecondary: '#b45309',
+                        primaryTextOn: '#1c1917',
+                    },
+                    {
+                        id: 'polar-mist',
+                        name: 'Brume polaire',
+                        desc: 'Bleu très clair “frost”, secondaire profond pour équilibre.',
+                        primary: '#38bdf8',
+                        primaryHover: '#0ea5e9',
+                        accentSecondary: '#0369a1',
+                    },
+                    {
+                        id: 'seafoam',
+                        name: 'Écume de mer',
+                        desc: 'Gris-bleu vert, maritime sans être le teal classique.',
+                        primary: '#5b9aa0',
+                        primaryHover: '#4a7c82',
+                        accentSecondary: '#99d5ce',
+                    },
+                    {
+                        id: 'moss-forest',
+                        name: 'Mousse forêt',
+                        desc: 'Vert profond outdoor / rando / nature engagée.',
+                        primary: '#3f6212',
+                        primaryHover: '#365314',
+                        accentSecondary: '#84cc16',
+                    },
+                    {
+                        id: 'charcoal-gold',
+                        name: 'Charbon & or',
+                        desc: 'Luxe discret : anthracite + touche or.',
+                        primary: '#292524',
+                        primaryHover: '#1c1917',
+                        accentSecondary: '#ca8a04',
+                    },
+                    {
+                        id: 'infrared',
+                        name: 'Infrarouge',
+                        desc: 'Rouge vif alerte / performance / compétition.',
+                        primary: '#ef4444',
+                        primaryHover: '#dc2626',
+                        accentSecondary: '#fca5a5',
+                    },
+                    {
+                        id: 'dusk-mauve',
+                        name: 'Crépuscule mauve',
+                        desc: 'Framboise sombre, mode nuit / club sport chic.',
+                        primary: '#9d174d',
+                        primaryHover: '#831843',
+                        accentSecondary: '#f472b6',
+                    },
+                    {
+                        id: 'slate-rose',
+                        name: 'Ardoise rose',
+                        desc: 'Bordeaux-rose équilibré, moins extrême que bordeaux pur.',
+                        primary: '#be185d',
+                        primaryHover: '#9d174d',
+                        accentSecondary: '#fbcfe8',
+                    },
+                    {
+                        id: 'eclipse-violet',
+                        name: 'Éclipse violette',
+                        desc: 'Noir bleuté + violet néon en secondaire, très “startup dark”.',
+                        primary: '#0c0a09',
+                        primaryHover: '#000000',
+                        accentSecondary: '#a78bfa',
+                    },
+                    {
+                        id: 'sandstone',
+                        name: 'Grès du désert',
+                        desc: 'Terre sable / beige chaud, apps outdoor ou vintage.',
+                        primary: '#a16207',
+                        primaryHover: '#854d0e',
+                        accentSecondary: '#fde68a',
+                    },
+                    {
+                        id: 'arctic-mint',
+                        name: 'Menthe arctique',
+                        desc: 'Glacial et digital, entre cyan et menthe.',
+                        primary: '#14b8a6',
+                        primaryHover: '#0d9488',
+                        accentSecondary: '#5eead4',
+                    },
+                    {
+                        id: 'royal-sapphire',
+                        name: 'Saphir royal',
+                        desc: 'Bleu roi saturé, médailles / podium / excellence.',
+                        primary: '#1d4ed8',
+                        primaryHover: '#1e40af',
+                        accentSecondary: '#93c5fd',
+                    },
+                    {
+                        id: 'neon-magenta',
+                        name: 'Magenta néon',
+                        desc: 'Très flashy, e-sport / streaming / event.',
+                        primary: '#e879f9',
+                        primaryHover: '#d946ef',
+                        accentSecondary: '#86198f',
+                    },
+                ],
+            },
+        ];
+
+        function flattenThemes() {
+            return THEME_SECTIONS.flatMap((s) => s.themes);
+        }
+
+        function buildRoot(t) {
+            const pm = mutedRgba(t.primary, 0.12);
+            const onPrimary = t.primaryTextOn || '#ffffff';
+            return `:root {
+    --bg: ${BASE.bg};
+    --bg-subtle: ${BASE.bgSubtle};
+    --surface: ${BASE.surface};
+    --surface-elevated: ${BASE.surface};
+    --text: ${BASE.text};
+    --text-muted: ${BASE.textMuted};
+    --border: ${BASE.border};
+    --shadow: ${BASE.shadow};
+    --shadow-sm: ${BASE.shadowSm};
+    --radius: ${BASE.radius};
+    --radius-sm: ${BASE.radiusSm};
+    --primary: ${t.primary};
+    --primary-hover: ${t.primaryHover};
+    --primary-muted: ${pm};
+    --primary-text-on: ${onPrimary};
+    --accent-secondary: ${t.accentSecondary};
+    --success: ${BASE.success};
+    --success-muted: ${BASE.successMuted};
+    --warning: ${BASE.warning};
+    --warning-muted: ${BASE.warningMuted};
+    --danger: ${BASE.danger};
+    --danger-muted: ${BASE.dangerMuted};
+    --success-border: ${BASE.successBorder};
+    --success-bg: ${BASE.successBg};
+    --orange-strong: ${BASE.orangeStrong};
+    --orange-border: ${BASE.orangeBorder};
+}`;
+        }
+
+        function rgbaForPrimary(hex) {
+            const { r, g, b } = hexToRgb(hex);
+            return { r, g, b };
+        }
+
+        const grid = document.getElementById('theme-grid');
+        const snippet = document.getElementById('snippet');
+        const rgbaHint = document.getElementById('rgba-hint');
+        const toast = document.getElementById('toast');
+
+        let selectedId = localStorage.getItem('lasereps-theme-nuancier') || 'slate-blue';
+        const allThemes = flattenThemes();
+        if (!allThemes.some((x) => x.id === selectedId)) {
+            selectedId = 'slate-blue';
+        }
+
+        THEME_SECTIONS.forEach((section) => {
+            const secEl = document.createElement('h2');
+            secEl.className = 'section-title';
+            secEl.textContent = section.title;
+            grid.appendChild(secEl);
+
+            section.themes.forEach((t) => {
+            const { r, g, b } = rgbaForPrimary(t.primary);
+            const card = document.createElement('article');
+            card.className = 'theme-card' + (t.id === selectedId ? ' selected' : '');
+            card.tabIndex = 0;
+            card.setAttribute('role', 'listitem');
+            card.dataset.id = t.id;
+
+            const muted = mutedRgba(t.primary, 0.12);
+            const previewOn = t.primaryTextOn || '#ffffff';
+
+            card.innerHTML = `
+                <div class="preview-wrap">
+                    <div class="mini-app" style="--preview-p: ${t.primary}; --preview-ph: ${t.primaryHover}; --preview-muted: ${muted}; --preview-on: ${previewOn};">
+                        <div class="mini-head">Aperçu</div>
+                        <button type="button" class="mini-btn">Action principale</button>
+                        <button type="button" class="mini-btn mini-btn-sec">Secondaire</button>
+                        <span class="mini-chip">Accent</span>
+                    </div>
+                </div>
+                <div class="theme-meta">
+                    <h2>${t.name}</h2>
+                    <p class="desc">${t.desc}</p>
+                    <div class="swatches">
+                        <span class="swatch" style="background:${t.primary}" title="primary"></span>
+                        <span class="swatch" style="background:${t.primaryHover}" title="hover"></span>
+                        <span class="swatch" style="background:${t.accentSecondary}" title="secondaire"></span>
+                    </div>
+                </div>
+            `;
+
+            function select() {
+                document.querySelectorAll('.theme-card').forEach((c) => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedId = t.id;
+                localStorage.setItem('lasereps-theme-nuancier', t.id);
+                snippet.value = buildRoot(t);
+                const { r, g, b } = hexToRgb(t.primary);
+                rgbaHint.innerHTML =
+                    '<strong>Astuce :</strong> dans <code>index.html</code>, il reste des ombres/bordures en <code>rgba(13, 148, 136, …)</code> (teal). ' +
+                    'Fais un rechercher-remplacer : <code>rgba(13, 148, 136</code> → <code>rgba(' + r + ', ' + g + ', ' + b + '</code> ' +
+                    '(garde la fin <code>, 0.xx)</code> telle quelle).';
+            }
+
+            card.addEventListener('click', select);
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    select();
+                }
+            });
+
+            grid.appendChild(card);
+            });
+        });
+
+        function initSnippet() {
+            const t = allThemes.find((x) => x.id === selectedId) || allThemes[1];
+            snippet.value = buildRoot(t);
+            const { r, g, b } = hexToRgb(t.primary);
+            rgbaHint.innerHTML =
+                '<strong>Astuce :</strong> dans <code>index.html</code>, il reste des ombres/bordures en <code>rgba(13, 148, 136, …)</code> (teal). ' +
+                'Fais un rechercher-remplacer : <code>rgba(13, 148, 136</code> → <code>rgba(' + r + ', ' + g + ', ' + b + '</code> ' +
+                '(garde la fin <code>, 0.xx)</code> telle quelle).';
+        }
+        initSnippet();
+
+        document.getElementById('copy-btn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(snippet.value);
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            } catch {
+                snippet.select();
+                document.execCommand('copy');
+                toast.textContent = 'Sélection copiée (fallback)';
+                toast.classList.add('show');
+                setTimeout(() => { toast.classList.remove('show'); toast.textContent = 'Copié !'; }, 2000);
+            }
+        });
+
+        document.getElementById('open-index').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>
