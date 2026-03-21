@@ -4538,9 +4538,10 @@ class LaserEPSApp {
     }
 
     // Affichage des résultats
-    showResults() {
+    async showResults() {
         this.showScreen('results');
         this.displayResults();
+        await this.renderSplitCoachingAnalysis();
         const saveBtn = document.getElementById('save-session-btn');
         const postActions = document.getElementById('post-save-actions');
         if (this._sessionSaved) {
@@ -4553,6 +4554,261 @@ class LaserEPSApp {
             document.getElementById('save-session-text').textContent = 'Enregistrer la session';
             saveBtn.querySelector('.save-icon').textContent = '💾';
             postActions.classList.remove('visible');
+        }
+    }
+
+    buildSessionFromCourseData() {
+        const totalShootingTime = this.courseData.lapTimes
+            .filter(l => l.type === 'shooting')
+            .reduce((s, l) => s + (isNaN(l.duration) || l.duration < 0 ? 0 : l.duration), 0);
+        const totalRunningTime = this.courseData.totalTime - totalShootingTime;
+        const totalHits = this.courseData.targets.reduce((s, t) => s + (t.hitCount || 0), 0);
+        const totalMisses = this.courseData.targets.reduce((s, t) => s + (t.missCount || 0), 0);
+        return {
+            id: 'current',
+            date: new Date(),
+            totalTime: this.courseData.totalTime || 0,
+            totalShootingTime,
+            totalRunningTime,
+            totalDistance: this.courseData.totalDistance || 0,
+            numberOfShootings: this.numberOfShootings,
+            totalHits,
+            totalMisses,
+            averageSpeed: this.calculateAverageSpeed(totalRunningTime),
+            distances: { ...this.distances },
+            targets: (this.courseData.targets || []).map(t => ({ hitCount: t.hitCount || 0, missCount: t.missCount || 0 })),
+            lapTimes: (this.courseData.lapTimes || []).map(l => ({ type: l.type, number: l.number, duration: l.duration || 0 })),
+            formatSnapshot: {
+                numberOfShootings: this.numberOfShootings,
+                distances: { ...this.distances }
+            }
+        };
+    }
+
+    normalizeSessionSegments(session) {
+        const segments = [];
+        if (!session || !Array.isArray(session.lapTimes)) return segments;
+        const targets = session.targets || [];
+        session.lapTimes.forEach(l => {
+            const type = l.type === 'running' ? 'course' : l.type;
+            const num = parseInt(l.number, 10) || 1;
+            const duration = Math.max(0, Number(l.duration) || 0);
+            if (type === 'course') {
+                const dist = num === 1
+                    ? (session.distances && session.distances.first) || 0
+                    : (num === ((session.numberOfShootings || 0) + 1)
+                        ? (session.distances && session.distances.final) || 0
+                        : (session.distances && session.distances.other) || 0);
+                segments.push({
+                    key: `course-${num}`,
+                    segmentType: 'course',
+                    segmentNumber: num,
+                    duration,
+                    distance: dist
+                });
+            } else if (type === 'shooting') {
+                const t = targets[num - 1] || {};
+                const hits = t.hitCount || 0;
+                const misses = t.missCount || 0;
+                const shots = hits + misses;
+                segments.push({
+                    key: `shooting-${num}`,
+                    segmentType: 'shooting',
+                    segmentNumber: num,
+                    duration,
+                    hits,
+                    misses,
+                    accuracy: shots > 0 ? Math.round((hits / shots) * 100) : 0
+                });
+            }
+        });
+        return segments;
+    }
+
+    getReferenceSessionsForFormat(currentSession, allSessions) {
+        const currentKey = this.getSessionFormatKey(currentSession);
+        const sameFormat = (allSessions || [])
+            .filter(s => s && s.id !== currentSession.id && this.getSessionFormatKey(s) === currentKey)
+            .sort((a, b) => (a.totalTime || 0) - (b.totalTime || 0));
+
+        if (sameFormat.length >= 3) {
+            return { sessions: sameFormat.slice(0, 3), mode: 'avg_top3', confidence: 'strong' };
+        }
+        if (sameFormat.length >= 1) {
+            return { sessions: [sameFormat[0]], mode: 'best_single', confidence: 'medium' };
+        }
+
+        const previous = (allSessions || [])
+            .filter(s => s && s.id !== currentSession.id && this.getSessionFormatKey(s) === currentKey)
+            .sort((a, b) => {
+                const da = this.normalizeFirestoreDate(a.date) || new Date(0);
+                const dbd = this.normalizeFirestoreDate(b.date) || new Date(0);
+                return dbd - da;
+            })[0];
+
+        if (previous) return { sessions: [previous], mode: 'previous_single', confidence: 'low' };
+        return { sessions: [], mode: 'none', confidence: 'none' };
+    }
+
+    buildReferenceSegments(referenceSessions) {
+        const bucket = new Map();
+        (referenceSessions || []).forEach(s => {
+            this.normalizeSessionSegments(s).forEach(seg => {
+                if (!bucket.has(seg.key)) bucket.set(seg.key, []);
+                bucket.get(seg.key).push(seg);
+            });
+        });
+        const refMap = new Map();
+        bucket.forEach((arr, key) => {
+            const avgDuration = arr.reduce((sum, v) => sum + (v.duration || 0), 0) / Math.max(1, arr.length);
+            const base = arr[0];
+            refMap.set(key, {
+                ...base,
+                duration: avgDuration,
+                accuracy: base.segmentType === 'shooting'
+                    ? Math.round(arr.reduce((sum, v) => sum + (v.accuracy || 0), 0) / Math.max(1, arr.length))
+                    : undefined
+            });
+        });
+        return refMap;
+    }
+
+    buildCoachingSuggestion(segment, deltaSeconds) {
+        if (segment.segmentType === 'course') {
+            if (deltaSeconds > 6) return 'Travaille la relance sur cette course: départ contrôlé puis accélération progressive.';
+            if (deltaSeconds > 3) return 'Reste régulier sur l’allure et pense à la respiration pour éviter la cassure de rythme.';
+            return 'Segment course proche de la référence: garde cette régularité.';
+        }
+        const acc = segment.accuracy || 0;
+        if (acc < 70 && deltaSeconds < 1.5) return 'Tu tires vite mais trop imprécis: stabilise 1 seconde avant de déclencher.';
+        if (acc >= 85 && deltaSeconds > 2) return 'Tu es précis mais un peu lent: raccourcis la routine visée-tir sans perdre le contrôle.';
+        if (acc < 70 && deltaSeconds > 2) return 'Priorité tir: posture stable, visée plus propre, puis cadence progressive.';
+        return 'Bon équilibre tir/cadence: consolide cette routine.';
+    }
+
+    analyzeSplitDeltas(currentSession, referenceMap, historySessions) {
+        const current = this.normalizeSessionSegments(currentSession);
+        const allByKey = {};
+        (historySessions || []).forEach(s => {
+            this.normalizeSessionSegments(s).forEach(seg => {
+                if (!allByKey[seg.key]) allByKey[seg.key] = [];
+                allByKey[seg.key].push(seg.duration || 0);
+            });
+        });
+
+        const rows = [];
+        current.forEach(seg => {
+            const ref = referenceMap.get(seg.key);
+            if (!ref) return;
+            const delta = (seg.duration || 0) - (ref.duration || 0);
+            const threshold = seg.segmentType === 'course' ? 1.0 : 0.4;
+            if (delta < threshold) return;
+            const values = allByKey[seg.key] || [];
+            const mean = values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
+            const variance = values.length ? values.reduce((s, v) => s + ((v - mean) ** 2), 0) / values.length : 0;
+            const std = Math.sqrt(Math.max(0, variance));
+            const weight = seg.segmentType === 'course' ? 1.0 : 1.15;
+            const score = (delta * weight) + (std * 0.15);
+            const impact = score >= 6 ? 'fort' : (score >= 3 ? 'moyen' : 'faible');
+            rows.push({
+                ...seg,
+                currentDuration: seg.duration || 0,
+                referenceDuration: ref.duration || 0,
+                delta,
+                score,
+                impact,
+                suggestion: this.buildCoachingSuggestion(seg, delta)
+            });
+        });
+
+        return rows.sort((a, b) => b.score - a.score).slice(0, 3);
+    }
+
+    async renderSplitCoachingAnalysis() {
+        const resultsContent = document.getElementById('results-content');
+        if (!resultsContent || !this.currentUser) return;
+        const currentSession = this.buildSessionFromCourseData();
+        try {
+            const allSessions = await this.fetchSessionsForUid(this.currentUser.uid, 80);
+            const sameFormatHistory = allSessions.filter(s => this.getSessionFormatKey(s) === this.getSessionFormatKey(currentSession));
+            const refInfo = this.getReferenceSessionsForFormat(currentSession, allSessions);
+
+            if (!refInfo.sessions.length) {
+                resultsContent.innerHTML += `
+                    <div class="results-section">
+                        <h3>Analyse split</h3>
+                        <div class="history-empty" style="padding:22px 16px;">
+                            Analyse non robuste: pas assez d'historique au même format.<br>
+                            Accumule 2-3 séances supplémentaires pour obtenir des priorités fiables.
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            const refMap = this.buildReferenceSegments(refInfo.sessions);
+            const priorities = this.analyzeSplitDeltas(currentSession, refMap, sameFormatHistory);
+            if (!priorities.length) {
+                resultsContent.innerHTML += `
+                    <div class="results-section">
+                        <h3>Analyse split</h3>
+                        <div class="history-empty" style="padding:22px 16px;">
+                            Aucun segment critique détecté sur cette séance. Continue sur cette régularité.
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            const maxDelta = Math.max(1, ...priorities.map(p => p.delta));
+            const rows = priorities.map((p, i) => {
+                const width = Math.max(8, Math.round((p.delta / maxDelta) * 100));
+                const title = p.segmentType === 'course' ? `Course ${p.segmentNumber}` : `Tir ${p.segmentNumber}`;
+                const impactBg = p.impact === 'fort' ? '#ffe3e3' : (p.impact === 'moyen' ? '#fff3bf' : '#e7f5ff');
+                const impactColor = p.impact === 'fort' ? '#c92a2a' : (p.impact === 'moyen' ? '#e67700' : '#1971c2');
+                return `
+                    <div style="background:#fff;border-radius:12px;padding:12px;border:1px solid #eef1ff;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <div style="font-weight:700;color:#2f3e8e;">Priorité #${i + 1} - ${title}</div>
+                            <span style="background:${impactBg};color:${impactColor};padding:4px 8px;border-radius:999px;font-size:0.78rem;font-weight:700;">Impact ${p.impact}</span>
+                        </div>
+                        <div style="margin-top:6px;color:#555;font-size:0.9rem;">
+                            Actuel: <b>${this.formatTime(p.currentDuration)}</b> · Référence: <b>${this.formatTime(p.referenceDuration)}</b> · Écart: <b style="color:#c92a2a;">+${p.delta.toFixed(1)}s</b>
+                        </div>
+                        <div style="margin-top:8px;height:8px;background:#f1f3ff;border-radius:999px;overflow:hidden;">
+                            <div style="height:100%;width:${width}%;background:linear-gradient(90deg,#ff8787,#ff6b6b);"></div>
+                        </div>
+                        <div style="margin-top:8px;color:#334155;font-size:0.9rem;">${p.suggestion}</div>
+                    </div>`;
+            }).join('');
+
+            const actionPlan = priorities.slice(0, 2).map(p => {
+                const label = p.segmentType === 'course' ? `Course ${p.segmentNumber}` : `Tir ${p.segmentNumber}`;
+                return `<li><b>${label}</b>: ${p.suggestion}</li>`;
+            }).join('');
+
+            const refText = refInfo.mode === 'avg_top3'
+                ? 'Référence: moyenne des 3 meilleures séances au même format.'
+                : (refInfo.mode === 'best_single'
+                    ? 'Référence: meilleure séance au même format.'
+                    : 'Référence: dernière séance au même format.');
+
+            resultsContent.innerHTML += `
+                <div class="results-section">
+                    <h3>Analyse split</h3>
+                    <div style="color:#6b7280;font-size:0.88rem;margin-bottom:10px;">${refText}</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">${rows}</div>
+                    <div style="margin-top:12px;background:#f8f9ff;border:1px solid #e4e9ff;border-radius:12px;padding:12px;">
+                        <div style="font-weight:800;color:#2f3e8e;margin-bottom:6px;">Plan d'action prochaine séance</div>
+                        <ul style="margin:0;padding-left:18px;color:#334155;">${actionPlan}</ul>
+                    </div>
+                </div>
+            `;
+        } catch (e) {
+            console.warn('Analyse split indisponible :', e);
+            resultsContent.innerHTML += `
+                <div class="results-section">
+                    <h3>Analyse split</h3>
+                    <div class="history-empty" style="padding:20px 16px;">Analyse temporairement indisponible.</div>
+                </div>`;
         }
     }
 
