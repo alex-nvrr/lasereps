@@ -6819,8 +6819,9 @@ class LaserEPSApp {
             });
 
             const lapEntries = Object.values(byLapKey).sort((a, b) => {
-                if (a.type !== b.type) return a.type === 'course' ? -1 : 1;
-                return a.number - b.number;
+                if (a.number !== b.number) return a.number - b.number;
+                if (a.type === b.type) return 0;
+                return a.type === 'course' ? -1 : 1; // Course N puis Tir N
             });
             const segmentRankings = lapEntries.map(seg => {
                 const ranking = Object.values(seg.byStudent).sort((a, b) => a.duration - b.duration);
