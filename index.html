@@ -6209,9 +6209,10 @@ class LaserEPSApp {
                 return;
             }
 
-            const selectedEntries = [];
+            const bestByStudent = [];
             const sessionsByStudent = {};
             const allSeanceSessions = [];
+            const allAttemptsInSeance = [];
             for (const mDoc of membersSnap.docs) {
                 const uid = mDoc.id;
                 const mData = mDoc.data();
@@ -6239,29 +6240,35 @@ class LaserEPSApp {
                 if (filtered.sessions.length) {
                     const best = filtered.sessions[0];
                     const displayName = mData.displayName || mData.email || uid;
-                    selectedEntries.push({ uid, displayName, session: best });
+                    bestByStudent.push({ uid, displayName, session: best });
+                    filtered.sessions.forEach(s => {
+                        allAttemptsInSeance.push({ uid, displayName, session: s });
+                    });
                 }
             }
             this._seanceAllSessions = allSeanceSessions;
             this.refreshFormatFilterControls();
 
-            if (!selectedEntries.length) {
-                container.innerHTML = `<div class="history-empty">Aucune session pour ce format dans cette séance.<br><br>Code séance : <b>${seanceData.code}</b></div>`;
+            if (!bestByStudent.length) {
+                const demoHint = seanceData.isDemoData
+                    ? '<br><br>Astuce démo: ouvre la classe puis clique sur "Générer des élèves démo".'
+                    : '';
+                container.innerHTML = `<div class="history-empty">Aucune session pour ce format dans cette séance.<br><br>Code séance : <b>${seanceData.code}</b>${demoHint}</div>`;
                 return;
             }
 
             const accuracyOf = (s) => this.computeAccuracyPercent(s);
 
             const metrics = [
-                { key: 'totalTime', title: 'Temps total', sort: (a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0), format: (s) => this.formatTime(s.totalTime || 0) },
-                { key: 'totalShootingTime', title: 'Temps de tir', sort: (a, b) => (a.session.totalShootingTime || 0) - (b.session.totalShootingTime || 0), format: (s) => this.formatTime(s.totalShootingTime || 0) },
-                { key: 'totalRunningTime', title: 'Temps de course', sort: (a, b) => (a.session.totalRunningTime || 0) - (b.session.totalRunningTime || 0), format: (s) => this.formatTime(s.totalRunningTime || 0) },
-                { key: 'accuracy', title: 'Précision', sort: (a, b) => accuracyOf(b.session) - accuracyOf(a.session), format: (s) => `${accuracyOf(s)}%` },
-                { key: 'averageSpeed', title: 'Vitesse moyenne (km/h)', sort: (a, b) => (b.session.averageSpeed || 0) - (a.session.averageSpeed || 0), format: (s) => `${(s.averageSpeed || 0).toFixed(1)}` }
+                { key: 'totalTime', title: 'Classement global (temps total)', sort: (a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0), format: (s) => this.formatTime(s.totalTime || 0) },
+                { key: 'totalShootingTime', title: 'Classement tir (temps de tir)', sort: (a, b) => (a.session.totalShootingTime || 0) - (b.session.totalShootingTime || 0), format: (s) => this.formatTime(s.totalShootingTime || 0) },
+                { key: 'totalRunningTime', title: 'Classement course (temps de course)', sort: (a, b) => (a.session.totalRunningTime || 0) - (b.session.totalRunningTime || 0), format: (s) => this.formatTime(s.totalRunningTime || 0) },
+                { key: 'averageSpeed', title: 'Classement vitesse course (km/h)', sort: (a, b) => (b.session.averageSpeed || 0) - (a.session.averageSpeed || 0), format: (s) => `${(s.averageSpeed || 0).toFixed(1)}` },
+                { key: 'accuracy', title: 'Classement précision (%)', sort: (a, b) => accuracyOf(b.session) - accuracyOf(a.session), format: (s) => `${accuracyOf(s)}%` }
             ];
 
             const metricCards = metrics.map(metric => {
-                const sorted = [...selectedEntries].sort(metric.sort);
+                const sorted = [...bestByStudent].sort(metric.sort);
                 const rows = sorted.map((e, idx) => {
                     const val = metric.format(e.session);
                     return `<div class="rank-row">
@@ -6273,7 +6280,54 @@ class LaserEPSApp {
                 return `<div class="comp-metric-card"><div class="comp-metric-title">${metric.title}</div><div class="comp-metric-rows">${rows}</div></div>`;
             }).join('');
 
-            const sessionCards = [...selectedEntries]
+            const byLapKey = {};
+            allAttemptsInSeance.forEach(entry => {
+                const laps = Array.isArray(entry.session.lapTimes) ? entry.session.lapTimes : [];
+                laps.forEach(lap => {
+                    if (!lap || !lap.type || !lap.number) return;
+                    const duration = Number(lap.duration) || 0;
+                    if (duration <= 0) return;
+                    const type = lap.type === 'course' ? 'course' : (lap.type === 'shooting' ? 'shooting' : null);
+                    if (!type) return;
+                    const key = `${type}_${lap.number}`;
+                    if (!byLapKey[key]) byLapKey[key] = { type, number: lap.number, byStudent: {} };
+                    const prev = byLapKey[key].byStudent[entry.uid];
+                    if (!prev || duration < prev.duration) {
+                        const segment = { uid: entry.uid, displayName: entry.displayName, duration };
+                        if (type === 'course') {
+                            const dist = this.getDistanceForCourse(lap.number);
+                            const speed = dist > 0 ? ((dist / 1000) / (duration / 3600)) : 0;
+                            segment.speed = speed;
+                            segment.distance = dist;
+                        }
+                        byLapKey[key].byStudent[entry.uid] = segment;
+                    }
+                });
+            });
+
+            const lapEntries = Object.values(byLapKey).sort((a, b) => {
+                if (a.type !== b.type) return a.type === 'course' ? -1 : 1;
+                return a.number - b.number;
+            });
+            const lapCards = lapEntries.map(seg => {
+                const ranking = Object.values(seg.byStudent).sort((a, b) => a.duration - b.duration);
+                const rows = ranking.slice(0, 3).map((r, idx) => {
+                    const extra = seg.type === 'course'
+                        ? ` <span style="color:#888;font-size:0.82rem;">(${(r.speed || 0).toFixed(1)} km/h)</span>`
+                        : '';
+                    return `<div class="rank-row">
+                        <span class="rank-num">${idx + 1}</span>
+                        <span class="rank-name">${r.displayName}</span>
+                        <span class="rank-val">${this.formatTime(r.duration)}${extra}</span>
+                    </div>`;
+                }).join('');
+                const title = seg.type === 'course'
+                    ? `Meilleur Course ${seg.number}${seg.distance ? ` (${seg.distance}m)` : ''}`
+                    : `Meilleur Tir ${seg.number}`;
+                return `<div class="comp-metric-card"><div class="comp-metric-title">${title}</div><div class="comp-metric-rows">${rows || '<div class="history-empty">Pas de données.</div>'}</div></div>`;
+            }).join('');
+
+            const sessionCards = [...bestByStudent]
                 .sort((a, b) => (a.session.totalTime || 0) - (b.session.totalTime || 0))
                 .map(e => {
                     const s = e.session;
@@ -6300,6 +6354,10 @@ class LaserEPSApp {
                 </div>
                 <div class="history-empty" style="margin-bottom:10px;">Format séance: ${seanceFormat.numberOfShootings} tirs · ${seanceFormat.distances.first}/${seanceFormat.distances.other}/${seanceFormat.distances.final}m</div>
                 <div class="comp-metrics-grid">${metricCards}</div>
+                <div style="margin-top:16px;">
+                    <div style="font-weight:800;color:#333;margin-bottom:10px;">Classements par segment (Top 3)</div>
+                    <div class="comp-metrics-grid">${lapCards || '<div class="history-empty">Pas de segments exploitables pour ce format.</div>'}</div>
+                </div>
                 <div style="margin-top:16px;">
                     <div style="font-weight:800;color:#333;margin-bottom:10px;">Sessions (clic pour détail)</div>
                     <div class="compare-sessions-list">${sessionCards}</div>
