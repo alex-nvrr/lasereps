@@ -2776,6 +2776,36 @@ body {
     .seance-rank-panel.active {
         padding-top: 2px;
     }
+    #seance-view-content [data-rank-panel="section"] .comp-metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    #seance-view-content [data-rank-panel="section"] .comp-metric-card {
+        padding: 10px;
+    }
+    #seance-view-content [data-rank-panel="section"] .comp-metric-title {
+        font-size: 1rem;
+        margin-bottom: 6px;
+    }
+    #seance-view-content [data-rank-panel="section"] .rank-row {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        align-items: center;
+        row-gap: 2px;
+        min-height: 52px;
+    }
+    #seance-view-content [data-rank-panel="section"] .rank-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.2;
+    }
+    #seance-view-content [data-rank-panel="section"] .rank-val {
+        grid-column: 2;
+        justify-self: end;
+        font-size: 0.92rem;
+        line-height: 1.2;
+    }
 
     .prof-alerts-section {
         padding: 10px;
