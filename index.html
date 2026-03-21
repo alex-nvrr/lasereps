@@ -2487,6 +2487,89 @@ body {
 .student-card .sc-val { font-weight: 700; color: #667eea; font-size: 1rem; }
 .student-card .sc-lbl { font-size: 0.7rem; color: #888; }
 
+.prof-alerts-section {
+    background: rgba(255,255,255,0.96);
+    border: 1px solid rgba(76,110,245,0.2);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
+.prof-alerts-title {
+    font-weight: 800;
+    color: #23307e;
+    margin-bottom: 10px;
+}
+.prof-alerts-table {
+    display: grid;
+    gap: 8px;
+}
+.prof-alert-row {
+    display: grid;
+    grid-template-columns: 1.1fr 0.7fr 0.8fr 0.8fr 0.9fr 0.9fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #f8f9ff;
+    border: 1px solid #edf0ff;
+}
+.prof-alert-row.header {
+    background: #eef2ff;
+    font-weight: 700;
+    color: #2d3a8d;
+}
+.prof-alert-row.clickable { cursor: pointer; }
+.prof-alert-row.clickable:hover { background: #eef2ff; }
+.prof-alert-cell-strong { font-weight: 700; color: #26316e; }
+.prof-alert-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 86px;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+.prof-alert-badge.ok { background: #e8f7ec; color: #1f8a43; }
+.prof-alert-badge.watch { background: #fff3cd; color: #9a6a00; }
+.prof-alert-badge.alert { background: #ffe5e8; color: #ba1f31; }
+.prof-alert-badge.na { background: #edf0f4; color: #6b7280; }
+.prof-alert-action-btn {
+    border: 1px solid rgba(76,110,245,0.3);
+    background: #fff;
+    color: #3342a0;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 6px 10px;
+}
+.alert-coaching-card {
+    background: rgba(255,255,255,0.97);
+    border: 1px solid rgba(76,110,245,0.22);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+.alert-coaching-title {
+    font-weight: 800;
+    color: #27337b;
+    margin-bottom: 8px;
+}
+.alert-coaching-item {
+    font-size: 0.88rem;
+    color: #334;
+    margin-bottom: 6px;
+}
+@media (max-width: 900px) {
+    .prof-alert-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+    .prof-alert-row.header { display: none; }
+}
+
 /* Tableau comparatif */
 .comp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .comp-table {
@@ -4990,6 +5073,187 @@ class LaserEPSApp {
         return totalShots > 0 ? Math.round(((session.totalHits || 0) / totalShots) * 100) : 0;
     }
 
+    getAlertStatusClass(status) {
+        if (status === 'alert') return 'alert';
+        if (status === 'surveiller') return 'watch';
+        if (status === 'ok') return 'ok';
+        return 'na';
+    }
+
+    getAlertStatusLabel(status) {
+        if (status === 'alert') return 'Alerte';
+        if (status === 'surveiller') return 'Surveiller';
+        if (status === 'ok') return 'OK';
+        return 'Données insuff.';
+    }
+
+    getStatusRank(status) {
+        if (status === 'alert') return 3;
+        if (status === 'surveiller') return 2;
+        if (status === 'ok') return 1;
+        return 0;
+    }
+
+    avg(values) {
+        const nums = (values || []).filter(v => Number.isFinite(v));
+        if (!nums.length) return null;
+        return nums.reduce((s, v) => s + v, 0) / nums.length;
+    }
+
+    stdDev(values) {
+        const nums = (values || []).filter(v => Number.isFinite(v));
+        if (nums.length < 2) return null;
+        const mean = this.avg(nums);
+        const variance = nums.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / nums.length;
+        return Math.sqrt(variance);
+    }
+
+    computeCourseIrregularity(session) {
+        const laps = Array.isArray(session && session.lapTimes) ? session.lapTimes : [];
+        const courseDur = laps
+            .filter(l => l && l.type === 'course' && Number(l.duration) > 0)
+            .map(l => Number(l.duration));
+        if (courseDur.length < 2) return null;
+        const mean = this.avg(courseDur);
+        const sd = this.stdDev(courseDur);
+        if (!Number.isFinite(mean) || !Number.isFinite(sd) || mean <= 0) return null;
+        return (sd / mean) * 100; // coefficient de variation en %
+    }
+
+    evaluateAlertMetric(type, delta) {
+        if (!Number.isFinite(delta)) return { status: 'na', score: 0 };
+        if (type === 'precisionDrop') {
+            const drop = -delta;
+            if (drop >= 8) return { status: 'alert', score: 100 };
+            if (drop >= 4) return { status: 'surveiller', score: 60 };
+            return { status: 'ok', score: 0 };
+        }
+        if (type === 'shootingRise') {
+            if (delta >= 1.2) return { status: 'alert', score: 100 };
+            if (delta >= 0.6) return { status: 'surveiller', score: 60 };
+            return { status: 'ok', score: 0 };
+        }
+        if (type === 'irregularityRise') {
+            if (delta >= 18) return { status: 'alert', score: 100 };
+            if (delta >= 8) return { status: 'surveiller', score: 60 };
+            return { status: 'ok', score: 0 };
+        }
+        return { status: 'na', score: 0 };
+    }
+
+    buildStudentAlertSummary(displayName, sessions) {
+        const sorted = (sessions || []).filter(Boolean).sort((a, b) => (b.date || 0) - (a.date || 0));
+        if (sorted.length < 4) {
+            return {
+                displayName,
+                globalStatus: 'na',
+                globalScore: 0,
+                lastDate: sorted[0] && sorted[0].date ? sorted[0].date : null,
+                reasons: ['Pas assez de séances comparables'],
+                metrics: {
+                    precision: { status: 'na', label: 'N/A' },
+                    shooting: { status: 'na', label: 'N/A' },
+                    regularity: { status: 'na', label: 'N/A' }
+                },
+                coaching: []
+            };
+        }
+
+        const preferred = this._selectedFormatKey && this._selectedFormatKey !== 'all'
+            ? sorted.filter(s => this.getSessionFormatKey(s) === this._selectedFormatKey)
+            : sorted;
+        const comparable = preferred.length >= 4 ? preferred : sorted;
+        const recent = comparable.slice(0, 2);
+        const baseline = comparable.slice(2, 7);
+        if (recent.length < 2 || baseline.length < 2) {
+            return {
+                displayName,
+                globalStatus: 'na',
+                globalScore: 0,
+                lastDate: comparable[0] && comparable[0].date ? comparable[0].date : null,
+                reasons: ['Historique insuffisant pour baseline/recent'],
+                metrics: {
+                    precision: { status: 'na', label: 'N/A' },
+                    shooting: { status: 'na', label: 'N/A' },
+                    regularity: { status: 'na', label: 'N/A' }
+                },
+                coaching: []
+            };
+        }
+
+        const precisionRecent = this.avg(recent.map(s => this.computeAccuracyPercent(s)));
+        const precisionBaseline = this.avg(baseline.map(s => this.computeAccuracyPercent(s)));
+        const deltaPrecision = precisionRecent - precisionBaseline;
+        const precisionEval = this.evaluateAlertMetric('precisionDrop', deltaPrecision);
+
+        const shotPace = (s) => {
+            const n = Math.max(1, parseInt(s.numberOfShootings, 10) || 1);
+            return (Number(s.totalShootingTime) || 0) / n;
+        };
+        const shootingRecent = this.avg(recent.map(shotPace));
+        const shootingBaseline = this.avg(baseline.map(shotPace));
+        const deltaShooting = shootingRecent - shootingBaseline;
+        const shootingEval = this.evaluateAlertMetric('shootingRise', deltaShooting);
+
+        const regularityRecent = this.avg(recent.map(s => this.computeCourseIrregularity(s)));
+        const regularityBaseline = this.avg(baseline.map(s => this.computeCourseIrregularity(s)));
+        const deltaRegularity = regularityRecent - regularityBaseline;
+        const regularityEval = this.evaluateAlertMetric('irregularityRise', deltaRegularity);
+
+        const weightedScore = Math.round(
+            ((precisionEval.score * 0.4) + (shootingEval.score * 0.35) + (regularityEval.score * 0.25))
+        );
+        const globalStatus = weightedScore >= 65 ? 'alert' : (weightedScore >= 35 ? 'surveiller' : 'ok');
+
+        const fmtDelta = (v, unit = '') => Number.isFinite(v)
+            ? `${v > 0 ? '+' : ''}${v.toFixed(unit === '%' ? 1 : 2)}${unit}`
+            : 'N/A';
+
+        const coaching = [];
+        if (precisionEval.status === 'alert' || precisionEval.status === 'surveiller') {
+            coaching.push(`Précision en baisse (${fmtDelta(deltaPrecision, '%')}). Objectif: +3 pts la prochaine séance. Action: routine respiration + visée 2s avant chaque tir.`);
+        }
+        if (shootingEval.status === 'alert' || shootingEval.status === 'surveiller') {
+            coaching.push(`Temps de tir en hausse (${fmtDelta(deltaShooting, 's')}/tir). Objectif: -0.5 s/tir. Action: entrée de poste standardisée et cadence régulière.`);
+        }
+        if (regularityEval.status === 'alert' || regularityEval.status === 'surveiller') {
+            coaching.push(`Course irrégulière (${fmtDelta(deltaRegularity, '%')} de variabilité). Objectif: stabiliser les tours à +/- 5%. Action: pacing constant sur les 2 premiers tours.`);
+        }
+
+        return {
+            displayName,
+            globalStatus,
+            globalScore: weightedScore,
+            lastDate: comparable[0] && comparable[0].date ? comparable[0].date : null,
+            reasons: [],
+            metrics: {
+                precision: {
+                    status: precisionEval.status,
+                    label: `${Math.round(precisionRecent)}% (${fmtDelta(deltaPrecision, '%')})`
+                },
+                shooting: {
+                    status: shootingEval.status,
+                    label: `${(shootingRecent || 0).toFixed(2)} s/tir (${fmtDelta(deltaShooting, 's')})`
+                },
+                regularity: {
+                    status: regularityEval.status,
+                    label: `${(regularityRecent || 0).toFixed(1)}% (${fmtDelta(deltaRegularity, '%')})`
+                }
+            },
+            coaching
+        };
+    }
+
+    renderAlertCoachingBlock(summary) {
+        if (!summary || !Array.isArray(summary.coaching) || !summary.coaching.length) return '';
+        return `
+            <div class="alert-coaching-card">
+                <div class="alert-coaching-title">Plan d'action recommandé</div>
+                ${summary.coaching.map(c => `<div class="alert-coaching-item">- ${c}</div>`).join('')}
+            </div>
+        `;
+    }
+
     renderSessionCards({ sessions, containerEl, onClick }) {
         let html = '<div class="history-list">';
         sessions.forEach((s, i) => {
@@ -5953,17 +6217,25 @@ class LaserEPSApp {
                 const uid = mDoc.id;
                 const mData = mDoc.data();
                 const sessions = Array.isArray(mData.demoSessions)
-                    ? mData.demoSessions.map(s => ({ ...s, date: this.normalizeFirestoreDate(s.date) })).sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 5)
-                    : await this.fetchSessionsForUid(uid, 5);
+                    ? mData.demoSessions.map(s => ({ ...s, date: this.normalizeFirestoreDate(s.date) })).sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 20)
+                    : await this.fetchSessionsForUid(uid, 20);
                 const lastSession = sessions && sessions.length ? sessions[0] : null;
+                const displayName = mData.displayName || (lastSession && lastSession.displayName) || mData.email || uid;
+                const alertSummary = this.buildStudentAlertSummary(displayName, sessions);
                 studentData.push({
                     uid,
-                    displayName: mData.displayName || (lastSession && lastSession.displayName) || mData.email,
-                    lastSession
+                    displayName,
+                    lastSession,
+                    sessions,
+                    alertSummary
                 });
             }
             studentData.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
             this._classCompareMembers = studentData;
+            this._classAlertByUid = {};
+            studentData.forEach(st => {
+                this._classAlertByUid[st.uid] = st.alertSummary;
+            });
 
             if (!studentData.length) {
                 if (cls.isDemoData) {
@@ -5995,7 +6267,51 @@ class LaserEPSApp {
                     studentsDiv.innerHTML = '<div class="history-empty">Aucun élève dans cette classe.</div>';
                 }
             } else {
-                studentsDiv.innerHTML = '<div class="student-list">' + studentData.map(st => {
+                const sortedAlerts = [...studentData].sort((a, b) => {
+                    const ga = this.getStatusRank(a.alertSummary && a.alertSummary.globalStatus);
+                    const gb = this.getStatusRank(b.alertSummary && b.alertSummary.globalStatus);
+                    if (gb !== ga) return gb - ga;
+                    const sa = (a.alertSummary && a.alertSummary.globalScore) || 0;
+                    const sb = (b.alertSummary && b.alertSummary.globalScore) || 0;
+                    if (sb !== sa) return sb - sa;
+                    return (a.displayName || '').localeCompare(b.displayName || '');
+                });
+
+                const alertRows = sortedAlerts.map(st => {
+                    const s = st.alertSummary || {};
+                    const dt = s.lastDate ? s.lastDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '-';
+                    return `
+                        <div class="prof-alert-row clickable" data-alert-uid="${st.uid}" data-alert-name="${st.displayName}">
+                            <div class="prof-alert-cell-strong">${st.displayName}</div>
+                            <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.globalStatus)}">${this.getAlertStatusLabel(s.globalStatus)}</span></div>
+                            <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.precision && s.metrics.precision.status)}">${(s.metrics && s.metrics.precision && s.metrics.precision.label) || 'N/A'}</span></div>
+                            <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.shooting && s.metrics.shooting.status)}">${(s.metrics && s.metrics.shooting && s.metrics.shooting.label) || 'N/A'}</span></div>
+                            <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.regularity && s.metrics.regularity.status)}">${(s.metrics && s.metrics.regularity && s.metrics.regularity.label) || 'N/A'}</span></div>
+                            <div>${dt}</div>
+                            <div><button class="prof-alert-action-btn" data-alert-open-uid="${st.uid}" data-alert-open-name="${st.displayName}">Voir détail</button></div>
+                        </div>
+                    `;
+                }).join('');
+
+                const alertBlock = `
+                    <div class="prof-alerts-section">
+                        <div class="prof-alerts-title">Tableau d'alertes (priorité accompagnement)</div>
+                        <div class="prof-alerts-table">
+                            <div class="prof-alert-row header">
+                                <div>Élève</div>
+                                <div>Statut global</div>
+                                <div>Précision</div>
+                                <div>Tir</div>
+                                <div>Régularité course</div>
+                                <div>Dernière séance</div>
+                                <div>Action</div>
+                            </div>
+                            ${alertRows || '<div class="history-empty">Pas de données exploitables pour les alertes.</div>'}
+                        </div>
+                    </div>
+                `;
+
+                studentsDiv.innerHTML = alertBlock + '<div class="student-list">' + studentData.map(st => {
                     const ls = st.lastSession;
                     const acc = ls ? this.computeAccuracyPercent(ls) : '-';
                     return `<div class="student-card" data-student-uid="${st.uid}" data-student-name="${st.displayName}">
@@ -6007,13 +6323,27 @@ class LaserEPSApp {
                         </div>
                     </div>`;
                 }).join('') + '</div>';
+
+                const openStudentDetail = (uid, name) => {
+                    this._currentStudentUid = uid;
+                    this._currentStudentAlertSummary = (this._classAlertByUid && this._classAlertByUid[uid]) || null;
+                    document.getElementById('student-detail-title').textContent = name;
+                    this.showScreen('student-detail');
+                    this.loadStudentSessions(uid);
+                };
+
+                studentsDiv.querySelectorAll('.prof-alert-row.clickable').forEach(row => {
+                    row.addEventListener('click', () => openStudentDetail(row.dataset.alertUid, row.dataset.alertName));
+                });
+                studentsDiv.querySelectorAll('[data-alert-open-uid]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openStudentDetail(btn.dataset.alertOpenUid, btn.dataset.alertOpenName);
+                    });
+                });
                 studentsDiv.querySelectorAll('.student-card').forEach(card => {
                     card.addEventListener('click', () => {
-                        this._currentStudentUid = card.dataset.studentUid;
-                        const name = card.dataset.studentName;
-                        document.getElementById('student-detail-title').textContent = name;
-                        this.showScreen('student-detail');
-                        this.loadStudentSessions(this._currentStudentUid);
+                        openStudentDetail(card.dataset.studentUid, card.dataset.studentName);
                     });
                 });
             }
@@ -6546,6 +6876,15 @@ class LaserEPSApp {
                     this.showSessionDetail(idx);
                 }
             });
+            if (!this._currentStudentAlertSummary && this._classAlertByUid && this._classAlertByUid[uid]) {
+                this._currentStudentAlertSummary = this._classAlertByUid[uid];
+            }
+            if (!this._currentStudentAlertSummary) {
+                const studentName = document.getElementById('student-detail-title')?.textContent || 'Élève';
+                this._currentStudentAlertSummary = this.buildStudentAlertSummary(studentName, sessions);
+            }
+            const coaching = this.renderAlertCoachingBlock(this._currentStudentAlertSummary);
+            if (coaching) sessionsDiv.innerHTML = coaching + sessionsDiv.innerHTML;
         } catch (e) {
             console.warn(e);
             sessionsDiv.innerHTML = '<div class="history-empty">Erreur de chargement.</div>';
