@@ -3229,6 +3229,7 @@ body {
                         <p class="auth-hint">Adresse e-mail : pas de distinction majuscules / minuscules.</p>
                         <input type="password" id="auth-password" placeholder="Mot de passe" autocomplete="current-password">
                         <p class="auth-hint">Mot de passe : sensible à la casse (majuscules et minuscules comptent).</p>
+                        <button type="button" id="prof-forgot-password-btn" class="auth-link-button">Mot de passe oublié ?</button>
                         <div id="auth-error" class="auth-error"></div>
                         <button id="auth-login-btn" class="auth-button primary">Se connecter</button>
                         <button id="auth-register-btn" class="auth-button secondary">Créer un compte</button>
@@ -4261,6 +4262,7 @@ class LaserEPSApp {
         const passwordInput = document.getElementById('auth-password');
         const errorDiv = document.getElementById('auth-error');
         const loadingDiv = document.getElementById('auth-loading');
+        const profForgotPasswordBtn = document.getElementById('prof-forgot-password-btn');
 
         const studentLastNameInput = document.getElementById('student-last-name');
         const studentFirstNameInput = document.getElementById('student-first-name');
@@ -4341,6 +4343,33 @@ class LaserEPSApp {
             }
             setLoading(false);
         });
+
+        // Réinitialisation mot de passe prof : côté projet Firebase, vérifier Authentication → Settings → Authorized domains (ex. page GitHub Pages) et le modèle d’e-mail.
+        const resetEmailSuccessHtml = `
+            <p style="margin:0;color:#333;line-height:1.5;">Si cette adresse est inscrite, tu recevras un e-mail pour choisir un nouveau mot de passe. Pense à regarder les courriers indésirables.</p>`;
+
+        if (profForgotPasswordBtn) {
+            profForgotPasswordBtn.addEventListener('click', async () => {
+                errorDiv.textContent = '';
+                const email = this.normalizeAuthEmail(emailInput.value);
+                if (!email) {
+                    errorDiv.textContent = 'Entre d’abord ton adresse e-mail.';
+                    return;
+                }
+                profForgotPasswordBtn.disabled = true;
+                try {
+                    await auth.sendPasswordResetEmail(email);
+                    this.showModal('Vérifie ta boîte mail', resetEmailSuccessHtml);
+                } catch (e) {
+                    if (e.code === 'auth/user-not-found') {
+                        this.showModal('Vérifie ta boîte mail', resetEmailSuccessHtml);
+                    } else {
+                        showError(e.code, errorDiv);
+                    }
+                }
+                profForgotPasswordBtn.disabled = false;
+            });
+        }
 
         const parseStudentForm = async () => {
             const lastName = studentLastNameInput.value.trim();
