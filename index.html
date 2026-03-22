@@ -2758,7 +2758,7 @@ body {
 }
 .prof-alert-row {
     display: grid;
-    grid-template-columns: 1.1fr 0.7fr 0.8fr 0.8fr 0.9fr 0.9fr auto;
+    grid-template-columns: 1.1fr 0.7fr 0.8fr 0.8fr 0.9fr 0.9fr auto auto;
     gap: 8px;
     align-items: center;
     padding: 8px 10px;
@@ -3664,6 +3664,7 @@ body {
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
     <script>
 // Firebase configuration
 const firebaseConfig = {
@@ -3677,6 +3678,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+/** Aligné sur la région de déploiement de `resetStudentAuth` (`firebase deploy --only functions`). */
+const laserepsFunctions = firebase.functions();
     </script>
     <script>
 // Session hors-ligne : une seule entrée « dernière course non synchronisée »
@@ -7160,6 +7163,32 @@ class LaserEPSApp {
         }
     }
 
+    /**
+     * Réinitialise le compte Firebase Auth d'un élève (prof propriétaire de la classe uniquement).
+     * Appelle la Cloud Function `resetStudentAuth` (Admin SDK côté serveur).
+     */
+    async resetStudentAccessForProf(classId, studentUid, displayName) {
+        if (!this.currentUser || this.userRole !== 'prof') return;
+        if (!classId || !studentUid) return;
+        const label = displayName || 'cet élève';
+        if (!window.confirm(
+            `Réinitialiser l’accès de « ${label} » ?\n\n` +
+            'Son compte sera supprimé. Il pourra ensuite créer un nouveau compte élève avec le même nom et prénom et un nouveau mot de passe.'
+        )) {
+            return;
+        }
+        try {
+            const fn = laserepsFunctions.httpsCallable('resetStudentAuth');
+            await fn({ classId, studentUid });
+            window.alert('Compte réinitialisé. L’élève peut se créer un compte élève à nouveau avec le même nom et prénom.');
+            await this.loadClassView(classId);
+        } catch (e) {
+            console.warn('resetStudentAuth', e);
+            const msg = (e && e.message) ? e.message : 'Erreur lors de la réinitialisation.';
+            window.alert(msg);
+        }
+    }
+
     // ===== VUE CLASSE =====
     async loadClassView(classId) {
         const headerDiv = document.getElementById('class-view-header');
@@ -7193,7 +7222,8 @@ class LaserEPSApp {
                     displayName,
                     lastSession,
                     sessions,
-                    alertSummary
+                    alertSummary,
+                    isDemoMember: !!mData.isDemoData
                 });
             }
             studentData.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
@@ -7246,6 +7276,10 @@ class LaserEPSApp {
                 const alertRows = sortedAlerts.map(st => {
                     const s = st.alertSummary || {};
                     const dt = s.lastDate ? s.lastDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '-';
+                    const safeName = String(st.displayName || '').replace(/"/g, '&quot;');
+                    const resetCell = st.isDemoMember
+                        ? '<span style="color:#999;font-size:0.78rem;">—</span>'
+                        : `<button type="button" class="prof-alert-action-btn" data-reset-student-uid="${st.uid}" data-reset-class-id="${classId}" data-reset-student-name="${safeName}">Réinitialiser accès</button>`;
                     return `
                         <div class="prof-alert-row clickable" data-alert-uid="${st.uid}" data-alert-name="${st.displayName}">
                             <div class="prof-alert-cell-strong">${st.displayName}</div>
@@ -7254,7 +7288,8 @@ class LaserEPSApp {
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.shooting && s.metrics.shooting.status)}">${(s.metrics && s.metrics.shooting && s.metrics.shooting.label) || 'N/A'}</span></div>
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.regularity && s.metrics.regularity.status)}">${(s.metrics && s.metrics.regularity && s.metrics.regularity.label) || 'N/A'}</span></div>
                             <div>${dt}</div>
-                            <div><button class="prof-alert-action-btn" data-alert-open-uid="${st.uid}" data-alert-open-name="${st.displayName}">Voir détail</button></div>
+                            <div>${resetCell}</div>
+                            <div><button type="button" class="prof-alert-action-btn" data-alert-open-uid="${st.uid}" data-alert-open-name="${st.displayName}">Voir détail</button></div>
                         </div>
                     `;
                 }).join('');
@@ -7270,6 +7305,7 @@ class LaserEPSApp {
                                 <div>Tir</div>
                                 <div>Régularité course</div>
                                 <div>Dernière séance</div>
+                                <div>Réinit. accès</div>
                                 <div>Action</div>
                             </div>
                             ${alertRows || '<div class="history-empty">Pas de données exploitables pour les alertes.</div>'}
@@ -7305,6 +7341,15 @@ class LaserEPSApp {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         openStudentDetail(btn.dataset.alertOpenUid, btn.dataset.alertOpenName);
+                    });
+                });
+                studentsDiv.querySelectorAll('[data-reset-student-uid]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const sid = btn.dataset.resetStudentUid;
+                        const cid = btn.dataset.resetClassId;
+                        const nm = btn.dataset.resetStudentName || '';
+                        this.resetStudentAccessForProf(cid, sid, nm);
                     });
                 });
                 studentsDiv.querySelectorAll('.student-card').forEach(card => {
