@@ -1749,6 +1749,14 @@ body {
     margin-bottom: 30px;
 }
 
+.auth-form .auth-hint {
+    font-size: 0.82rem;
+    color: #888;
+    text-align: left;
+    margin: -4px 0 0 0;
+    line-height: 1.35;
+}
+
 .auth-mode-tabs {
     display: flex;
     gap: 8px;
@@ -3200,7 +3208,9 @@ body {
                     </div>
                     <div id="auth-form-login" class="auth-form">
                         <input type="email" id="auth-email" placeholder="Adresse e-mail" autocomplete="email">
+                        <p class="auth-hint">Adresse e-mail : pas de distinction majuscules / minuscules.</p>
                         <input type="password" id="auth-password" placeholder="Mot de passe" autocomplete="current-password">
+                        <p class="auth-hint">Mot de passe : sensible à la casse (majuscules et minuscules comptent).</p>
                         <div id="auth-error" class="auth-error"></div>
                         <button id="auth-login-btn" class="auth-button primary">Se connecter</button>
                         <button id="auth-register-btn" class="auth-button secondary">Créer un compte</button>
@@ -3209,7 +3219,9 @@ body {
                     <div id="auth-form-student" class="auth-form" style="display:none;">
                         <input type="text" id="student-last-name" placeholder="Nom" autocomplete="family-name">
                         <input type="text" id="student-first-name" placeholder="Prénom" autocomplete="given-name">
+                        <p class="auth-hint">Nom et prénom : pas de distinction majuscules / minuscules.</p>
                         <input type="password" id="student-password" placeholder="Mot de passe" autocomplete="current-password">
+                        <p class="auth-hint">Mot de passe : sensible à la casse (majuscules et minuscules comptent).</p>
                         <div id="student-auth-error" class="auth-error"></div>
                         <button id="student-login-btn" class="auth-button primary">Se connecter (élève)</button>
                         <button id="student-register-btn" class="auth-button secondary">Créer mon compte élève</button>
@@ -3871,6 +3883,10 @@ class LaserEPSApp {
             if (tabsRow) tabsRow.style.display = 'none';
             if (sub) sub.textContent = 'Espace professeur ou admin — connexion par e-mail.';
             setForms('email');
+        } else if (entry === 'perso') {
+            if (tabsRow) tabsRow.style.display = 'none';
+            if (sub) sub.textContent = 'Mode personnel — connexion par e-mail.';
+            setForms('email');
         } else {
             if (tabsRow) tabsRow.style.display = '';
             if (sub) sub.textContent = 'Connecte-toi pour suivre ta progression';
@@ -4187,6 +4203,7 @@ class LaserEPSApp {
         this.syncBrowserUrlEntryParam();
     }
 
+    /** Normalise nom/prénom pour l’identifiant : insensible à la casse (et accents). */
     normalizeStudentPart(value) {
         return (value || '')
             .toLowerCase()
@@ -4195,11 +4212,17 @@ class LaserEPSApp {
             .replace(/[^a-z0-9]/g, '');
     }
 
+    /** E-mail technique Firebase dérivé du nom/prénom ; la casse saisie n’a pas d’importance. */
     buildTechnicalEmail(lastName, firstName) {
         const ln = this.normalizeStudentPart(lastName);
         const fn = this.normalizeStudentPart(firstName);
         const base = `${ln}_${fn}`;
-        return `${base}@eleve.lasereps.local`;
+        return `${base}@eleve.lasereps.local`.toLowerCase();
+    }
+
+    /** E-mail Prof/Admin ou mode libre : Firebase traite l’adresse comme insensible à la casse ; on normalise en minuscules. */
+    normalizeAuthEmail(value) {
+        return (value || '').trim().toLowerCase();
     }
 
     async resolveSeanceByCode(code) {
@@ -4277,7 +4300,9 @@ class LaserEPSApp {
             errorDiv.textContent = '';
             setLoading(true);
             try {
-                await auth.signInWithEmailAndPassword(emailInput.value.trim(), passwordInput.value);
+                const email = this.normalizeAuthEmail(emailInput.value);
+                // Mot de passe : ne pas mettre en minuscules (sensible à la casse, Firebase).
+                await auth.signInWithEmailAndPassword(email, passwordInput.value);
             } catch (e) {
                 showError(e.code, errorDiv);
             }
@@ -4288,7 +4313,9 @@ class LaserEPSApp {
             errorDiv.textContent = '';
             setLoading(true);
             try {
-                await auth.createUserWithEmailAndPassword(emailInput.value.trim(), passwordInput.value);
+                const email = this.normalizeAuthEmail(emailInput.value);
+                // Mot de passe : ne pas mettre en minuscules (sensible à la casse, Firebase).
+                await auth.createUserWithEmailAndPassword(email, passwordInput.value);
             } catch (e) {
                 showError(e.code, errorDiv);
             }
@@ -4298,6 +4325,7 @@ class LaserEPSApp {
         const parseStudentForm = async () => {
             const lastName = studentLastNameInput.value.trim();
             const firstName = studentFirstNameInput.value.trim();
+            // Mot de passe : ne pas normaliser ni mettre en minuscules (sensible à la casse, Firebase).
             const password = studentPasswordInput.value;
             if (!lastName || !firstName || !password) {
                 throw new Error('missing-fields');
