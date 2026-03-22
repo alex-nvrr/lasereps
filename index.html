@@ -1282,6 +1282,21 @@ body {
 }
 
 /* Modales */
+.student-password-force-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    backdrop-filter: blur(6px);
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -2801,6 +2816,19 @@ body {
     background: rgba(180, 83, 9, 0.08);
     color: var(--primary-hover);
 }
+.prof-alert-delete-btn {
+    border: 1px solid rgba(192, 57, 43, 0.55);
+    background: #fff;
+    color: #c0392b;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 5px 8px;
+    cursor: pointer;
+}
+.prof-alert-delete-btn:hover {
+    background: rgba(192, 57, 43, 0.08);
+}
 .alert-coaching-card {
     background: rgba(255,255,255,0.97);
     border: 1px solid rgba(180,83,9,0.22);
@@ -3644,6 +3672,20 @@ body {
         </div>
     </div>
 
+    <!-- Élève : changement de mot de passe obligatoire après MDP provisoire (prof) -->
+    <div id="student-password-force-overlay" class="student-password-force-overlay" style="display:none;">
+        <div class="auth-container" style="max-width:420px;text-align:left;">
+            <h2 style="color:var(--primary);margin-bottom:8px;">Nouveau mot de passe obligatoire</h2>
+            <p class="auth-subtitle" style="text-align:left;margin-bottom:16px;">Ton professeur a défini un mot de passe provisoire. Choisis maintenant un mot de passe personnel (au moins 6 caractères).</p>
+            <div class="auth-form" style="gap:12px;">
+                <input type="password" id="student-force-pw1" placeholder="Nouveau mot de passe" autocomplete="new-password" style="width:100%;padding:14px 18px;border:2px solid #e0e0e0;border-radius:14px;font-size:1rem;">
+                <input type="password" id="student-force-pw2" placeholder="Confirmer le mot de passe" autocomplete="new-password" style="width:100%;padding:14px 18px;border:2px solid #e0e0e0;border-radius:14px;font-size:1rem;">
+                <div id="student-force-pw-error" class="auth-error"></div>
+                <button type="button" id="student-force-pw-submit" class="auth-button primary" style="width:100%;">Enregistrer mon mot de passe</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal rejoindre séance -->
     <div id="join-seance-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
         <div style="background:white;border-radius:20px;padding:30px 24px;max-width:380px;width:90%;margin:auto;position:relative;top:50%;transform:translateY(-50%);">
@@ -3779,6 +3821,8 @@ class LaserEPSApp {
         this._pendingSyncTimer = null;
         this._lastOnlineSyncAttempt = 0;
         this._sessionSavePendingCloud = false;
+        this._mustChangePassword = false;
+        this._studentPwGateSetup = false;
         this.initAuth();
     }
 
@@ -4185,6 +4229,22 @@ class LaserEPSApp {
                         const hideEmail = u.role === 'eleve' || u.loginMode === 'class_code_name' || u.loginMode === 'name_password';
                         document.getElementById('user-email-display').textContent = hideEmail ? '' : user.email;
                         this.routeByRole();
+                        if (u.role === 'eleve' && u.mustChangePassword) {
+                            this._mustChangePassword = true;
+                            this._setupStudentPasswordForceGate();
+                            const ov = document.getElementById('student-password-force-overlay');
+                            if (ov) {
+                                ov.style.display = 'flex';
+                                const p1 = document.getElementById('student-force-pw1');
+                                const p2 = document.getElementById('student-force-pw2');
+                                const errEl = document.getElementById('student-force-pw-error');
+                                if (p1) p1.value = '';
+                                if (p2) p2.value = '';
+                                if (errEl) errEl.textContent = '';
+                            }
+                        } else {
+                            this._mustChangePassword = false;
+                        }
                     } else {
                         this.showScreen('role');
                         this.setupRoleListeners();
@@ -7163,28 +7223,125 @@ class LaserEPSApp {
         }
     }
 
+    _setupStudentPasswordForceGate() {
+        if (this._studentPwGateSetup) return;
+        this._studentPwGateSetup = true;
+        const submit = () => this.submitStudentForcedPassword();
+        const btn = document.getElementById('student-force-pw-submit');
+        const p2 = document.getElementById('student-force-pw2');
+        if (btn) btn.addEventListener('click', submit);
+        if (p2) {
+            p2.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submit();
+            });
+        }
+    }
+
+    async submitStudentForcedPassword() {
+        const errEl = document.getElementById('student-force-pw-error');
+        const p1 = document.getElementById('student-force-pw1');
+        const p2 = document.getElementById('student-force-pw2');
+        if (!errEl || !p1 || !p2 || !auth.currentUser) return;
+        errEl.textContent = '';
+        const a = p1.value;
+        const b = p2.value;
+        if (!a || a.length < 6) {
+            errEl.textContent = 'Le mot de passe doit faire au moins 6 caractères.';
+            return;
+        }
+        if (a !== b) {
+            errEl.textContent = 'Les deux saisies ne correspondent pas.';
+            return;
+        }
+        try {
+            await auth.currentUser.updatePassword(a);
+            await db.collection('users').doc(auth.currentUser.uid).update({ mustChangePassword: false });
+            const ov = document.getElementById('student-password-force-overlay');
+            if (ov) ov.style.display = 'none';
+            this._mustChangePassword = false;
+        } catch (e) {
+            console.warn('updatePassword', e);
+            const code = e.code || '';
+            if (code === 'auth/weak-password') {
+                errEl.textContent = 'Mot de passe trop faible.';
+            } else if (code === 'auth/requires-recent-login') {
+                errEl.textContent = 'Reconnecte-toi puis réessaie.';
+            } else {
+                errEl.textContent = e.message || 'Erreur lors du changement de mot de passe.';
+            }
+        }
+    }
+
     /**
-     * Réinitialise le compte Firebase Auth d'un élève (prof propriétaire de la classe uniquement).
-     * Appelle la Cloud Function `resetStudentAuth` (Admin SDK côté serveur).
+     * Mot de passe provisoire (conserve l’UID et l’historique des séances).
      */
-    async resetStudentAccessForProf(classId, studentUid, displayName) {
+    async setStudentTemporaryPasswordForProf(classId, studentUid, displayName) {
         if (!this.currentUser || this.userRole !== 'prof') return;
         if (!classId || !studentUid) return;
         const label = displayName || 'cet élève';
         if (!window.confirm(
-            `Réinitialiser l’accès de « ${label} » ?\n\n` +
-            'Son compte sera supprimé. Il pourra ensuite créer un nouveau compte élève avec le même nom et prénom et un nouveau mot de passe.'
+            `Définir un mot de passe provisoire pour « ${label} » ?\n\n` +
+            'L’historique des séances est conservé. Un mot de passe à communiquer une seule fois à l’élève sera affiché ; il devra choisir un nouveau mot de passe à la prochaine connexion.'
+        )) {
+            return;
+        }
+        try {
+            const fn = laserepsFunctions.httpsCallable('setStudentTemporaryPassword');
+            const res = await fn({ classId, studentUid });
+            const pwd = res.data && res.data.temporaryPassword;
+            if (!pwd) {
+                window.alert('Réponse inattendue du serveur.');
+                return;
+            }
+            const safePwd = String(pwd).replace(/</g, '&lt;').replace(/&/g, '&amp;');
+            this.showModal('Mot de passe provisoire', `
+                <div style="text-align:left;color:#333;">
+                    <p style="margin:0 0 12px 0;">Communique ce mot de passe à l’élève <strong>une seule fois</strong> (oral ou papier). Il se connectera avec, puis devra en choisir un nouveau.</p>
+                    <p id="lasereps-temp-pw-value" style="font-size:1.15rem;font-weight:700;word-break:break-all;background:#f4f4f4;padding:14px;border-radius:12px;margin:0 0 14px 0;font-family:ui-monospace,monospace;">${safePwd}</p>
+                    <button type="button" id="lasereps-copy-temp-pw" class="auth-button primary" style="width:100%;">Copier le mot de passe</button>
+                </div>`);
+            setTimeout(() => {
+                const copyBtn = document.getElementById('lasereps-copy-temp-pw');
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', async () => {
+                        try {
+                            await navigator.clipboard.writeText(pwd);
+                            copyBtn.textContent = 'Copié !';
+                        } catch (clipErr) {
+                            window.alert('Copie impossible : sélectionne le texte manuellement.');
+                        }
+                    });
+                }
+            }, 0);
+            await this.loadClassView(classId);
+        } catch (e) {
+            console.warn('setStudentTemporaryPassword', e);
+            const msg = (e && e.message) ? e.message : 'Erreur lors de la réinitialisation.';
+            window.alert(msg);
+        }
+    }
+
+    /**
+     * Supprime le compte élève (perte d’historique lié au nouvel UID si recréation).
+     */
+    async deleteStudentAccountForProf(classId, studentUid, displayName) {
+        if (!this.currentUser || this.userRole !== 'prof') return;
+        if (!classId || !studentUid) return;
+        const label = displayName || 'cet élève';
+        if (!window.confirm(
+            `SUPPRIMER DÉFINITIVEMENT le compte de « ${label} » ?\n\n` +
+            'L’historique ne sera plus associé à ce compte si l’élève en crée un nouveau. Réservé aux cas extrêmes (RGPD, etc.).'
         )) {
             return;
         }
         try {
             const fn = laserepsFunctions.httpsCallable('resetStudentAuth');
             await fn({ classId, studentUid });
-            window.alert('Compte réinitialisé. L’élève peut se créer un compte élève à nouveau avec le même nom et prénom.');
+            window.alert('Compte supprimé. L’élève peut créer un nouveau compte élève avec le même nom et prénom si besoin.');
             await this.loadClassView(classId);
         } catch (e) {
             console.warn('resetStudentAuth', e);
-            const msg = (e && e.message) ? e.message : 'Erreur lors de la réinitialisation.';
+            const msg = (e && e.message) ? e.message : 'Erreur lors de la suppression.';
             window.alert(msg);
         }
     }
@@ -7279,7 +7436,10 @@ class LaserEPSApp {
                     const safeName = String(st.displayName || '').replace(/"/g, '&quot;');
                     const resetCell = st.isDemoMember
                         ? '<span style="color:#999;font-size:0.78rem;">—</span>'
-                        : `<button type="button" class="prof-alert-action-btn" data-reset-student-uid="${st.uid}" data-reset-class-id="${classId}" data-reset-student-name="${safeName}">Réinitialiser accès</button>`;
+                        : `<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
+                            <button type="button" class="prof-alert-action-btn" data-temp-class="${classId}" data-temp-uid="${st.uid}" data-temp-name="${safeName}">Mot de passe provisoire</button>
+                            <button type="button" class="prof-alert-delete-btn" data-del-class="${classId}" data-del-uid="${st.uid}" data-del-name="${safeName}">Supprimer le compte</button>
+                        </div>`;
                     return `
                         <div class="prof-alert-row clickable" data-alert-uid="${st.uid}" data-alert-name="${st.displayName}">
                             <div class="prof-alert-cell-strong">${st.displayName}</div>
@@ -7305,7 +7465,7 @@ class LaserEPSApp {
                                 <div>Tir</div>
                                 <div>Régularité course</div>
                                 <div>Dernière séance</div>
-                                <div>Réinit. accès</div>
+                                <div>Compte élève</div>
                                 <div>Action</div>
                             </div>
                             ${alertRows || '<div class="history-empty">Pas de données exploitables pour les alertes.</div>'}
@@ -7343,13 +7503,16 @@ class LaserEPSApp {
                         openStudentDetail(btn.dataset.alertOpenUid, btn.dataset.alertOpenName);
                     });
                 });
-                studentsDiv.querySelectorAll('[data-reset-student-uid]').forEach(btn => {
+                studentsDiv.querySelectorAll('[data-temp-uid]').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const sid = btn.dataset.resetStudentUid;
-                        const cid = btn.dataset.resetClassId;
-                        const nm = btn.dataset.resetStudentName || '';
-                        this.resetStudentAccessForProf(cid, sid, nm);
+                        this.setStudentTemporaryPasswordForProf(btn.dataset.tempClass, btn.dataset.tempUid, btn.dataset.tempName || '');
+                    });
+                });
+                studentsDiv.querySelectorAll('[data-del-uid]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.deleteStudentAccountForProf(btn.dataset.delClass, btn.dataset.delUid, btn.dataset.delName || '');
                     });
                 });
                 studentsDiv.querySelectorAll('.student-card').forEach(card => {
