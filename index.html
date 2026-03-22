@@ -3651,7 +3651,13 @@ const LASEREPS_PENDING_MAX_BYTES = 4500000;
  *   ?entry=eleve   → parcours élève uniquement, sans « Changer de mode » après inscription
  *   ?entry=prof    → parcours professeur (code PROF la 1ère fois)
  *   ?entry=libre   ou ?entry=perso → mode personnel / stats perso
- * Le paramètre est lu une fois puis stocké en session (l’URL est nettoyée).
+ * Le paramètre est lu une fois puis stocké en session. L’URL est mise à jour pour
+ * afficher ?entry=… selon le rôle connecté (prof / élève / libre).
+ *
+ * Déploiement actuel (GitHub Pages) — exemples complets :
+ *   https://alex-nvrr.github.io/lasereps/?entry=eleve
+ *   https://alex-nvrr.github.io/lasereps/?entry=prof
+ *   https://alex-nvrr.github.io/lasereps/?entry=libre
  */
 const LASEREPS_ENTRY_KEY = 'lasereps_entry';
 
@@ -3672,10 +3678,6 @@ function captureLaserepsEntryFromUrl() {
             try {
                 sessionStorage.setItem(LASEREPS_ENTRY_KEY, n);
             } catch (e) { /* ignore */ }
-            const url = new URL(window.location.href);
-            url.searchParams.delete('entry');
-            const clean = url.pathname + (url.search || '') + (url.hash || '');
-            window.history.replaceState({}, '', clean);
         }
     } catch (e) {
         console.warn('captureLaserepsEntryFromUrl', e);
@@ -3812,6 +3814,38 @@ class LaserEPSApp {
         const btnProf = document.getElementById('prof-change-role-btn');
         if (btnHome) btnHome.style.display = hide ? 'none' : '';
         if (btnProf) btnProf.style.display = hide ? 'none' : '';
+    }
+
+    /** Garde ?entry=prof|eleve|libre visible dans la barre d’adresse selon le rôle (ou l’entrée en cours). */
+    syncBrowserUrlEntryParam() {
+        try {
+            const url = new URL(window.location.href);
+            if (!this.currentUser) {
+                url.searchParams.delete('entry');
+                const q = url.searchParams.toString();
+                window.history.replaceState({}, '', url.pathname + (q ? `?${q}` : '') + (url.hash || ''));
+                return;
+            }
+            const r = this.userRole;
+            if (r === 'prof') {
+                url.searchParams.set('entry', 'prof');
+            } else if (r === 'eleve') {
+                url.searchParams.set('entry', 'eleve');
+            } else if (r === 'perso') {
+                url.searchParams.set('entry', 'libre');
+            } else {
+                const s = this.getStoredEntry();
+                if (s) {
+                    url.searchParams.set('entry', s === 'perso' ? 'libre' : s);
+                } else {
+                    url.searchParams.delete('entry');
+                }
+            }
+            const q = url.searchParams.toString();
+            window.history.replaceState({}, '', url.pathname + (q ? `?${q}` : '') + (url.hash || ''));
+        } catch (e) {
+            console.warn('syncBrowserUrlEntryParam', e);
+        }
     }
 
     getPendingSessionRecord() {
@@ -4048,6 +4082,7 @@ class LaserEPSApp {
                         this.showScreen('role');
                         this.setupRoleListeners();
                         this.applyEntryToRoleScreen();
+                        this.syncBrowserUrlEntryParam();
                     }
                 } catch (e) {
                     console.warn('Erreur lecture profil :', e);
@@ -4063,6 +4098,7 @@ class LaserEPSApp {
                 this.userClasses = [];
                 this.updatePendingSyncBanners();
                 this.showScreen('auth');
+                this.syncBrowserUrlEntryParam();
             }
         });
     }
@@ -4079,6 +4115,7 @@ class LaserEPSApp {
         }
         this.updatePendingSyncBanners();
         this.updateChangeRoleButtonsVisibility();
+        this.syncBrowserUrlEntryParam();
     }
 
     normalizeStudentPart(value) {
@@ -4388,6 +4425,7 @@ class LaserEPSApp {
         confirmBtn.textContent = 'Continuer';
         this.showScreen('role');
         this.setupRoleListeners();
+        this.syncBrowserUrlEntryParam();
     }
 
     init() {
