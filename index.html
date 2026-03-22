@@ -150,7 +150,7 @@ body {
 
 /* Logo app (accueil) — h1 pour le SEO, taille visuelle = image */
 .header h1.header-title-brand {
-    margin: 0 auto 12px;
+    margin: 0 auto 20px;
     padding: 0;
     font-size: 0;
     line-height: 0;
@@ -158,16 +158,16 @@ body {
     background: transparent;
 }
 
+/* Logo héros : occupe une large part du header (fichier source peut être petit, le navigateur upscale) */
 .header .app-logo {
-    width: min(220px, 52vw);
-    max-height: min(240px, 36vh);
+    width: min(340px, 78vw);
+    max-height: min(340px, 44vh);
     height: auto;
     object-fit: contain;
     display: block;
     margin: 0 auto;
     background: transparent;
-    /* Ombre légère sur le médaillon seulement (PNG avec transparence hors du cercle) */
-    filter: drop-shadow(0 4px 14px rgba(180, 83, 9, 0.14));
+    filter: drop-shadow(0 6px 22px rgba(180, 83, 9, 0.16));
 }
 
 .header h2 {
@@ -1350,8 +1350,8 @@ body {
     }
     
     .header .app-logo {
-        width: min(180px, 58vw);
-        max-height: 200px;
+        width: min(300px, 85vw);
+        max-height: min(300px, 40vh);
     }
     
     .header h2 {
@@ -3246,7 +3246,7 @@ body {
                         <button id="logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                     <h1 class="header-title-brand">
-                        <img src="assets/logo.png" alt="LaserEPS" class="app-logo" width="512" height="512" decoding="async">
+                        <img src="assets/logo.png" alt="LaserEPS" class="app-logo" width="167" height="167" decoding="async">
                     </h1>
                 </div>
                 <div id="seance-active-banner" class="seance-banner" style="display:none;">
