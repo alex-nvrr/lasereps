@@ -1749,6 +1749,12 @@ body {
     margin-bottom: 30px;
 }
 
+.auth-mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
 .auth-form {
     display: flex;
     flex-direction: column;
@@ -3188,7 +3194,7 @@ body {
                 <div class="auth-container">
                     <h1>LaserEPS</h1>
                     <p id="auth-subtitle" class="auth-subtitle">Connecte-toi pour suivre ta progression</p>
-                    <div id="auth-mode-tabs" style="display:flex;gap:8px;margin-bottom:10px;">
+                    <div id="auth-mode-tabs" class="auth-mode-tabs">
                         <button id="auth-tab-email" class="auth-button secondary" style="flex:1;">Prof/Admin</button>
                         <button id="auth-tab-student" class="auth-button secondary" style="flex:1;">Élève</button>
                     </div>
@@ -3761,6 +3767,22 @@ class LaserEPSApp {
         }
     }
 
+    /** Session puis repli sur ?entry= dans l’URL (persiste en session si besoin). */
+    getEffectiveEntry() {
+        const fromSession = this.getStoredEntry();
+        if (fromSession) return fromSession;
+        try {
+            const fromUrl = normalizeEntryParam(new URLSearchParams(window.location.search).get('entry'));
+            if (fromUrl) {
+                try {
+                    sessionStorage.setItem(LASEREPS_ENTRY_KEY, fromUrl);
+                } catch (e) { /* ignore */ }
+                return fromUrl;
+            }
+        } catch (e) { /* ignore */ }
+        return null;
+    }
+
     resetRoleScreenToDefault() {
         const title = document.getElementById('role-welcome-title');
         const sub = document.getElementById('role-welcome-subtitle');
@@ -3772,7 +3794,7 @@ class LaserEPSApp {
     }
 
     applyEntryToRoleScreen() {
-        const entry = this.getStoredEntry();
+        const entry = this.getEffectiveEntry();
         const title = document.getElementById('role-welcome-title');
         const sub = document.getElementById('role-welcome-subtitle');
         if (!entry) {
@@ -3808,7 +3830,7 @@ class LaserEPSApp {
     }
 
     updateChangeRoleButtonsVisibility() {
-        const entry = this.getStoredEntry();
+        const entry = this.getEffectiveEntry();
         const hide = entry === 'eleve' && this.userRole === 'eleve';
         const btnHome = document.getElementById('change-role-btn');
         const btnProf = document.getElementById('prof-change-role-btn');
@@ -3827,7 +3849,7 @@ class LaserEPSApp {
         const errorDiv = document.getElementById('auth-error');
         const studentErrorDiv = document.getElementById('student-auth-error');
         if (!emailForm || !studentForm) return;
-        const entry = this.getStoredEntry();
+        const entry = this.getEffectiveEntry();
         const setForms = (mode) => {
             const emailActive = mode === 'email';
             emailForm.style.display = emailActive ? 'block' : 'none';
@@ -3850,7 +3872,7 @@ class LaserEPSApp {
             if (sub) sub.textContent = 'Espace professeur ou admin — connexion par e-mail.';
             setForms('email');
         } else {
-            if (tabsRow) tabsRow.style.display = 'flex';
+            if (tabsRow) tabsRow.style.display = '';
             if (sub) sub.textContent = 'Connecte-toi pour suivre ta progression';
             setForms('email');
         }
@@ -3861,9 +3883,9 @@ class LaserEPSApp {
         try {
             const url = new URL(window.location.href);
             if (!this.currentUser) {
-                const s = this.getStoredEntry();
-                if (s) {
-                    url.searchParams.set('entry', s === 'perso' ? 'libre' : s);
+                const eff = this.getEffectiveEntry();
+                if (eff) {
+                    url.searchParams.set('entry', eff === 'perso' ? 'libre' : eff);
                 } else {
                     url.searchParams.delete('entry');
                 }
@@ -3879,9 +3901,9 @@ class LaserEPSApp {
             } else if (r === 'perso') {
                 url.searchParams.set('entry', 'libre');
             } else {
-                const s = this.getStoredEntry();
-                if (s) {
-                    url.searchParams.set('entry', s === 'perso' ? 'libre' : s);
+                const eff = this.getEffectiveEntry();
+                if (eff) {
+                    url.searchParams.set('entry', eff === 'perso' ? 'libre' : eff);
                 } else {
                     url.searchParams.delete('entry');
                 }
