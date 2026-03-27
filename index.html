@@ -4506,9 +4506,10 @@ class LaserEPSApp {
                         <p style="margin:0 0 8px 0;">Côté établissement, la procédure habituelle est :</p>
                         <ul style="margin:0;padding-left:1.25rem;">
                             <li style="margin-bottom:6px;">supprimer ton compte dans la <strong>Console Firebase</strong> (rubrique Authentification) ;</li>
+                            <li style="margin-bottom:6px;">supprimer ton ancien membre dans la classe (<strong>Firestore</strong>) pour éviter les doublons ;</li>
                             <li style="margin-bottom:0;">ensuite tu peux <strong>créer à nouveau</strong> ton compte élève avec le <strong>même nom et prénom</strong> et choisir un <strong>nouveau mot de passe</strong>.</li>
                         </ul>
-                        <p style="margin:14px 0 0 0;font-size:0.95rem;color:#666;">Ne t’inquiète pas : ce n’est pas grave, ça arrive souvent.</p>
+                        <p style="margin:14px 0 0 0;font-size:0.95rem;color:#666;">Ne t’inquiète pas : ce n’est pas grave, ça arrive souvent. L’ancien historique restera dissocié de ton nouveau compte.</p>
                     </div>`;
                 this.showModal('Mot de passe oublié ?', forgotHtml);
             });
@@ -7316,7 +7317,19 @@ class LaserEPSApp {
             await this.loadClassView(classId);
         } catch (e) {
             console.warn('setStudentTemporaryPassword', e);
-            const msg = (e && e.message) ? e.message : 'Erreur lors de la réinitialisation.';
+            const rawCode = (e && (e.code || (e.details && e.details.code))) || '';
+            const rawMessage = (e && e.message) ? String(e.message) : '';
+            let msg = 'Erreur lors de la réinitialisation.';
+            const lowerMsg = rawMessage.toLowerCase();
+            if (rawCode === 'internal' || lowerMsg.includes('password') || lowerMsg.includes('policy') || lowerMsg.includes('weak-password')) {
+                msg = 'Le mot de passe provisoire est refusé par la politique Firebase. Vérifie Authentication > Settings > Password policy (ou ajuste la valeur fixe côté function).';
+            } else if (rawCode === 'permission-denied') {
+                msg = 'Action refusée : ce compte n’est pas autorisé sur cette classe.';
+            } else if (rawCode === 'failed-precondition') {
+                msg = 'Action impossible sur ce profil (ex: élève démo).';
+            } else if (rawMessage) {
+                msg = rawMessage;
+            }
             window.alert(msg);
         }
     }
@@ -7436,10 +7449,7 @@ class LaserEPSApp {
                     const safeName = String(st.displayName || '').replace(/"/g, '&quot;');
                     const resetCell = st.isDemoMember
                         ? '<span style="color:#999;font-size:0.78rem;">—</span>'
-                        : `<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
-                            <button type="button" class="prof-alert-action-btn" data-temp-class="${classId}" data-temp-uid="${st.uid}" data-temp-name="${safeName}">Mot de passe provisoire</button>
-                            <button type="button" class="prof-alert-delete-btn" data-del-class="${classId}" data-del-uid="${st.uid}" data-del-name="${safeName}">Supprimer le compte</button>
-                        </div>`;
+                        : `<button type="button" class="prof-alert-action-btn" data-manual-reset-class="${classId}" data-manual-reset-uid="${st.uid}" data-manual-reset-name="${safeName}">Reset manuel</button>`;
                     return `
                         <div class="prof-alert-row clickable" data-alert-uid="${st.uid}" data-alert-name="${st.displayName}">
                             <div class="prof-alert-cell-strong">${st.displayName}</div>
@@ -7465,7 +7475,7 @@ class LaserEPSApp {
                                 <div>Tir</div>
                                 <div>Régularité course</div>
                                 <div>Dernière séance</div>
-                                <div>Compte élève</div>
+                                <div>Reset élève</div>
                                 <div>Action</div>
                             </div>
                             ${alertRows || '<div class="history-empty">Pas de données exploitables pour les alertes.</div>'}
@@ -7503,16 +7513,23 @@ class LaserEPSApp {
                         openStudentDetail(btn.dataset.alertOpenUid, btn.dataset.alertOpenName);
                     });
                 });
-                studentsDiv.querySelectorAll('[data-temp-uid]').forEach(btn => {
+                studentsDiv.querySelectorAll('[data-manual-reset-uid]').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        this.setStudentTemporaryPasswordForProf(btn.dataset.tempClass, btn.dataset.tempUid, btn.dataset.tempName || '');
-                    });
-                });
-                studentsDiv.querySelectorAll('[data-del-uid]').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.deleteStudentAccountForProf(btn.dataset.delClass, btn.dataset.delUid, btn.dataset.delName || '');
+                        const classId = btn.dataset.manualResetClass;
+                        const studentUid = btn.dataset.manualResetUid;
+                        const studentName = btn.dataset.manualResetName || 'élève';
+                        const content = `
+                            <div style="text-align:left;color:#333;line-height:1.5;">
+                                <p style="margin:0 0 10px 0;"><strong>Procédure manuelle (gratuite, sans Cloud Functions)</strong></p>
+                                <ol style="margin:0 0 10px 0;padding-left:1.1rem;">
+                                    <li style="margin-bottom:6px;">Firebase Console → <strong>Authentication</strong> → supprimer l’utilisateur élève.</li>
+                                    <li style="margin-bottom:6px;">Firebase Console → <strong>Firestore</strong> → supprimer le document <code>classes/${classId}/members/${studentUid}</code>.</li>
+                                    <li style="margin-bottom:0;">L’élève recrée son compte avec le même nom/prénom puis rejoint la séance.</li>
+                                </ol>
+                                <p style="margin:0;font-size:0.93rem;color:#666;">Élève concerné : <strong>${studentName}</strong></p>
+                            </div>`;
+                        this.showModal('Reset élève manuel', content);
                     });
                 });
                 studentsDiv.querySelectorAll('.student-card').forEach(card => {
