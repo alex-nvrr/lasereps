@@ -1792,9 +1792,73 @@ body {
 
 .auth-mode-tabs {
     display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 24px;
 }
+
+.auth-mode-card {
+    flex: 1;
+    background: #f7f7f7;
+    border: 3px solid transparent;
+    border-radius: 18px;
+    padding: 18px 10px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.auth-mode-card:active { transform: scale(0.96); }
+@media (hover:hover) { .auth-mode-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-2px); } }
+
+.auth-mode-card.selected {
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 6px 24px rgba(180, 83, 9, 0.18);
+}
+
+.auth-mode-icon {
+    font-size: 2.2rem;
+    margin-bottom: 6px;
+}
+
+.auth-mode-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #555;
+}
+
+.auth-mode-card.selected .auth-mode-label {
+    color: var(--primary);
+}
+
+/* ===== Liste de sélection élève ===== */
+.student-pick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 4px 0;
+    margin: 8px 0;
+}
+.student-pick-item {
+    padding: 14px 18px;
+    background: #f7f7f7;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+.student-pick-item:active { transform: scale(0.97); }
+@media (hover:hover) { .student-pick-item:hover { background: #eee; border-color: var(--primary); } }
 
 .auth-form {
     display: flex;
@@ -3249,8 +3313,14 @@ body {
                     <h1>LaserEPS</h1>
                     <p id="auth-subtitle" class="auth-subtitle">Connecte-toi pour suivre ta progression</p>
                     <div id="auth-mode-tabs" class="auth-mode-tabs">
-                        <button id="auth-tab-email" class="auth-button secondary" style="flex:1;">Prof/Admin</button>
-                        <button id="auth-tab-student" class="auth-button secondary" style="flex:1;">Élève</button>
+                        <div id="auth-tab-email" class="auth-mode-card" data-mode="email">
+                            <div class="auth-mode-icon">🧑‍🏫</div>
+                            <div class="auth-mode-label">Professeur</div>
+                        </div>
+                        <div id="auth-tab-student" class="auth-mode-card" data-mode="student">
+                            <div class="auth-mode-icon">🎒</div>
+                            <div class="auth-mode-label">Élève</div>
+                        </div>
                     </div>
                     <div id="auth-form-login" class="auth-form">
                         <input type="email" id="auth-email" placeholder="Adresse e-mail" autocomplete="email">
@@ -3263,17 +3333,33 @@ body {
                         <button id="auth-register-btn" class="auth-button secondary">Créer un compte</button>
                         <div id="auth-loading" class="auth-loading">Chargement...</div>
                     </div>
-                    <div id="auth-form-student" class="auth-form" style="display:none;">
-                        <input type="text" id="student-last-name" placeholder="Nom" autocomplete="family-name">
-                        <input type="text" id="student-first-name" placeholder="Prénom" autocomplete="given-name">
-                        <p class="auth-hint">Nom et prénom : pas de distinction majuscules / minuscules.</p>
-                        <input type="password" id="student-password" placeholder="Mot de passe" autocomplete="current-password">
-                        <p class="auth-hint">Mot de passe : sensible à la casse (majuscules et minuscules comptent).</p>
-                        <button type="button" id="student-forgot-password-btn" class="auth-link-button">Mot de passe oublié ?</button>
-                        <div id="student-auth-error" class="auth-error"></div>
-                        <button id="student-login-btn" class="auth-button primary">Se connecter (élève)</button>
-                        <button id="student-register-btn" class="auth-button secondary">Créer mon compte élève</button>
-                        <div id="student-auth-loading" class="auth-loading">Chargement...</div>
+                    <div id="auth-form-student" style="display:none;">
+                        <!-- Phase 1 : code séance -->
+                        <div id="student-phase-code" class="auth-form">
+                            <p class="auth-hint" style="text-align:center;font-size:0.95rem;margin-bottom:4px;">Entre le code donné par ton prof</p>
+                            <input type="text" id="student-seance-code" placeholder="Code séance" maxlength="10" autocapitalize="characters" style="text-align:center;font-size:1.3rem;letter-spacing:0.15em;text-transform:uppercase;">
+                            <div id="student-code-error" class="auth-error"></div>
+                            <button id="student-code-btn" class="auth-button primary">Rejoindre</button>
+                            <div id="student-code-loading" class="auth-loading">Recherche...</div>
+                        </div>
+                        <!-- Phase 2 : choix de l'élève -->
+                        <div id="student-phase-list" style="display:none;">
+                            <p id="student-list-class-name" style="text-align:center;font-weight:600;color:var(--primary);margin-bottom:4px;"></p>
+                            <p class="auth-hint" style="text-align:center;font-size:0.95rem;">Sélectionne ton nom</p>
+                            <div id="student-pick-list" class="student-pick-list"></div>
+                            <div id="student-list-error" class="auth-error"></div>
+                            <button id="student-back-to-code" class="auth-button secondary" style="margin-top:8px;">← Changer de code</button>
+                        </div>
+                        <!-- Phase 3 : PIN -->
+                        <div id="student-phase-pin" class="auth-form" style="display:none;">
+                            <p id="student-pin-name" style="text-align:center;font-weight:600;color:var(--primary);font-size:1.1rem;margin-bottom:4px;"></p>
+                            <p class="auth-hint" style="text-align:center;">Entre ton code PIN</p>
+                            <input type="tel" id="student-pin-input" placeholder="PIN (4 chiffres)" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="one-time-code" style="letter-spacing:0.4em;font-size:1.6rem;text-align:center;">
+                            <div id="student-pin-error" class="auth-error"></div>
+                            <button id="student-pin-btn" class="auth-button primary">C'est parti !</button>
+                            <div id="student-pin-loading" class="auth-loading">Connexion...</div>
+                            <button id="student-back-to-list" class="auth-button secondary" style="margin-top:4px;">← Changer d'élève</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3409,6 +3495,14 @@ body {
                     <button class="cv-tab" data-cvtab="seances">Séances</button>
                 </div>
                 <div id="cv-panel-students" class="history-panel active">
+                    <div class="create-class-section" style="margin-bottom:16px;">
+                        <h3 style="color:var(--text);margin-bottom:8px;">Ajouter un élève</h3>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <input type="text" id="add-student-name" placeholder="Prénom Nom" style="flex:1;min-width:160px;">
+                            <button id="add-student-btn" class="create-class-btn" style="white-space:nowrap;">+ Ajouter</button>
+                        </div>
+                        <div id="add-student-error" class="auth-error" style="margin-top:4px;"></div>
+                    </div>
                     <div id="cv-students-content"><div class="history-empty">Chargement...</div></div>
                 </div>
                 <div id="cv-panel-seances" class="history-panel">
@@ -3675,13 +3769,13 @@ body {
     <!-- Élève : changement de mot de passe obligatoire après MDP provisoire (prof) -->
     <div id="student-password-force-overlay" class="student-password-force-overlay" style="display:none;">
         <div class="auth-container" style="max-width:420px;text-align:left;">
-            <h2 style="color:var(--primary);margin-bottom:8px;">Nouveau mot de passe obligatoire</h2>
-            <p class="auth-subtitle" style="text-align:left;margin-bottom:16px;">Ton professeur a défini un mot de passe provisoire. Choisis maintenant un mot de passe personnel (au moins 6 caractères).</p>
+            <h2 style="color:var(--primary);margin-bottom:8px;">Choisis ton code PIN</h2>
+            <p class="auth-subtitle" style="text-align:left;margin-bottom:16px;">Ton prof a remis ton PIN à zéro. Choisis maintenant un code à 4 chiffres que tu retiendras facilement.</p>
             <div class="auth-form" style="gap:12px;">
-                <input type="password" id="student-force-pw1" placeholder="Nouveau mot de passe" autocomplete="new-password" style="width:100%;padding:14px 18px;border:2px solid #e0e0e0;border-radius:14px;font-size:1rem;">
-                <input type="password" id="student-force-pw2" placeholder="Confirmer le mot de passe" autocomplete="new-password" style="width:100%;padding:14px 18px;border:2px solid #e0e0e0;border-radius:14px;font-size:1rem;">
+                <input type="tel" id="student-force-pw1" placeholder="Nouveau PIN (4 chiffres)" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="one-time-code" style="width:100%;padding:14px 18px;border:2px solid #e0e0e0;border-radius:14px;font-size:1.4rem;letter-spacing:0.3em;text-align:center;">
+                <input type="tel" id="student-force-pw2" placeholder="Confirmer le PIN" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="one-time-code" style="width:100%;padding:14px 18px;border:2px solid #e0e0e0;border-radius:14px;font-size:1.4rem;letter-spacing:0.3em;text-align:center;">
                 <div id="student-force-pw-error" class="auth-error"></div>
-                <button type="button" id="student-force-pw-submit" class="auth-button primary" style="width:100%;">Enregistrer mon mot de passe</button>
+                <button type="button" id="student-force-pw-submit" class="auth-button primary" style="width:100%;">Enregistrer mon PIN</button>
             </div>
         </div>
     </div>
@@ -3926,25 +4020,21 @@ class LaserEPSApp {
         const tabsRow = document.getElementById('auth-mode-tabs');
         const sub = document.getElementById('auth-subtitle');
         const errorDiv = document.getElementById('auth-error');
-        const studentErrorDiv = document.getElementById('student-auth-error');
         if (!emailForm || !studentForm) return;
         const entry = this.getEffectiveEntry();
         const setForms = (mode) => {
             const emailActive = mode === 'email';
-            emailForm.style.display = emailActive ? 'block' : 'none';
+            emailForm.style.display = emailActive ? 'flex' : 'none';
             studentForm.style.display = emailActive ? 'none' : 'block';
             if (tabEmailBtn && tabStudentBtn) {
-                tabEmailBtn.classList.toggle('primary', emailActive);
-                tabEmailBtn.classList.toggle('secondary', !emailActive);
-                tabStudentBtn.classList.toggle('primary', !emailActive);
-                tabStudentBtn.classList.toggle('secondary', emailActive);
+                tabEmailBtn.classList.toggle('selected', emailActive);
+                tabStudentBtn.classList.toggle('selected', !emailActive);
             }
             if (errorDiv) errorDiv.textContent = '';
-            if (studentErrorDiv) studentErrorDiv.textContent = '';
         };
         if (entry === 'eleve') {
             if (tabsRow) tabsRow.style.display = 'none';
-            if (sub) sub.textContent = 'Espace élève — connecte-toi avec ton nom et prénom.';
+            if (sub) sub.textContent = 'Espace élève — entre le code séance de ton prof.';
             setForms('student');
         } else if (entry === 'prof') {
             if (tabsRow) tabsRow.style.display = 'none';
@@ -3956,7 +4046,7 @@ class LaserEPSApp {
             setForms('email');
         } else {
             if (tabsRow) tabsRow.style.display = '';
-            if (sub) sub.textContent = 'Connecte-toi pour suivre ta progression';
+            if (sub) sub.textContent = 'Choisis ton mode pour commencer';
             setForms('email');
         }
     }
@@ -4327,66 +4417,50 @@ class LaserEPSApp {
         const loadingDiv = document.getElementById('auth-loading');
         const profForgotPasswordBtn = document.getElementById('prof-forgot-password-btn');
 
-        const studentLastNameInput = document.getElementById('student-last-name');
-        const studentFirstNameInput = document.getElementById('student-first-name');
-        const studentPasswordInput = document.getElementById('student-password');
-        const studentErrorDiv = document.getElementById('student-auth-error');
-        const studentLoadingDiv = document.getElementById('student-auth-loading');
-        const studentLoginBtn = document.getElementById('student-login-btn');
-        const studentRegisterBtn = document.getElementById('student-register-btn');
-        const studentForgotPasswordBtn = document.getElementById('student-forgot-password-btn');
-        const tabEmailBtn = document.getElementById('auth-tab-email');
-        const tabStudentBtn = document.getElementById('auth-tab-student');
-        const emailForm = document.getElementById('auth-form-login');
-        const studentForm = document.getElementById('auth-form-student');
+        const tabEmailBtn = document.getElementById(‘auth-tab-email’);
+        const tabStudentBtn = document.getElementById(‘auth-tab-student’);
+        const emailForm = document.getElementById(‘auth-form-login’);
+        const studentForm = document.getElementById(‘auth-form-student’);
 
         const setActiveAuthTab = (tab) => {
-            const emailActive = tab === 'email';
-            emailForm.style.display = emailActive ? 'block' : 'none';
-            studentForm.style.display = emailActive ? 'none' : 'block';
-            tabEmailBtn.classList.toggle('primary', emailActive);
-            tabEmailBtn.classList.toggle('secondary', !emailActive);
-            tabStudentBtn.classList.toggle('primary', !emailActive);
-            tabStudentBtn.classList.toggle('secondary', emailActive);
-            errorDiv.textContent = '';
-            studentErrorDiv.textContent = '';
+            const emailActive = tab === ‘email’;
+            emailForm.style.display = emailActive ? ‘flex’ : ‘none’;
+            studentForm.style.display = emailActive ? ‘none’ : ‘block’;
+            tabEmailBtn.classList.toggle(‘selected’, emailActive);
+            tabStudentBtn.classList.toggle(‘selected’, !emailActive);
+            errorDiv.textContent = ‘’;
         };
 
-        tabEmailBtn.addEventListener('click', () => setActiveAuthTab('email'));
-        tabStudentBtn.addEventListener('click', () => setActiveAuthTab('student'));
+        tabEmailBtn.addEventListener(‘click’, () => setActiveAuthTab(‘email’));
+        tabStudentBtn.addEventListener(‘click’, () => setActiveAuthTab(‘student’));
         this.applyAuthEntryUi();
 
         const setLoading = (loading) => {
             loginBtn.disabled = loading;
             registerBtn.disabled = loading;
-            loadingDiv.style.display = loading ? 'block' : 'none';
-        };
-        const setStudentLoading = (loading) => {
-            studentLoginBtn.disabled = loading;
-            studentRegisterBtn.disabled = loading;
-            studentLoadingDiv.style.display = loading ? 'block' : 'none';
+            loadingDiv.style.display = loading ? ‘block’ : ‘none’;
         };
 
         const showError = (msg, targetDiv) => {
             const messages = {
-                'auth/invalid-email': 'Adresse e-mail invalide.',
-                'auth/user-not-found': 'Compte introuvable.',
-                'auth/wrong-password': 'Mot de passe incorrect.',
-                'auth/invalid-credential': 'Identifiants incorrects.',
-                'auth/email-already-in-use': 'Un compte existe déjà pour ce nom/prénom.',
-                'auth/weak-password': 'Le mot de passe doit faire au moins 6 caractères.',
-                'auth/too-many-requests': 'Trop de tentatives. Réessaie plus tard.',
-                'auth/missing-password': 'Entre un mot de passe.',
+                ‘auth/invalid-email’: ‘Adresse e-mail invalide.’,
+                ‘auth/user-not-found’: ‘Compte introuvable.’,
+                ‘auth/wrong-password’: ‘Mot de passe incorrect.’,
+                ‘auth/invalid-credential’: ‘Identifiants incorrects.’,
+                ‘auth/email-already-in-use’: ‘Cette adresse est déjà utilisée.’,
+                ‘auth/weak-password’: ‘Le mot de passe doit faire au moins 6 caractères.’,
+                ‘auth/too-many-requests’: ‘Trop de tentatives. Réessaie plus tard.’,
+                ‘auth/missing-password’: ‘Entre un mot de passe.’,
             };
-            targetDiv.textContent = messages[msg] || 'Erreur : ' + msg;
+            targetDiv.textContent = messages[msg] || ‘Erreur : ‘ + msg;
         };
 
-        loginBtn.addEventListener('click', async () => {
-            errorDiv.textContent = '';
+        // ===== Prof login =====
+        loginBtn.addEventListener(‘click’, async () => {
+            errorDiv.textContent = ‘’;
             setLoading(true);
             try {
                 const email = this.normalizeAuthEmail(emailInput.value);
-                // Mot de passe : ne pas mettre en minuscules (sensible à la casse, Firebase).
                 await auth.signInWithEmailAndPassword(email, passwordInput.value);
             } catch (e) {
                 showError(e.code, errorDiv);
@@ -4394,12 +4468,11 @@ class LaserEPSApp {
             setLoading(false);
         });
 
-        registerBtn.addEventListener('click', async () => {
-            errorDiv.textContent = '';
+        registerBtn.addEventListener(‘click’, async () => {
+            errorDiv.textContent = ‘’;
             setLoading(true);
             try {
                 const email = this.normalizeAuthEmail(emailInput.value);
-                // Mot de passe : ne pas mettre en minuscules (sensible à la casse, Firebase).
                 await auth.createUserWithEmailAndPassword(email, passwordInput.value);
             } catch (e) {
                 showError(e.code, errorDiv);
@@ -4407,25 +4480,24 @@ class LaserEPSApp {
             setLoading(false);
         });
 
-        // Réinitialisation mot de passe prof : côté projet Firebase, vérifier Authentication → Settings → Authorized domains (ex. page GitHub Pages) et le modèle d’e-mail.
         const resetEmailSuccessHtml = `
             <p style="margin:0;color:#333;line-height:1.5;">Si cette adresse est inscrite, tu recevras un e-mail pour choisir un nouveau mot de passe. Pense à regarder les courriers indésirables.</p>`;
 
         if (profForgotPasswordBtn) {
-            profForgotPasswordBtn.addEventListener('click', async () => {
-                errorDiv.textContent = '';
+            profForgotPasswordBtn.addEventListener(‘click’, async () => {
+                errorDiv.textContent = ‘’;
                 const email = this.normalizeAuthEmail(emailInput.value);
                 if (!email) {
-                    errorDiv.textContent = 'Entre d’abord ton adresse e-mail.';
+                    errorDiv.textContent = ‘Entre d\u2019abord ton adresse e-mail.’;
                     return;
                 }
                 profForgotPasswordBtn.disabled = true;
                 try {
                     await auth.sendPasswordResetEmail(email);
-                    this.showModal('Vérifie ta boîte mail', resetEmailSuccessHtml);
+                    this.showModal(‘Vérifie ta boîte mail’, resetEmailSuccessHtml);
                 } catch (e) {
-                    if (e.code === 'auth/user-not-found') {
-                        this.showModal('Vérifie ta boîte mail', resetEmailSuccessHtml);
+                    if (e.code === ‘auth/user-not-found’) {
+                        this.showModal(‘Vérifie ta boîte mail’, resetEmailSuccessHtml);
                     } else {
                         showError(e.code, errorDiv);
                     }
@@ -4434,92 +4506,122 @@ class LaserEPSApp {
             });
         }
 
-        const parseStudentForm = async () => {
-            const lastName = studentLastNameInput.value.trim();
-            const firstName = studentFirstNameInput.value.trim();
-            // Mot de passe : ne pas normaliser ni mettre en minuscules (sensible à la casse, Firebase).
-            const password = studentPasswordInput.value;
-            if (!lastName || !firstName || !password) {
-                throw new Error('missing-fields');
-            }
-            if (password.length < 6) throw new Error('weak-password');
-            const technicalEmail = this.buildTechnicalEmail(lastName, firstName);
-            return { lastName, firstName, password, technicalEmail };
+        passwordInput.addEventListener(‘keydown’, (e) => {
+            if (e.key === ‘Enter’) loginBtn.click();
+        });
+
+        // ===== Élève : flux 3 phases (code séance → liste → PIN) =====
+        this._studentSeanceData = null;
+        this._studentSelectedMember = null;
+
+        const phaseCode = document.getElementById(‘student-phase-code’);
+        const phaseList = document.getElementById(‘student-phase-list’);
+        const phasePin  = document.getElementById(‘student-phase-pin’);
+
+        const showStudentPhase = (phase) => {
+            phaseCode.style.display = phase === ‘code’ ? ‘flex’ : ‘none’;
+            phaseList.style.display = phase === ‘list’ ? ‘block’ : ‘none’;
+            phasePin.style.display  = phase === ‘pin’  ? ‘flex’ : ‘none’;
         };
 
-        studentRegisterBtn.addEventListener('click', async () => {
-            studentErrorDiv.textContent = '';
-            setStudentLoading(true);
+        // Phase 1 : code séance
+        const codeInput = document.getElementById(‘student-seance-code’);
+        const codeError = document.getElementById(‘student-code-error’);
+        const codeBtn   = document.getElementById(‘student-code-btn’);
+        const codeLoading = document.getElementById(‘student-code-loading’);
+
+        codeBtn.addEventListener(‘click’, async () => {
+            codeError.textContent = ‘’;
+            const code = codeInput.value.trim().toUpperCase();
+            if (!code) { codeError.textContent = ‘Entre un code séance.’; return; }
+            codeBtn.disabled = true;
+            codeLoading.style.display = ‘block’;
             try {
-                const form = await parseStudentForm();
-                const cred = await auth.createUserWithEmailAndPassword(form.technicalEmail, form.password);
-                const displayName = `${form.firstName} ${form.lastName}`.trim();
-                await db.collection('users').doc(cred.user.uid).set({
-                    role: 'eleve',
-                    displayName: displayName,
-                    classes: [],
-                    loginMode: 'name_password',
-                    email: form.technicalEmail
-                }, { merge: true });
-                this._activeSeanceId = null;
-                this._activeClassId = null;
-                this._activeSeanceCode = null;
-                this._activeSeanceName = null;
-                this._activeSeanceFormat = null;
-            } catch (e) {
-                if (e.message === 'missing-fields') {
-                    studentErrorDiv.textContent = 'Remplis tous les champs obligatoires.';
-                } else if (e.message === 'weak-password') {
-                    studentErrorDiv.textContent = 'Mot de passe trop court (6 caractères minimum).';
-                } else {
-                    showError(e.code || e.message, studentErrorDiv);
+                const fn = laserepsFunctions.httpsCallable(‘lookupSeance’);
+                const res = await fn({ code });
+                const d = res.data;
+                if (!d.students || !d.students.length) {
+                    codeError.textContent = ‘Aucun élève dans cette classe. Demande à ton prof d\u2019ajouter les élèves.’;
+                    return;
                 }
+                this._studentSeanceData = d;
+                document.getElementById(‘student-list-class-name’).textContent = d.className + ‘ — ‘ + d.seanceName;
+                const listDiv = document.getElementById(‘student-pick-list’);
+                listDiv.innerHTML = d.students.map(s =>
+                    `<div class="student-pick-item" data-member-id="${s.id}" data-member-name="${(s.displayName || ‘’).replace(/"/g, ‘&quot;’)}">${s.displayName}</div>`
+                ).join(‘’);
+                listDiv.querySelectorAll(‘.student-pick-item’).forEach(item => {
+                    item.addEventListener(‘click’, () => {
+                        this._studentSelectedMember = { id: item.dataset.memberId, displayName: item.dataset.memberName };
+                        document.getElementById(‘student-pin-name’).textContent = item.dataset.memberName;
+                        document.getElementById(‘student-pin-input’).value = ‘’;
+                        document.getElementById(‘student-pin-error’).textContent = ‘’;
+                        showStudentPhase(‘pin’);
+                        document.getElementById(‘student-pin-input’).focus();
+                    });
+                });
+                showStudentPhase(‘list’);
+            } catch (e) {
+                console.warn(‘lookupSeance error’, e);
+                const msg = (e && e.message) || ‘’;
+                if (msg.includes(‘not-found’) || msg.includes(‘introuvable’) || msg.includes(‘Aucune’)) {
+                    codeError.textContent = ‘Aucune séance trouvée avec ce code.’;
+                } else {
+                    codeError.textContent = msg || ‘Erreur de connexion au serveur.’;
+                }
+            } finally {
+                codeBtn.disabled = false;
+                codeLoading.style.display = ‘none’;
             }
-            setStudentLoading(false);
         });
 
-        studentLoginBtn.addEventListener('click', async () => {
-            studentErrorDiv.textContent = '';
-            setStudentLoading(true);
+        codeInput.addEventListener(‘keydown’, (e) => { if (e.key === ‘Enter’) codeBtn.click(); });
+
+        // Retour vers phase 1
+        document.getElementById(‘student-back-to-code’).addEventListener(‘click’, () => {
+            showStudentPhase(‘code’);
+        });
+
+        // Phase 3 : PIN
+        const pinInput = document.getElementById(‘student-pin-input’);
+        const pinError = document.getElementById(‘student-pin-error’);
+        const pinBtn   = document.getElementById(‘student-pin-btn’);
+        const pinLoading = document.getElementById(‘student-pin-loading’);
+
+        pinBtn.addEventListener(‘click’, async () => {
+            pinError.textContent = ‘’;
+            const pin = pinInput.value.trim();
+            if (!/^\d{4}$/.test(pin)) { pinError.textContent = ‘Le code PIN doit contenir 4 chiffres.’; return; }
+            pinBtn.disabled = true;
+            pinLoading.style.display = ‘block’;
             try {
-                const form = await parseStudentForm();
-                await auth.signInWithEmailAndPassword(form.technicalEmail, form.password);
+                const fn = laserepsFunctions.httpsCallable(‘studentAuthByPin’);
+                const res = await fn({
+                    classId: this._studentSeanceData.classId,
+                    memberId: this._studentSelectedMember.id,
+                    pin: pin,
+                    seanceId: this._studentSeanceData.seanceId
+                });
+                await auth.signInWithCustomToken(res.data.token);
             } catch (e) {
-                if (e.message === 'missing-fields') {
-                    studentErrorDiv.textContent = 'Remplis tous les champs obligatoires.';
-                } else if (e.message === 'weak-password') {
-                    studentErrorDiv.textContent = 'Mot de passe trop court (6 caractères minimum).';
+                console.warn(‘studentAuthByPin error’, e);
+                const msg = (e && e.message) || ‘’;
+                if (msg.includes(‘permission-denied’) || msg.includes(‘PIN incorrect’)) {
+                    pinError.textContent = ‘Code PIN incorrect.’;
                 } else {
-                    showError(e.code || e.message, studentErrorDiv);
+                    pinError.textContent = msg || ‘Erreur de connexion.’;
                 }
+            } finally {
+                pinBtn.disabled = false;
+                pinLoading.style.display = ‘none’;
             }
-            setStudentLoading(false);
         });
 
-        if (studentForgotPasswordBtn) {
-            studentForgotPasswordBtn.addEventListener('click', () => {
-                const forgotHtml = `
-                    <div style="text-align:left;color:#333;line-height:1.5;">
-                        <p style="margin:0 0 12px 0;"><strong>Rappel :</strong> ton mot de passe est <strong>sensible à la casse</strong> (majuscules et minuscules comptent). Vérifie bien ce que tu tapes avant de conclure qu’il est « oublié ».</p>
-                        <p style="margin:0 0 12px 0;">Avec ton nom et prénom, LaserEPS utilise une <strong>adresse technique</strong> (elle finit par <code style="font-size:0.9em;">@eleve.lasereps.local</code>). Ce n’est <strong>pas une vraie boîte mail</strong> : on ne peut donc pas t’envoyer un lien de réinitialisation par e-mail.</p>
-                        <p style="margin:0 0 10px 0;"><strong>Que faire ?</strong> Demande à ton <strong>professeur</strong> ou à la personne qui gère l’application (administrateur).</p>
-                        <p style="margin:0 0 8px 0;">Côté établissement, la procédure habituelle est :</p>
-                        <ul style="margin:0;padding-left:1.25rem;">
-                            <li style="margin-bottom:6px;">supprimer ton compte dans la <strong>Console Firebase</strong> (rubrique Authentification) ;</li>
-                            <li style="margin-bottom:6px;">supprimer ton ancien membre dans la classe (<strong>Firestore</strong>) pour éviter les doublons ;</li>
-                            <li style="margin-bottom:0;">ensuite tu peux <strong>créer à nouveau</strong> ton compte élève avec le <strong>même nom et prénom</strong> et choisir un <strong>nouveau mot de passe</strong>.</li>
-                        </ul>
-                        <p style="margin:14px 0 0 0;font-size:0.95rem;color:#666;">Ne t’inquiète pas : ce n’est pas grave, ça arrive souvent. L’ancien historique restera dissocié de ton nouveau compte.</p>
-                    </div>`;
-                this.showModal('Mot de passe oublié ?', forgotHtml);
-            });
-        }
+        pinInput.addEventListener(‘keydown’, (e) => { if (e.key === ‘Enter’) pinBtn.click(); });
 
-        passwordInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') loginBtn.click();
-        });
-        studentPasswordInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') studentLoginBtn.click();
+        // Retour vers phase 2
+        document.getElementById(‘student-back-to-list’).addEventListener(‘click’, () => {
+            showStudentPhase(‘list’);
         });
     }
 
@@ -4891,6 +4993,30 @@ class LaserEPSApp {
         });
         document.getElementById('delete-prof-demo-btn').addEventListener('click', async () => {
             await this.deleteProfessorDemoDataset();
+        });
+
+        // Ajouter un élève (prof)
+        document.getElementById('add-student-btn').addEventListener('click', async () => {
+            const nameInput = document.getElementById('add-student-name');
+            const errDiv = document.getElementById('add-student-error');
+            errDiv.textContent = '';
+            const name = (nameInput.value || '').trim();
+            if (!name) { errDiv.textContent = 'Entre un prénom et nom.'; return; }
+            if (!this._currentClassId) { errDiv.textContent = 'Aucune classe sélectionnée.'; return; }
+            try {
+                await db.collection('classes').doc(this._currentClassId)
+                    .collection('members').add({
+                        displayName: name,
+                        pin: '0000',
+                        createdByProf: true,
+                        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                nameInput.value = '';
+                await this.loadClassView(this._currentClassId);
+            } catch (e) {
+                console.warn('addStudent', e);
+                errDiv.textContent = 'Erreur lors de l\u2019ajout.';
+            }
         });
 
         // Créer une séance (prof)
@@ -7244,31 +7370,45 @@ class LaserEPSApp {
         const p2 = document.getElementById('student-force-pw2');
         if (!errEl || !p1 || !p2 || !auth.currentUser) return;
         errEl.textContent = '';
-        const a = p1.value;
-        const b = p2.value;
-        if (!a || a.length < 6) {
-            errEl.textContent = 'Le mot de passe doit faire au moins 6 caractères.';
+        const a = p1.value.trim();
+        const b = p2.value.trim();
+        if (!/^\d{4}$/.test(a)) {
+            errEl.textContent = 'Le code PIN doit contenir exactement 4 chiffres.';
             return;
         }
         if (a !== b) {
-            errEl.textContent = 'Les deux saisies ne correspondent pas.';
+            errEl.textContent = 'Les deux codes ne correspondent pas.';
             return;
         }
         try {
-            await auth.currentUser.updatePassword(a);
+            await auth.currentUser.updatePassword(`Elv@${a}`);
             await db.collection('users').doc(auth.currentUser.uid).update({ mustChangePassword: false });
+
+            // Synchroniser le PIN dans le member doc Firestore (toutes les classes)
+            const uid = auth.currentUser.uid;
+            try {
+                const userClasses = this.userClasses || [];
+                for (const cid of userClasses) {
+                    const membersSnap = await db.collection('classes').doc(cid).collection('members')
+                        .where('authUid', '==', uid).limit(1).get();
+                    if (!membersSnap.empty) {
+                        await membersSnap.docs[0].ref.update({ pin: a });
+                    }
+                }
+            } catch (syncErr) {
+                console.warn('PIN Firestore sync', syncErr);
+            }
+
             const ov = document.getElementById('student-password-force-overlay');
             if (ov) ov.style.display = 'none';
             this._mustChangePassword = false;
         } catch (e) {
             console.warn('updatePassword', e);
             const code = e.code || '';
-            if (code === 'auth/weak-password') {
-                errEl.textContent = 'Mot de passe trop faible.';
-            } else if (code === 'auth/requires-recent-login') {
+            if (code === 'auth/requires-recent-login') {
                 errEl.textContent = 'Reconnecte-toi puis réessaie.';
             } else {
-                errEl.textContent = e.message || 'Erreur lors du changement de mot de passe.';
+                errEl.textContent = e.message || 'Erreur lors du changement de PIN.';
             }
         }
     }
@@ -7281,39 +7421,24 @@ class LaserEPSApp {
         if (!classId || !studentUid) return;
         const label = displayName || 'cet élève';
         if (!window.confirm(
-            `Définir un mot de passe provisoire pour « ${label} » ?\n\n` +
-            'L’historique des séances est conservé. Un mot de passe à communiquer une seule fois à l’élève sera affiché ; il devra choisir un nouveau mot de passe à la prochaine connexion.'
+            `Réinitialiser le PIN de « ${label} » ?\n\n` +
+            ‘Le PIN sera remis à 0000. L’historique des séances est conservé. L’élève devra choisir un nouveau PIN à la prochaine connexion.’
         )) {
             return;
         }
         try {
-            const fn = laserepsFunctions.httpsCallable('setStudentTemporaryPassword');
+            const fn = laserepsFunctions.httpsCallable(‘setStudentTemporaryPassword’);
             const res = await fn({ classId, studentUid });
-            const pwd = res.data && res.data.temporaryPassword;
-            if (!pwd) {
-                window.alert('Réponse inattendue du serveur.');
+            if (!res.data || !res.data.ok) {
+                window.alert(‘Réponse inattendue du serveur.’);
                 return;
             }
-            const safePwd = String(pwd).replace(/</g, '&lt;').replace(/&/g, '&amp;');
-            this.showModal('Mot de passe provisoire', `
+            this.showModal(‘PIN réinitialisé’, `
                 <div style="text-align:left;color:#333;">
-                    <p style="margin:0 0 12px 0;">Communique ce mot de passe à l’élève <strong>une seule fois</strong> (oral ou papier). Il se connectera avec, puis devra en choisir un nouveau.</p>
-                    <p id="lasereps-temp-pw-value" style="font-size:1.15rem;font-weight:700;word-break:break-all;background:#f4f4f4;padding:14px;border-radius:12px;margin:0 0 14px 0;font-family:ui-monospace,monospace;">${safePwd}</p>
-                    <button type="button" id="lasereps-copy-temp-pw" class="auth-button primary" style="width:100%;">Copier le mot de passe</button>
+                    <p style="margin:0 0 12px 0;">Dis à <strong>${label}</strong> que son PIN provisoire est :</p>
+                    <p style="font-size:2.5rem;font-weight:700;letter-spacing:0.4em;text-align:center;background:#f4f4f4;padding:18px;border-radius:12px;margin:0 0 14px 0;font-family:ui-monospace,monospace;">0000</p>
+                    <p style="color:#888;font-size:0.9rem;margin:0;">Il devra en choisir un nouveau dès sa prochaine connexion.</p>
                 </div>`);
-            setTimeout(() => {
-                const copyBtn = document.getElementById('lasereps-copy-temp-pw');
-                if (copyBtn) {
-                    copyBtn.addEventListener('click', async () => {
-                        try {
-                            await navigator.clipboard.writeText(pwd);
-                            copyBtn.textContent = 'Copié !';
-                        } catch (clipErr) {
-                            window.alert('Copie impossible : sélectionne le texte manuellement.');
-                        }
-                    });
-                }
-            }, 0);
             await this.loadClassView(classId);
         } catch (e) {
             console.warn('setStudentTemporaryPassword', e);
@@ -7390,6 +7515,7 @@ class LaserEPSApp {
                 studentData.push({
                     uid,
                     displayName,
+                    pin: mData.pin || null,
                     lastSession,
                     sessions,
                     alertSummary,
@@ -7447,12 +7573,14 @@ class LaserEPSApp {
                     const s = st.alertSummary || {};
                     const dt = s.lastDate ? s.lastDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '-';
                     const safeName = String(st.displayName || '').replace(/"/g, '&quot;');
+                    const pinDisplay = st.pin ? `<span style="font-family:ui-monospace,monospace;font-weight:700;letter-spacing:0.15em;">${st.pin}</span>` : '<span style="color:#999;">—</span>';
                     const resetCell = st.isDemoMember
                         ? '<span style="color:#999;font-size:0.78rem;">—</span>'
-                        : `<button type="button" class="prof-alert-action-btn" data-manual-reset-class="${classId}" data-manual-reset-uid="${st.uid}" data-manual-reset-name="${safeName}">Reset manuel</button>`;
+                        : `<button type="button" class="prof-alert-action-btn" data-manual-reset-class="${classId}" data-manual-reset-uid="${st.uid}" data-manual-reset-name="${safeName}">Reset PIN</button>`;
                     return `
                         <div class="prof-alert-row clickable" data-alert-uid="${st.uid}" data-alert-name="${st.displayName}">
                             <div class="prof-alert-cell-strong">${st.displayName}</div>
+                            <div>${pinDisplay}</div>
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.globalStatus)}">${this.getAlertStatusLabel(s.globalStatus)}</span></div>
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.precision && s.metrics.precision.status)}">${(s.metrics && s.metrics.precision && s.metrics.precision.label) || 'N/A'}</span></div>
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.shooting && s.metrics.shooting.status)}">${(s.metrics && s.metrics.shooting && s.metrics.shooting.label) || 'N/A'}</span></div>
@@ -7470,12 +7598,13 @@ class LaserEPSApp {
                         <div class="prof-alerts-table">
                             <div class="prof-alert-row header">
                                 <div>Élève</div>
+                                <div>PIN</div>
                                 <div>Statut global</div>
                                 <div>Précision</div>
                                 <div>Tir</div>
                                 <div>Régularité course</div>
                                 <div>Dernière séance</div>
-                                <div>Reset élève</div>
+                                <div>Reset PIN</div>
                                 <div>Action</div>
                             </div>
                             ${alertRows || '<div class="history-empty">Pas de données exploitables pour les alertes.</div>'}
