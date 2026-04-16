@@ -4537,17 +4537,54 @@ class LaserEPSApp {
             codeBtn.disabled = true;
             codeLoading.style.display = ‘block’;
             try {
-                const fn = laserepsFunctions.httpsCallable(‘lookupSeance’);
-                const res = await fn({ code });
-                const d = res.data;
-                if (!d.students || !d.students.length) {
-                    codeError.textContent = ‘Aucun élève dans cette classe. Demande à ton prof d\u2019ajouter les élèves.’;
+                // Auth anonyme pour lire Firestore
+                if (!auth.currentUser) {
+                    await auth.signInAnonymously();
+                }
+
+                // Chercher la séance par code
+                const seancesSnap = await db.collectionGroup(‘seances’)
+                    .where(‘code’, ‘==’, code).limit(1).get();
+
+                if (seancesSnap.empty) {
+                    codeError.textContent = ‘Aucune séance trouvée avec ce code.’;
+                    await auth.signOut();
                     return;
                 }
-                this._studentSeanceData = d;
-                document.getElementById(‘student-list-class-name’).textContent = d.className + ‘ — ‘ + d.seanceName;
+
+                const seanceDoc = seancesSnap.docs[0];
+                const seanceData = seanceDoc.data();
+                const classId = seanceDoc.ref.parent.parent.id;
+
+                const classDoc = await db.collection(‘classes’).doc(classId).get();
+                const membersSnap = await db.collection(‘classes’).doc(classId).collection(‘members’).get();
+
+                const students = [];
+                membersSnap.forEach(doc => {
+                    const d = doc.data();
+                    if (!d.isDemoData) students.push({ id: doc.id, displayName: d.displayName || ‘Sans nom’ });
+                });
+                students.sort((a, b) => (a.displayName || ‘’).localeCompare(b.displayName || ‘’, ‘fr’));
+
+                if (!students.length) {
+                    codeError.textContent = ‘Aucun élève dans cette classe. Demande à ton prof d\u2019ajouter les élèves.’;
+                    await auth.signOut();
+                    return;
+                }
+
+                this._studentSeanceData = {
+                    classId,
+                    className: classDoc.exists ? classDoc.data().name : ‘’,
+                    seanceId: seanceDoc.id,
+                    seanceName: seanceData.name || ‘’,
+                    seanceFormat: seanceData.format || null,
+                    students
+                };
+
+                document.getElementById(‘student-list-class-name’).textContent =
+                    this._studentSeanceData.className + ‘ \u2014 ‘ + this._studentSeanceData.seanceName;
                 const listDiv = document.getElementById(‘student-pick-list’);
-                listDiv.innerHTML = d.students.map(s =>
+                listDiv.innerHTML = students.map(s =>
                     `<div class="student-pick-item" data-member-id="${s.id}" data-member-name="${(s.displayName || ‘’).replace(/"/g, ‘&quot;’)}">${s.displayName}</div>`
                 ).join(‘’);
                 listDiv.querySelectorAll(‘.student-pick-item’).forEach(item => {
@@ -4563,12 +4600,8 @@ class LaserEPSApp {
                 showStudentPhase(‘list’);
             } catch (e) {
                 console.warn(‘lookupSeance error’, e);
-                const msg = (e && e.message) || ‘’;
-                if (msg.includes(‘not-found’) || msg.includes(‘introuvable’) || msg.includes(‘Aucune’)) {
-                    codeError.textContent = ‘Aucune séance trouvée avec ce code.’;
-                } else {
-                    codeError.textContent = msg || ‘Erreur de connexion au serveur.’;
-                }
+                codeError.textContent = ‘Erreur de connexion. Vérifie ta connexion internet.’;
+                if (auth.currentUser && auth.currentUser.isAnonymous) await auth.signOut();
             } finally {
                 codeBtn.disabled = false;
                 codeLoading.style.display = ‘none’;
@@ -4595,22 +4628,39 @@ class LaserEPSApp {
             pinBtn.disabled = true;
             pinLoading.style.display = ‘block’;
             try {
-                const fn = laserepsFunctions.httpsCallable(‘studentAuthByPin’);
-                const res = await fn({
-                    classId: this._studentSeanceData.classId,
-                    memberId: this._studentSelectedMember.id,
-                    pin: pin,
-                    seanceId: this._studentSeanceData.seanceId
-                });
-                await auth.signInWithCustomToken(res.data.token);
+                const { classId, seanceId, seanceName, seanceFormat } = this._studentSeanceData;
+                const { id: memberId, displayName } = this._studentSelectedMember;
+
+                // Lire le doc membre et vérifier le PIN
+                const memberDoc = await db.collection(‘classes’).doc(classId)
+                    .collection(‘members’).doc(memberId).get();
+
+                if (!memberDoc.exists) { pinError.textContent = ‘Élève introuvable.’; return; }
+
+                const memberData = memberDoc.data();
+                if (memberData.pin !== pin) { pinError.textContent = ‘Code PIN incorrect.’; return; }
+
+                // PIN OK — on crée/met à jour le doc utilisateur pour cet anonyme
+                const anonUid = auth.currentUser.uid;
+                await db.collection(‘users’).doc(anonUid).set({
+                    role: ‘eleve’,
+                    displayName: displayName,
+                    classes: firebase.firestore.FieldValue.arrayUnion(classId),
+                    loginMode: ‘pin_anonymous’,
+                    memberId: memberId,
+                    activeSeanceId: seanceId,
+                    activeClassId: classId,
+                    activeSeanceName: seanceName || ‘’,
+                    activeSeanceFormat: seanceFormat || null
+                }, { merge: true });
+
+                // Lier le doc membre à cet UID anonyme
+                await memberDoc.ref.set({ authUid: anonUid }, { merge: true });
+
+                // onAuthStateChanged va router l’élève vers son écran
             } catch (e) {
-                console.warn(‘studentAuthByPin error’, e);
-                const msg = (e && e.message) || ‘’;
-                if (msg.includes(‘permission-denied’) || msg.includes(‘PIN incorrect’)) {
-                    pinError.textContent = ‘Code PIN incorrect.’;
-                } else {
-                    pinError.textContent = msg || ‘Erreur de connexion.’;
-                }
+                console.warn(‘studentAuth error’, e);
+                pinError.textContent = e.message || ‘Erreur de connexion.’;
             } finally {
                 pinBtn.disabled = false;
                 pinLoading.style.display = ‘none’;
@@ -7427,12 +7477,10 @@ class LaserEPSApp {
             return;
         }
         try {
-            const fn = laserepsFunctions.httpsCallable(‘setStudentTemporaryPassword’);
-            const res = await fn({ classId, studentUid });
-            if (!res.data || !res.data.ok) {
-                window.alert(‘Réponse inattendue du serveur.’);
-                return;
-            }
+            // Mise à jour directe Firestore — pas besoin de Cloud Function
+            await db.collection(‘classes’).doc(classId)
+                .collection(‘members’).doc(studentUid)
+                .update({ pin: ‘0000’ });
             this.showModal(‘PIN réinitialisé’, `
                 <div style="text-align:left;color:#333;">
                     <p style="margin:0 0 12px 0;">Dis à <strong>${label}</strong> que son PIN provisoire est :</p>
