@@ -5291,7 +5291,7 @@ class LaserEPSApp {
                 this._sessionSavePendingCloud = true;
                 btn.classList.add('saved', 'pending-local');
                 btn.querySelector('.save-icon').textContent = '⏳';
-                text.textContent = 'Sauvegardée sur l'appareil (sync en attente)';
+                text.textContent = 'Sauvegardée sur l\'appareil (sync en attente)';
                 postActions.classList.add('visible');
             } else {
                 this._sessionSaved = false;
@@ -5299,7 +5299,7 @@ class LaserEPSApp {
                 btn.querySelector('.save-icon').textContent = '💾';
                 text.textContent = 'Enregistrer la session';
                 postActions.classList.remove('visible');
-                alert('Impossible d'enregistrer la session pour le moment. Réessaie quand la connexion sera meilleure.');
+                alert('Impossible d\'enregistrer la session pour le moment. Réessaie quand la connexion sera meilleure.');
             }
         });
 
@@ -5874,7 +5874,7 @@ class LaserEPSApp {
             saveBtn.classList.add('saved');
             if (this._sessionSavePendingCloud) {
                 saveBtn.classList.add('pending-local');
-                document.getElementById('save-session-text').textContent = 'Sauvegardée sur l'appareil (sync en attente)';
+                document.getElementById('save-session-text').textContent = 'Sauvegardée sur l\'appareil (sync en attente)';
                 saveBtn.querySelector('.save-icon').textContent = '⏳';
             } else {
                 saveBtn.classList.remove('pending-local');
@@ -6009,7 +6009,7 @@ class LaserEPSApp {
     buildCoachingSuggestion(segment, deltaSeconds) {
         if (segment.segmentType === 'course') {
             if (deltaSeconds > 6) return 'Travaille la relance sur cette course: départ contrôlé puis accélération progressive.';
-            if (deltaSeconds > 3) return 'Reste régulier sur l'allure et pense à la respiration pour éviter la cassure de rythme.';
+            if (deltaSeconds > 3) return 'Reste régulier sur l\'allure et pense à la respiration pour éviter la cassure de rythme.';
             return 'Segment course proche de la référence: garde cette régularité.';
         }
         const acc = segment.accuracy || 0;
@@ -6171,7 +6171,7 @@ class LaserEPSApp {
             if (localOk) {
                 this.showModal(
                     'Session sauvegardée sur cet appareil',
-                    '<p style="margin:0;color:#333;line-height:1.5;">L'envoi vers le cloud est en attente (réseau indisponible ou erreur serveur). Tu peux réessayer depuis l'accueil, l'historique ou automatiquement à la reconnexion.</p>'
+                    '<p style="margin:0;color:#333;line-height:1.5;">L\'envoi vers le cloud est en attente (réseau indisponible ou erreur serveur). Tu peux réessayer depuis l\'accueil, l\'historique ou automatiquement à la reconnexion.</p>'
                 );
             }
             return { cloud: false, local: localOk, error: e };
@@ -6996,7 +6996,7 @@ class LaserEPSApp {
     async loadEvolutionCharts() {
         const container = document.getElementById('evolution-content');
         if (!this._historySessions || this._historySessions.length < 2) {
-            container.innerHTML = '<div class="history-empty">Pas assez de données pour l'évolution du format sélectionné.</div>';
+            container.innerHTML = '<div class="history-empty">Pas assez de données pour l\'évolution du format sélectionné.</div>';
             return;
         }
 
@@ -7305,7 +7305,7 @@ class LaserEPSApp {
                 activeSeanceFormat: this._activeSeanceFormat
             }, { merge: true });
             if (!foundSeance.format) {
-                alert('Cette séance n'a pas encore de format défini. Utilisation temporaire de ta configuration locale.');
+                alert('Cette séance n\'a pas encore de format défini. Utilisation temporaire de ta configuration locale.');
             } else {
                 this.applySeanceFormatToConfig();
             }
@@ -7472,7 +7472,7 @@ class LaserEPSApp {
         const label = displayName || 'cet élève';
         if (!window.confirm(
             `Réinitialiser le PIN de « ${label} » ?\n\n` +
-            'Le PIN sera remis à 0000. L'historique des séances est conservé. L'élève devra choisir un nouveau PIN à la prochaine connexion.'
+            'Le PIN sera remis à 0000. L\'historique des séances est conservé. L\'élève devra choisir un nouveau PIN à la prochaine connexion.'
         )) {
             return;
         }
@@ -7497,7 +7497,7 @@ class LaserEPSApp {
             if (rawCode === 'internal' || lowerMsg.includes('password') || lowerMsg.includes('policy') || lowerMsg.includes('weak-password')) {
                 msg = 'Le mot de passe provisoire est refusé par la politique Firebase. Vérifie Authentication > Settings > Password policy (ou ajuste la valeur fixe côté function).';
             } else if (rawCode === 'permission-denied') {
-                msg = 'Action refusée : ce compte n'est pas autorisé sur cette classe.';
+                msg = 'Action refusée : ce compte n\'est pas autorisé sur cette classe.';
             } else if (rawCode === 'failed-precondition') {
                 msg = 'Action impossible sur ce profil (ex: élève démo).';
             } else if (rawMessage) {
@@ -7516,14 +7516,14 @@ class LaserEPSApp {
         const label = displayName || 'cet élève';
         if (!window.confirm(
             `SUPPRIMER DÉFINITIVEMENT le compte de « ${label} » ?\n\n` +
-            'L'historique ne sera plus associé à ce compte si l'élève en crée un nouveau. Réservé aux cas extrêmes (RGPD, etc.).'
+            'L\'historique ne sera plus associé à ce compte si l\'élève en crée un nouveau. Réservé aux cas extrêmes (RGPD, etc.).'
         )) {
             return;
         }
         try {
             const fn = laserepsFunctions.httpsCallable('resetStudentAuth');
             await fn({ classId, studentUid });
-            window.alert('Compte supprimé. L'élève peut créer un nouveau compte élève avec le même nom et prénom si besoin.');
+            window.alert('Compte supprimé. L\'élève peut créer un nouveau compte élève avec le même nom et prénom si besoin.');
             await this.loadClassView(classId);
         } catch (e) {
             console.warn('resetStudentAuth', e);
@@ -7880,7 +7880,7 @@ class LaserEPSApp {
             }
         } catch (e) {
             console.warn(e);
-            alert('Erreur lors de l'ouverture du renommage.');
+            alert('Erreur lors de l\'ouverture du renommage.');
         }
     }
 
@@ -8314,7 +8314,7 @@ class LaserEPSApp {
     loadStudentEvolutionCharts() {
         const container = document.getElementById('sd-evolution-content');
         if (!this._studentSessions || this._studentSessions.length < 2) {
-            container.innerHTML = '<div class="history-empty">Pas assez de données pour l'évolution du format sélectionné.</div>';
+            container.innerHTML = '<div class="history-empty">Pas assez de données pour l\'évolution du format sélectionné.</div>';
             return;
         }
         const sessions = [...this._studentSessions].reverse();
