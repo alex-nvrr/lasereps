@@ -3445,16 +3445,6 @@ body {
                             <div id="student-list-error" class="auth-error"></div>
                             <button id="student-back-to-code" class="auth-button secondary" style="margin-top:8px;">← Changer de code</button>
                         </div>
-                        <!-- Phase 3 : PIN -->
-                        <div id="student-phase-pin" class="auth-form" style="display:none;">
-                            <p id="student-pin-name" style="text-align:center;font-weight:600;color:var(--primary);font-size:1.1rem;margin-bottom:4px;"></p>
-                            <p class="auth-hint" style="text-align:center;">Entre ton code PIN</p>
-                            <input type="tel" id="student-pin-input" placeholder="PIN (4 chiffres)" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="one-time-code" style="letter-spacing:0.4em;font-size:1.6rem;text-align:center;">
-                            <div id="student-pin-error" class="auth-error"></div>
-                            <button id="student-pin-btn" class="auth-button primary">C'est parti !</button>
-                            <div id="student-pin-loading" class="auth-loading">Connexion...</div>
-                            <button id="student-back-to-list" class="auth-button secondary" style="margin-top:4px;">← Changer d'élève</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -4648,18 +4638,15 @@ class LaserEPSApp {
             if (e.key === 'Enter') loginBtn.click();
         });
 
-        // ===== Élève : flux 3 phases (code séance → liste → PIN) =====
+        // ===== Élève : flux 2 phases (code séance → liste → clic nom) =====
         this._studentSeanceData = null;
-        this._studentSelectedMember = null;
 
         const phaseCode = document.getElementById('student-phase-code');
         const phaseList = document.getElementById('student-phase-list');
-        const phasePin  = document.getElementById('student-phase-pin');
 
         const showStudentPhase = (phase) => {
             phaseCode.style.display = phase === 'code' ? 'flex' : 'none';
             phaseList.style.display = phase === 'list' ? 'block' : 'none';
-            phasePin.style.display  = phase === 'pin'  ? 'flex' : 'none';
         };
 
         // Phase 1 : code séance
@@ -4726,13 +4713,35 @@ class LaserEPSApp {
                     `<div class="student-pick-item" data-member-id="${s.id}" data-member-name="${(s.displayName || '').replace(/"/g, '&quot;')}">${s.displayName}</div>`
                 ).join('');
                 listDiv.querySelectorAll('.student-pick-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        this._studentSelectedMember = { id: item.dataset.memberId, displayName: item.dataset.memberName };
-                        document.getElementById('student-pin-name').textContent = item.dataset.memberName;
-                        document.getElementById('student-pin-input').value = '';
-                        document.getElementById('student-pin-error').textContent = '';
-                        showStudentPhase('pin');
-                        document.getElementById('student-pin-input').focus();
+                    item.addEventListener('click', async () => {
+                        item.style.opacity = '0.5';
+                        item.style.pointerEvents = 'none';
+                        const memberId = item.dataset.memberId;
+                        const displayName = item.dataset.memberName;
+                        const { classId, seanceId, seanceName, seanceFormat } = this._studentSeanceData;
+                        try {
+                            const anonUid = auth.currentUser.uid;
+                            await db.collection('users').doc(anonUid).set({
+                                role: 'eleve',
+                                displayName,
+                                classes: firebase.firestore.FieldValue.arrayUnion(classId),
+                                loginMode: 'pin_anonymous',
+                                memberId,
+                                activeSeanceId: seanceId,
+                                activeClassId: classId,
+                                activeSeanceName: seanceName || '',
+                                activeSeanceFormat: seanceFormat || null
+                            }, { merge: true });
+                            await db.collection('classes').doc(classId)
+                                .collection('members').doc(memberId)
+                                .set({ authUid: anonUid }, { merge: true });
+                            // onAuthStateChanged prend le relais
+                        } catch (e) {
+                            console.warn('studentAuth error', e);
+                            document.getElementById('student-list-error').textContent = e.message || 'Erreur de connexion.';
+                            item.style.opacity = '';
+                            item.style.pointerEvents = '';
+                        }
                     });
                 });
                 showStudentPhase('list');
@@ -4753,64 +4762,8 @@ class LaserEPSApp {
             showStudentPhase('code');
         });
 
-        // Phase 3 : PIN
-        const pinInput = document.getElementById('student-pin-input');
-        const pinError = document.getElementById('student-pin-error');
-        const pinBtn   = document.getElementById('student-pin-btn');
-        const pinLoading = document.getElementById('student-pin-loading');
-
-        pinBtn.addEventListener('click', async () => {
-            pinError.textContent = '';
-            const pin = pinInput.value.trim();
-            if (!/^\d{4}$/.test(pin)) { pinError.textContent = 'Le code PIN doit contenir 4 chiffres.'; return; }
-            pinBtn.disabled = true;
-            pinLoading.style.display = 'block';
-            try {
-                const { classId, seanceId, seanceName, seanceFormat } = this._studentSeanceData;
-                const { id: memberId, displayName } = this._studentSelectedMember;
-
-                // Lire le doc membre et vérifier le PIN
-                const memberDoc = await db.collection('classes').doc(classId)
-                    .collection('members').doc(memberId).get();
-
-                if (!memberDoc.exists) { pinError.textContent = 'Élève introuvable.'; return; }
-
-                const memberData = memberDoc.data();
-                if (memberData.pin !== pin) { pinError.textContent = 'Code PIN incorrect.'; return; }
-
-                // PIN OK — on crée/met à jour le doc utilisateur pour cet anonyme
-                const anonUid = auth.currentUser.uid;
-                await db.collection('users').doc(anonUid).set({
-                    role: 'eleve',
-                    displayName: displayName,
-                    classes: firebase.firestore.FieldValue.arrayUnion(classId),
-                    loginMode: 'pin_anonymous',
-                    memberId: memberId,
-                    activeSeanceId: seanceId,
-                    activeClassId: classId,
-                    activeSeanceName: seanceName || '',
-                    activeSeanceFormat: seanceFormat || null
-                }, { merge: true });
-
-                // Lier le doc membre à cet UID anonyme
-                await memberDoc.ref.set({ authUid: anonUid }, { merge: true });
-
-                // onAuthStateChanged va router l'élève vers son écran
-            } catch (e) {
-                console.warn('studentAuth error', e);
-                pinError.textContent = e.message || 'Erreur de connexion.';
-            } finally {
-                pinBtn.disabled = false;
-                pinLoading.style.display = 'none';
-            }
-        });
-
-        pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') pinBtn.click(); });
-
-        // Retour vers phase 2
-        document.getElementById('student-back-to-list').addEventListener('click', () => {
-            showStudentPhase('list');
-        });
+        // Retour vers phase 1
+        // (déjà géré par student-back-to-code plus haut)
 
         // Bouton Mode invité — connexion anonyme directe
         const guestBtn = document.getElementById('auth-guest-btn');
@@ -5244,7 +5197,6 @@ class LaserEPSApp {
                 await db.collection('classes').doc(this._currentClassId)
                     .collection('members').add({
                         displayName: name,
-                        pin: '0000',
                         createdByProf: true,
                         joinedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
@@ -7872,21 +7824,14 @@ class LaserEPSApp {
                 const alertRows = sortedAlerts.map(st => {
                     const s = st.alertSummary || {};
                     const dt = s.lastDate ? s.lastDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '-';
-                    const safeName = String(st.displayName || '').replace(/"/g, '&quot;');
-                    const pinDisplay = st.pin ? `<span style="font-family:ui-monospace,monospace;font-weight:700;letter-spacing:0.15em;">${st.pin}</span>` : '<span style="color:#999;">—</span>';
-                    const resetCell = st.isDemoMember
-                        ? '<span style="color:#999;font-size:0.78rem;">—</span>'
-                        : `<button type="button" class="prof-alert-action-btn" data-manual-reset-class="${classId}" data-manual-reset-uid="${st.uid}" data-manual-reset-name="${safeName}">Reset PIN</button>`;
                     return `
                         <div class="prof-alert-row clickable" data-alert-uid="${st.uid}" data-alert-name="${st.displayName}">
                             <div class="prof-alert-cell-strong">${st.displayName}</div>
-                            <div>${pinDisplay}</div>
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.globalStatus)}">${this.getAlertStatusLabel(s.globalStatus)}</span></div>
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.precision && s.metrics.precision.status)}">${(s.metrics && s.metrics.precision && s.metrics.precision.label) || 'N/A'}</span></div>
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.shooting && s.metrics.shooting.status)}">${(s.metrics && s.metrics.shooting && s.metrics.shooting.label) || 'N/A'}</span></div>
                             <div><span class="prof-alert-badge ${this.getAlertStatusClass(s.metrics && s.metrics.regularity && s.metrics.regularity.status)}">${(s.metrics && s.metrics.regularity && s.metrics.regularity.label) || 'N/A'}</span></div>
                             <div>${dt}</div>
-                            <div>${resetCell}</div>
                             <div><button type="button" class="prof-alert-action-btn" data-alert-open-uid="${st.uid}" data-alert-open-name="${st.displayName}">Voir détail</button></div>
                         </div>
                     `;
@@ -7898,13 +7843,11 @@ class LaserEPSApp {
                         <div class="prof-alerts-table">
                             <div class="prof-alert-row header">
                                 <div>Élève</div>
-                                <div>PIN</div>
                                 <div>Statut global</div>
                                 <div>Précision</div>
                                 <div>Tir</div>
                                 <div>Régularité course</div>
                                 <div>Dernière séance</div>
-                                <div>Reset PIN</div>
                                 <div>Action</div>
                             </div>
                             ${alertRows || '<div class="history-empty">Pas de données exploitables pour les alertes.</div>'}
