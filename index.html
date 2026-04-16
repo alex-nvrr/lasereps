@@ -1867,6 +1867,39 @@ body {
     line-height: 1.3;
 }
 
+/* Bouton mode invité */
+.auth-guest-btn {
+    margin-top: 20px;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 4px 0;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+.auth-guest-btn:hover { color: var(--text); }
+
+/* Bannière mode invité */
+.guest-banner {
+    background: rgba(100,116,139,0.1);
+    border: 1px solid rgba(100,116,139,0.25);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+/* Badge mode invité */
+#mode-badge.mode-guest { background: #64748b; color: #fff; }
+
 .auth-mode-card.selected .auth-mode-label {
     color: var(--primary);
 }
@@ -3379,6 +3412,7 @@ body {
                         <button id="auth-register-btn" class="auth-button secondary">Créer un compte</button>
                         <div id="auth-loading" class="auth-loading">Chargement...</div>
                     </div>
+                    <button id="auth-guest-btn" class="auth-guest-btn" style="display:none;">Continuer sans compte (mode invité)</button>
                     <div id="auth-form-student" style="display:none;">
                         <!-- Phase 1 : code séance -->
                         <div id="student-phase-code" class="auth-form">
@@ -3428,11 +3462,6 @@ body {
                             <h3>Professeur</h3>
                             <p>Crée des classes et suis tes élèves</p>
                         </div>
-                        <div class="role-card" data-role="perso">
-                            <div class="role-icon">🏃</div>
-                            <h3>Personnel</h3>
-                            <p>Suis tes propres stats</p>
-                        </div>
                     </div>
                     <input type="text" id="role-display-name" class="role-name-input" placeholder="Ton prénom et nom" style="display:none;">
                     <input type="password" id="role-prof-code" class="role-name-input" placeholder="Code professeur" style="display:none;">
@@ -3472,6 +3501,7 @@ body {
                     <button id="join-seance-btn" class="join-class-btn">Rejoindre une séance</button>
                     <button id="free-mode-btn-no-seance" class="free-mode-btn">Mode libre (sans séance)</button>
                 </div>
+                <div id="guest-banner-home" class="guest-banner" style="display:none;">🏃 Mode invité — tes séances ne sont pas sauvegardées.<br><small>Pour sauvegarder, connecte-toi.</small></div>
                 <div id="pending-sync-banner-home" class="pending-sync-banner" style="display:none;" aria-live="polite"></div>
                 <div class="menu-buttons">
                     <button id="start-competition" class="menu-button">
@@ -3553,31 +3583,8 @@ body {
                 </div>
                 <div id="cv-panel-seances" class="history-panel">
                     <div id="cv-seances-list"><div class="history-empty">Chargement...</div></div>
-                    <div class="create-class-section" style="margin-top:16px;">
-                        <h3 style="color:var(--text);margin-bottom:12px;">Créer une séance</h3>
-                        <input type="text" id="new-seance-name" placeholder="Nom de la séance (ex: Séance 1 - 16 mars)">
-                        <div class="distance-inputs" style="margin-top:10px;">
-                            <div class="input-row">
-                                <label>Tirs :</label>
-                                <input type="number" id="new-seance-shootings" value="4" min="1" max="10">
-                            </div>
-                            <div class="input-row">
-                                <label>Départ :</label>
-                                <input type="number" id="new-seance-first-distance" value="30" min="1">
-                                <span>m</span>
-                            </div>
-                            <div class="input-row">
-                                <label>Tour :</label>
-                                <input type="number" id="new-seance-other-distance" value="100" min="1">
-                                <span>m</span>
-                            </div>
-                            <div class="input-row">
-                                <label>Final :</label>
-                                <input type="number" id="new-seance-final-distance" value="100" min="1">
-                                <span>m</span>
-                            </div>
-                        </div>
-                        <button id="create-seance-btn" class="create-class-btn">Créer la séance</button>
+                    <div style="margin-top:16px;text-align:center;">
+                        <button id="open-seance-create-btn" class="create-class-btn" style="font-size:1.1rem;padding:14px 32px;">＋ Nouvelle séance</button>
                     </div>
                 </div>
             </div>
@@ -3598,6 +3605,45 @@ body {
                     </select>
                 </div>
                 <div id="seance-view-content"><div class="history-empty">Chargement...</div></div>
+            </div>
+        </div>
+
+        <!-- Création de séance (prof) — écran dédié -->
+        <div id="seance-create-screen" class="screen">
+            <div class="container">
+                <div class="header">
+                    <h2>Nouvelle séance</h2>
+                    <button id="back-from-seance-create" class="back-button">← Classe</button>
+                </div>
+                <div class="create-class-section" style="max-width:480px;margin:0 auto;">
+                    <label style="display:block;font-weight:600;color:var(--text);margin-bottom:6px;">Nom de la séance</label>
+                    <input type="text" id="new-seance-name" placeholder="Ex : Séance 1 — 16 mars" style="margin-bottom:20px;">
+
+                    <label style="display:block;font-weight:600;color:var(--text);margin-bottom:10px;">Format</label>
+                    <div class="distance-inputs">
+                        <div class="input-row">
+                            <label>Tirs :</label>
+                            <input type="number" id="new-seance-shootings" value="4" min="1" max="10">
+                        </div>
+                        <div class="input-row">
+                            <label>Départ :</label>
+                            <input type="number" id="new-seance-first-distance" value="30" min="1">
+                            <span>m</span>
+                        </div>
+                        <div class="input-row">
+                            <label>Tour :</label>
+                            <input type="number" id="new-seance-other-distance" value="100" min="1">
+                            <span>m</span>
+                        </div>
+                        <div class="input-row">
+                            <label>Final :</label>
+                            <input type="number" id="new-seance-final-distance" value="100" min="1">
+                            <span>m</span>
+                        </div>
+                    </div>
+                    <div id="seance-create-error" class="auth-error" style="margin-top:8px;"></div>
+                    <button id="create-seance-btn" class="create-class-btn" style="margin-top:20px;font-size:1.05rem;padding:14px;">Créer la séance</button>
+                </div>
             </div>
         </div>
 
@@ -3873,7 +3919,7 @@ const LASEREPS_PENDING_MAX_BYTES = 4500000;
  * Liens d'entrée (partage / QR) — même fichier index.html :
  *   ?entry=eleve   → parcours élève uniquement, sans « Changer de mode » après inscription
  *   ?entry=prof    → parcours professeur (code PROF la 1ère fois)
- *   ?entry=libre   ou ?entry=perso → mode personnel / stats perso
+ *   ?entry=prof    → parcours professeur (code PROF la 1ère fois)
  * Le paramètre est lu une fois puis stocké en session. L'URL est mise à jour pour
  * afficher ?entry=… selon le rôle connecté (prof / élève / libre).
  *
@@ -3889,7 +3935,6 @@ function normalizeEntryParam(raw) {
     const v = raw.trim().toLowerCase();
     if (v === 'eleve' || v === 'élève') return 'eleve';
     if (v === 'prof') return 'prof';
-    if (v === 'libre' || v === 'perso' || v === 'personnel') return 'perso';
     return null;
 }
 
@@ -4033,9 +4078,6 @@ class LaserEPSApp {
             } else if (entry === 'prof') {
                 title.textContent = 'Espace professeur';
                 sub.textContent = 'Indique ton nom et le code professeur si demandé (première connexion).';
-            } else if (entry === 'perso') {
-                title.textContent = 'Mode personnel';
-                sub.textContent = 'Suis tes propres séances et statistiques, sans classe.';
             }
         }
         document.querySelectorAll('#role-screen .role-card').forEach((card) => {
@@ -4063,6 +4105,7 @@ class LaserEPSApp {
         const tabStudentBtn = document.getElementById('auth-tab-student');
         const emailForm = document.getElementById('auth-form-login');
         const studentForm = document.getElementById('auth-form-student');
+        const guestBtn = document.getElementById('auth-guest-btn');
         const tabsRow = document.getElementById('auth-mode-tabs');
         const sub = document.getElementById('auth-subtitle');
         const errorDiv = document.getElementById('auth-error');
@@ -4074,25 +4117,26 @@ class LaserEPSApp {
             studentForm.style.display = emailActive ? 'none' : 'block';
             if (tabEmailBtn && tabStudentBtn) {
                 tabEmailBtn.classList.toggle('selected', emailActive);
-                tabStudentBtn.classList.toggle('selected', !emailActive);
+                tabEmailBtn.classList.toggle('selected-student', false);
+                tabStudentBtn.classList.toggle('selected-student', !emailActive);
+                tabStudentBtn.classList.toggle('selected', false);
             }
             if (errorDiv) errorDiv.textContent = '';
         };
         if (entry === 'eleve') {
             if (tabsRow) tabsRow.style.display = 'none';
             if (sub) sub.textContent = 'Espace élève — entre le code séance de ton prof.';
+            if (guestBtn) guestBtn.style.display = 'none';
             setForms('student');
         } else if (entry === 'prof') {
             if (tabsRow) tabsRow.style.display = 'none';
-            if (sub) sub.textContent = 'Espace professeur ou admin — connexion par e-mail.';
-            setForms('email');
-        } else if (entry === 'perso') {
-            if (tabsRow) tabsRow.style.display = 'none';
-            if (sub) sub.textContent = 'Mode personnel — connexion par e-mail.';
+            if (sub) sub.textContent = 'Espace professeur — connexion par e-mail.';
+            if (guestBtn) guestBtn.style.display = 'none';
             setForms('email');
         } else {
             if (tabsRow) tabsRow.style.display = '';
             if (sub) sub.textContent = 'Choisis ton mode pour commencer';
+            if (guestBtn) guestBtn.style.display = 'block';
             setForms('email');
         }
     }
@@ -4104,7 +4148,7 @@ class LaserEPSApp {
             if (!this.currentUser) {
                 const eff = this.getEffectiveEntry();
                 if (eff) {
-                    url.searchParams.set('entry', eff === 'perso' ? 'libre' : eff);
+                    url.searchParams.set('entry', eff);
                 } else {
                     url.searchParams.delete('entry');
                 }
@@ -4117,12 +4161,10 @@ class LaserEPSApp {
                 url.searchParams.set('entry', 'prof');
             } else if (r === 'eleve') {
                 url.searchParams.set('entry', 'eleve');
-            } else if (r === 'perso') {
-                url.searchParams.set('entry', 'libre');
             } else {
                 const eff = this.getEffectiveEntry();
                 if (eff) {
-                    url.searchParams.set('entry', eff === 'perso' ? 'libre' : eff);
+                    url.searchParams.set('entry', eff);
                 } else {
                     url.searchParams.delete('entry');
                 }
@@ -4395,6 +4437,19 @@ class LaserEPSApp {
                             document.getElementById('user-display-name').textContent = this.userDisplayName;
                             document.getElementById('user-email-display').textContent = '';
                             this.routeByRole();
+                        } else if (user.isAnonymous) {
+                            // Mode invité — anonymous auth sans doc Firestore
+                            this.userRole = 'guest';
+                            this.userDisplayName = '';
+                            this.userClasses = [];
+                            document.getElementById('user-display-name').textContent = '';
+                            document.getElementById('user-email-display').textContent = '';
+                            this.updateModeBadge('guest');
+                            this.showScreen('home');
+                            this.updateSeanceBanner();
+                            const guestBanner = document.getElementById('guest-banner-home');
+                            if (guestBanner) guestBanner.style.display = 'block';
+                            this.updatePendingSyncBanners();
                         } else {
                             this.showScreen('role');
                             this.setupRoleListeners();
@@ -4432,6 +4487,9 @@ class LaserEPSApp {
             this.showScreen('home');
             this.loadLastSessionSummary();
             this.updateSeanceBanner();
+            // Bannière invité
+            const guestBanner = document.getElementById('guest-banner-home');
+            if (guestBanner) guestBanner.style.display = this.userRole === 'guest' ? 'block' : 'none';
         }
         this.updatePendingSyncBanners();
         this.updateChangeRoleButtonsVisibility();
@@ -4738,6 +4796,23 @@ class LaserEPSApp {
         document.getElementById('student-back-to-list').addEventListener('click', () => {
             showStudentPhase('list');
         });
+
+        // Bouton Mode invité — connexion anonyme directe
+        const guestBtn = document.getElementById('auth-guest-btn');
+        if (guestBtn) {
+            guestBtn.addEventListener('click', async () => {
+                guestBtn.disabled = true;
+                guestBtn.textContent = 'Chargement...';
+                try {
+                    await auth.signInAnonymously();
+                    // onAuthStateChanged prend le relais
+                } catch (e) {
+                    console.warn('Mode invité', e);
+                    guestBtn.disabled = false;
+                    guestBtn.textContent = 'Continuer sans compte (mode invité)';
+                }
+            });
+        }
     }
 
     setupRoleListeners() {
@@ -4902,7 +4977,7 @@ class LaserEPSApp {
     updateModeBadge(role) {
         const badge = document.getElementById('mode-badge');
         if (!badge) return;
-        badge.classList.remove('mode-prof', 'mode-eleve', 'mode-perso');
+        badge.classList.remove('mode-prof', 'mode-eleve', 'mode-perso', 'mode-guest');
         const icon  = badge.querySelector('.badge-icon');
         const label = badge.querySelector('.badge-label');
         if (role === 'prof') {
@@ -4913,10 +4988,14 @@ class LaserEPSApp {
             badge.classList.add('mode-eleve');
             if (icon)  icon.textContent  = '🎒';
             if (label) label.textContent = 'Mode Élève';
-        } else {
-            badge.classList.add('mode-perso');
+        } else if (role === 'guest') {
+            badge.classList.add('mode-guest');
             if (icon)  icon.textContent  = '🏃';
-            if (label) label.textContent = 'Mode Personnel';
+            if (label) label.textContent = 'Mode invité';
+        } else {
+            badge.classList.add('mode-guest');
+            if (icon)  icon.textContent  = '🏃';
+            if (label) label.textContent = 'Mode invité';
         }
     }
 
@@ -5162,21 +5241,16 @@ class LaserEPSApp {
             }
         });
 
-        // Créer une séance (prof)
-        document.getElementById('create-seance-btn').addEventListener('click', () => {
-            const name = document.getElementById('new-seance-name').value;
-            if (name.trim()) {
-                const format = this.normalizeSeanceFormat({
-                    numberOfShootings: document.getElementById('new-seance-shootings').value,
-                    distances: {
-                        first: document.getElementById('new-seance-first-distance').value,
-                        other: document.getElementById('new-seance-other-distance').value,
-                        final: document.getElementById('new-seance-final-distance').value
-                    }
-                });
-                this.createSeance(this._currentClassId, name, format);
-                document.getElementById('new-seance-name').value = '';
-            }
+        // Ouvrir l'écran de création de séance
+        document.getElementById('open-seance-create-btn').addEventListener('click', () => {
+            // Reset le formulaire
+            document.getElementById('new-seance-name').value = '';
+            document.getElementById('new-seance-shootings').value = '4';
+            document.getElementById('new-seance-first-distance').value = '30';
+            document.getElementById('new-seance-other-distance').value = '100';
+            document.getElementById('new-seance-final-distance').value = '100';
+            document.getElementById('seance-create-error').textContent = '';
+            this.showScreen('seance-create');
         });
 
         // Retour depuis vue classe
@@ -5199,6 +5273,43 @@ class LaserEPSApp {
         document.getElementById('back-to-class-from-seance').addEventListener('click', () => {
             this.showScreen('class-view');
             if (this._currentClassId) this.loadClassView(this._currentClassId);
+        });
+
+        // Écran création de séance dédié
+        document.getElementById('back-from-seance-create').addEventListener('click', () => {
+            this.showScreen('class-view');
+            if (this._currentClassId) this.loadClassView(this._currentClassId);
+        });
+        document.getElementById('create-seance-btn').addEventListener('click', async () => {
+            const name = document.getElementById('new-seance-name').value.trim();
+            const errDiv = document.getElementById('seance-create-error');
+            errDiv.textContent = '';
+            if (!name) { errDiv.textContent = 'Donne un nom à la séance.'; return; }
+            const format = this.normalizeSeanceFormat({
+                numberOfShootings: document.getElementById('new-seance-shootings').value,
+                distances: {
+                    first: document.getElementById('new-seance-first-distance').value,
+                    other: document.getElementById('new-seance-other-distance').value,
+                    final: document.getElementById('new-seance-final-distance').value
+                }
+            });
+            try {
+                await this.createSeance(this._currentClassId, name, format);
+                // Retour à la vue classe onglet séances
+                this.showScreen('class-view');
+                if (this._currentClassId) {
+                    await this.loadClassView(this._currentClassId);
+                    // Activer l'onglet séances
+                    document.querySelectorAll('.cv-tab').forEach(t => t.classList.remove('active'));
+                    const seancesTab = document.querySelector('.cv-tab[data-cvtab="seances"]');
+                    if (seancesTab) seancesTab.classList.add('active');
+                    document.getElementById('cv-panel-students').classList.remove('active');
+                    document.getElementById('cv-panel-seances').classList.add('active');
+                }
+            } catch (e) {
+                console.warn('createSeance', e);
+                errDiv.textContent = e.message || 'Erreur lors de la création.';
+            }
         });
 
         // Retour depuis détail élève
@@ -7291,7 +7402,7 @@ class LaserEPSApp {
         const joinBanner = document.getElementById('join-seance-banner');
         const primaryTitle = document.getElementById('primary-action-title');
         const primaryDesc = document.getElementById('primary-action-desc');
-        if (this.userRole !== 'eleve' && this.userRole !== 'perso') {
+        if (this.userRole !== 'eleve' && this.userRole !== 'guest') {
             banner.style.display = 'none';
             joinBanner.style.display = 'none';
             if (primaryTitle) primaryTitle.textContent = 'Faire une séance libre';
