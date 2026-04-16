@@ -4096,12 +4096,11 @@ class LaserEPSApp {
     }
 
     updateChangeRoleButtonsVisibility() {
-        const entry = this.getEffectiveEntry();
-        const hide = entry === 'eleve' && this.userRole === 'eleve';
+        // Le mode est verrouillé une fois choisi : on masque toujours le bouton "Changer de rôle"
         const btnHome = document.getElementById('change-role-btn');
         const btnProf = document.getElementById('prof-change-role-btn');
-        if (btnHome) btnHome.style.display = hide ? 'none' : '';
-        if (btnProf) btnProf.style.display = hide ? 'none' : '';
+        if (btnHome) btnHome.style.display = 'none';
+        if (btnProf) btnProf.style.display = 'none';
     }
 
     /** Connexion : masque les onglets Prof/Élève si ?entry=eleve ou prof, et choisit le bon formulaire. */
@@ -4442,8 +4441,9 @@ class LaserEPSApp {
                             document.getElementById('user-display-name').textContent = this.userDisplayName;
                             document.getElementById('user-email-display').textContent = '';
                             this.routeByRole();
-                        } else if (user.isAnonymous) {
-                            // Mode invité — anonymous auth sans doc Firestore
+                        } else if (user.isAnonymous && this._guestModeRequested) {
+                            // Mode invité — uniquement si explicitement demandé via le bouton
+                            this._guestModeRequested = false;
                             this.userRole = 'guest';
                             this.userDisplayName = '';
                             this.userClasses = [];
@@ -4735,7 +4735,18 @@ class LaserEPSApp {
                             await db.collection('classes').doc(classId)
                                 .collection('members').doc(memberId)
                                 .set({ authUid: anonUid }, { merge: true });
-                            // onAuthStateChanged prend le relais
+                            // onAuthStateChanged ne re-fire pas (même auth state) → router manuellement
+                            this.currentUser = auth.currentUser;
+                            this.userRole = 'eleve';
+                            this.userDisplayName = displayName;
+                            this.userClasses = [classId];
+                            this._activeSeanceId = seanceId;
+                            this._activeClassId = classId;
+                            this._activeSeanceName = seanceName || null;
+                            this._activeSeanceFormat = seanceFormat ? this.normalizeSeanceFormat(seanceFormat) : null;
+                            document.getElementById('user-display-name').textContent = displayName;
+                            document.getElementById('user-email-display').textContent = '';
+                            this.routeByRole();
                         } catch (e) {
                             console.warn('studentAuth error', e);
                             document.getElementById('student-list-error').textContent = e.message || 'Erreur de connexion.';
@@ -4772,10 +4783,12 @@ class LaserEPSApp {
                 guestBtn.disabled = true;
                 guestBtn.textContent = 'Chargement...';
                 try {
+                    this._guestModeRequested = true; // signal pour onAuthStateChanged
                     await auth.signInAnonymously();
                     // onAuthStateChanged prend le relais
                 } catch (e) {
                     console.warn('Mode invité', e);
+                    this._guestModeRequested = false;
                     guestBtn.disabled = false;
                     guestBtn.textContent = 'Continuer sans compte (mode invité)';
                 }
