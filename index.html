@@ -252,7 +252,7 @@ body {
     border-color: rgba(180, 83, 9, 0.35);
 }
 
-/* Cercle icône : dimensions fixes + ratio 1 (évite l’ovale) */
+/* Cercle icône : dimensions fixes + ratio 1 (évite l'ovale) */
 .menu-button .button-icon {
     flex-shrink: 0;
     width: 56px;
@@ -880,7 +880,7 @@ body {
     border-color: var(--primary-hover);
     color: var(--primary-text-on);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 12px rgba(180, 83, 9, 0.28);
-    /* Même gabarit que .lap-item : pas d’agrandissement */
+    /* Même gabarit que .lap-item : pas d'agrandissement */
     width: 76px;
     min-width: 76px;
     max-width: 76px;
@@ -3828,7 +3828,7 @@ const LASEREPS_PENDING_MAX_BYTES = 4500000;
  *   ?entry=eleve   → parcours élève uniquement, sans « Changer de mode » après inscription
  *   ?entry=prof    → parcours professeur (code PROF la 1ère fois)
  *   ?entry=libre   ou ?entry=perso → mode personnel / stats perso
- * Le paramètre est lu une fois puis stocké en session. L’URL est mise à jour pour
+ * Le paramètre est lu une fois puis stocké en session. L'URL est mise à jour pour
  * afficher ?entry=… selon le rôle connecté (prof / élève / libre).
  *
  * Déploiement actuel (GitHub Pages) — exemples complets :
@@ -3940,7 +3940,7 @@ class LaserEPSApp {
         }
     }
 
-    /** Session puis repli sur ?entry= dans l’URL (persiste en session si besoin). */
+    /** Session puis repli sur ?entry= dans l'URL (persiste en session si besoin). */
     getEffectiveEntry() {
         const fromSession = this.getStoredEntry();
         if (fromSession) return fromSession;
@@ -4051,7 +4051,7 @@ class LaserEPSApp {
         }
     }
 
-    /** Garde ?entry=prof|eleve|libre visible dans la barre d’adresse selon le rôle (ou l’entrée en cours). */
+    /** Garde ?entry=prof|eleve|libre visible dans la barre d'adresse selon le rôle (ou l'entrée en cours). */
     syncBrowserUrlEntryParam() {
         try {
             const url = new URL(window.location.href);
@@ -4376,7 +4376,7 @@ class LaserEPSApp {
         this.syncBrowserUrlEntryParam();
     }
 
-    /** Normalise nom/prénom pour l’identifiant : insensible à la casse (et accents). */
+    /** Normalise nom/prénom pour l'identifiant : insensible à la casse (et accents). */
     normalizeStudentPart(value) {
         return (value || '')
             .toLowerCase()
@@ -4385,7 +4385,7 @@ class LaserEPSApp {
             .replace(/[^a-z0-9]/g, '');
     }
 
-    /** E-mail technique Firebase dérivé du nom/prénom ; la casse saisie n’a pas d’importance. */
+    /** E-mail technique Firebase dérivé du nom/prénom ; la casse saisie n'a pas d'importance. */
     buildTechnicalEmail(lastName, firstName) {
         const ln = this.normalizeStudentPart(lastName);
         const fn = this.normalizeStudentPart(firstName);
@@ -4393,7 +4393,7 @@ class LaserEPSApp {
         return `${base}@eleve.lasereps.local`.toLowerCase();
     }
 
-    /** E-mail Prof/Admin ou mode libre : Firebase traite l’adresse comme insensible à la casse ; on normalise en minuscules. */
+    /** E-mail Prof/Admin ou mode libre : Firebase traite l'adresse comme insensible à la casse ; on normalise en minuscules. */
     normalizeAuthEmail(value) {
         return (value || '').trim().toLowerCase();
     }
@@ -4417,47 +4417,47 @@ class LaserEPSApp {
         const loadingDiv = document.getElementById('auth-loading');
         const profForgotPasswordBtn = document.getElementById('prof-forgot-password-btn');
 
-        const tabEmailBtn = document.getElementById(‘auth-tab-email’);
-        const tabStudentBtn = document.getElementById(‘auth-tab-student’);
-        const emailForm = document.getElementById(‘auth-form-login’);
-        const studentForm = document.getElementById(‘auth-form-student’);
+        const tabEmailBtn = document.getElementById('auth-tab-email');
+        const tabStudentBtn = document.getElementById('auth-tab-student');
+        const emailForm = document.getElementById('auth-form-login');
+        const studentForm = document.getElementById('auth-form-student');
 
         const setActiveAuthTab = (tab) => {
-            const emailActive = tab === ‘email’;
-            emailForm.style.display = emailActive ? ‘flex’ : ‘none’;
-            studentForm.style.display = emailActive ? ‘none’ : ‘block’;
-            tabEmailBtn.classList.toggle(‘selected’, emailActive);
-            tabStudentBtn.classList.toggle(‘selected’, !emailActive);
-            errorDiv.textContent = ‘’;
+            const emailActive = tab === 'email';
+            emailForm.style.display = emailActive ? 'flex' : 'none';
+            studentForm.style.display = emailActive ? 'none' : 'block';
+            tabEmailBtn.classList.toggle('selected', emailActive);
+            tabStudentBtn.classList.toggle('selected', !emailActive);
+            errorDiv.textContent = '';
         };
 
-        tabEmailBtn.addEventListener(‘click’, () => setActiveAuthTab(‘email’));
-        tabStudentBtn.addEventListener(‘click’, () => setActiveAuthTab(‘student’));
+        tabEmailBtn.addEventListener('click', () => setActiveAuthTab('email'));
+        tabStudentBtn.addEventListener('click', () => setActiveAuthTab('student'));
         this.applyAuthEntryUi();
 
         const setLoading = (loading) => {
             loginBtn.disabled = loading;
             registerBtn.disabled = loading;
-            loadingDiv.style.display = loading ? ‘block’ : ‘none’;
+            loadingDiv.style.display = loading ? 'block' : 'none';
         };
 
         const showError = (msg, targetDiv) => {
             const messages = {
-                ‘auth/invalid-email’: ‘Adresse e-mail invalide.’,
-                ‘auth/user-not-found’: ‘Compte introuvable.’,
-                ‘auth/wrong-password’: ‘Mot de passe incorrect.’,
-                ‘auth/invalid-credential’: ‘Identifiants incorrects.’,
-                ‘auth/email-already-in-use’: ‘Cette adresse est déjà utilisée.’,
-                ‘auth/weak-password’: ‘Le mot de passe doit faire au moins 6 caractères.’,
-                ‘auth/too-many-requests’: ‘Trop de tentatives. Réessaie plus tard.’,
-                ‘auth/missing-password’: ‘Entre un mot de passe.’,
+                'auth/invalid-email': 'Adresse e-mail invalide.',
+                'auth/user-not-found': 'Compte introuvable.',
+                'auth/wrong-password': 'Mot de passe incorrect.',
+                'auth/invalid-credential': 'Identifiants incorrects.',
+                'auth/email-already-in-use': 'Cette adresse est déjà utilisée.',
+                'auth/weak-password': 'Le mot de passe doit faire au moins 6 caractères.',
+                'auth/too-many-requests': 'Trop de tentatives. Réessaie plus tard.',
+                'auth/missing-password': 'Entre un mot de passe.',
             };
-            targetDiv.textContent = messages[msg] || ‘Erreur : ‘ + msg;
+            targetDiv.textContent = messages[msg] || 'Erreur : ' + msg;
         };
 
         // ===== Prof login =====
-        loginBtn.addEventListener(‘click’, async () => {
-            errorDiv.textContent = ‘’;
+        loginBtn.addEventListener('click', async () => {
+            errorDiv.textContent = '';
             setLoading(true);
             try {
                 const email = this.normalizeAuthEmail(emailInput.value);
@@ -4468,8 +4468,8 @@ class LaserEPSApp {
             setLoading(false);
         });
 
-        registerBtn.addEventListener(‘click’, async () => {
-            errorDiv.textContent = ‘’;
+        registerBtn.addEventListener('click', async () => {
+            errorDiv.textContent = '';
             setLoading(true);
             try {
                 const email = this.normalizeAuthEmail(emailInput.value);
@@ -4484,20 +4484,20 @@ class LaserEPSApp {
             <p style="margin:0;color:#333;line-height:1.5;">Si cette adresse est inscrite, tu recevras un e-mail pour choisir un nouveau mot de passe. Pense à regarder les courriers indésirables.</p>`;
 
         if (profForgotPasswordBtn) {
-            profForgotPasswordBtn.addEventListener(‘click’, async () => {
-                errorDiv.textContent = ‘’;
+            profForgotPasswordBtn.addEventListener('click', async () => {
+                errorDiv.textContent = '';
                 const email = this.normalizeAuthEmail(emailInput.value);
                 if (!email) {
-                    errorDiv.textContent = ‘Entre d\u2019abord ton adresse e-mail.’;
+                    errorDiv.textContent = 'Entre d\u2019abord ton adresse e-mail.';
                     return;
                 }
                 profForgotPasswordBtn.disabled = true;
                 try {
                     await auth.sendPasswordResetEmail(email);
-                    this.showModal(‘Vérifie ta boîte mail’, resetEmailSuccessHtml);
+                    this.showModal('Vérifie ta boîte mail', resetEmailSuccessHtml);
                 } catch (e) {
-                    if (e.code === ‘auth/user-not-found’) {
-                        this.showModal(‘Vérifie ta boîte mail’, resetEmailSuccessHtml);
+                    if (e.code === 'auth/user-not-found') {
+                        this.showModal('Vérifie ta boîte mail', resetEmailSuccessHtml);
                     } else {
                         showError(e.code, errorDiv);
                     }
@@ -4506,36 +4506,36 @@ class LaserEPSApp {
             });
         }
 
-        passwordInput.addEventListener(‘keydown’, (e) => {
-            if (e.key === ‘Enter’) loginBtn.click();
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
         });
 
         // ===== Élève : flux 3 phases (code séance → liste → PIN) =====
         this._studentSeanceData = null;
         this._studentSelectedMember = null;
 
-        const phaseCode = document.getElementById(‘student-phase-code’);
-        const phaseList = document.getElementById(‘student-phase-list’);
-        const phasePin  = document.getElementById(‘student-phase-pin’);
+        const phaseCode = document.getElementById('student-phase-code');
+        const phaseList = document.getElementById('student-phase-list');
+        const phasePin  = document.getElementById('student-phase-pin');
 
         const showStudentPhase = (phase) => {
-            phaseCode.style.display = phase === ‘code’ ? ‘flex’ : ‘none’;
-            phaseList.style.display = phase === ‘list’ ? ‘block’ : ‘none’;
-            phasePin.style.display  = phase === ‘pin’  ? ‘flex’ : ‘none’;
+            phaseCode.style.display = phase === 'code' ? 'flex' : 'none';
+            phaseList.style.display = phase === 'list' ? 'block' : 'none';
+            phasePin.style.display  = phase === 'pin'  ? 'flex' : 'none';
         };
 
         // Phase 1 : code séance
-        const codeInput = document.getElementById(‘student-seance-code’);
-        const codeError = document.getElementById(‘student-code-error’);
-        const codeBtn   = document.getElementById(‘student-code-btn’);
-        const codeLoading = document.getElementById(‘student-code-loading’);
+        const codeInput = document.getElementById('student-seance-code');
+        const codeError = document.getElementById('student-code-error');
+        const codeBtn   = document.getElementById('student-code-btn');
+        const codeLoading = document.getElementById('student-code-loading');
 
-        codeBtn.addEventListener(‘click’, async () => {
-            codeError.textContent = ‘’;
+        codeBtn.addEventListener('click', async () => {
+            codeError.textContent = '';
             const code = codeInput.value.trim().toUpperCase();
-            if (!code) { codeError.textContent = ‘Entre un code séance.’; return; }
+            if (!code) { codeError.textContent = 'Entre un code séance.'; return; }
             codeBtn.disabled = true;
-            codeLoading.style.display = ‘block’;
+            codeLoading.style.display = 'block';
             try {
                 // Auth anonyme pour lire Firestore
                 if (!auth.currentUser) {
@@ -4543,11 +4543,11 @@ class LaserEPSApp {
                 }
 
                 // Chercher la séance par code
-                const seancesSnap = await db.collectionGroup(‘seances’)
-                    .where(‘code’, ‘==’, code).limit(1).get();
+                const seancesSnap = await db.collectionGroup('seances')
+                    .where('code', '==', code).limit(1).get();
 
                 if (seancesSnap.empty) {
-                    codeError.textContent = ‘Aucune séance trouvée avec ce code.’;
+                    codeError.textContent = 'Aucune séance trouvée avec ce code.';
                     await auth.signOut();
                     return;
                 }
@@ -4556,122 +4556,122 @@ class LaserEPSApp {
                 const seanceData = seanceDoc.data();
                 const classId = seanceDoc.ref.parent.parent.id;
 
-                const classDoc = await db.collection(‘classes’).doc(classId).get();
-                const membersSnap = await db.collection(‘classes’).doc(classId).collection(‘members’).get();
+                const classDoc = await db.collection('classes').doc(classId).get();
+                const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
 
                 const students = [];
                 membersSnap.forEach(doc => {
                     const d = doc.data();
-                    if (!d.isDemoData) students.push({ id: doc.id, displayName: d.displayName || ‘Sans nom’ });
+                    if (!d.isDemoData) students.push({ id: doc.id, displayName: d.displayName || 'Sans nom' });
                 });
-                students.sort((a, b) => (a.displayName || ‘’).localeCompare(b.displayName || ‘’, ‘fr’));
+                students.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', 'fr'));
 
                 if (!students.length) {
-                    codeError.textContent = ‘Aucun élève dans cette classe. Demande à ton prof d\u2019ajouter les élèves.’;
+                    codeError.textContent = 'Aucun élève dans cette classe. Demande à ton prof d\u2019ajouter les élèves.';
                     await auth.signOut();
                     return;
                 }
 
                 this._studentSeanceData = {
                     classId,
-                    className: classDoc.exists ? classDoc.data().name : ‘’,
+                    className: classDoc.exists ? classDoc.data().name : '',
                     seanceId: seanceDoc.id,
-                    seanceName: seanceData.name || ‘’,
+                    seanceName: seanceData.name || '',
                     seanceFormat: seanceData.format || null,
                     students
                 };
 
-                document.getElementById(‘student-list-class-name’).textContent =
-                    this._studentSeanceData.className + ‘ \u2014 ‘ + this._studentSeanceData.seanceName;
-                const listDiv = document.getElementById(‘student-pick-list’);
+                document.getElementById('student-list-class-name').textContent =
+                    this._studentSeanceData.className + ' \u2014 ' + this._studentSeanceData.seanceName;
+                const listDiv = document.getElementById('student-pick-list');
                 listDiv.innerHTML = students.map(s =>
-                    `<div class="student-pick-item" data-member-id="${s.id}" data-member-name="${(s.displayName || ‘’).replace(/"/g, ‘&quot;’)}">${s.displayName}</div>`
-                ).join(‘’);
-                listDiv.querySelectorAll(‘.student-pick-item’).forEach(item => {
-                    item.addEventListener(‘click’, () => {
+                    `<div class="student-pick-item" data-member-id="${s.id}" data-member-name="${(s.displayName || '').replace(/"/g, '&quot;')}">${s.displayName}</div>`
+                ).join('');
+                listDiv.querySelectorAll('.student-pick-item').forEach(item => {
+                    item.addEventListener('click', () => {
                         this._studentSelectedMember = { id: item.dataset.memberId, displayName: item.dataset.memberName };
-                        document.getElementById(‘student-pin-name’).textContent = item.dataset.memberName;
-                        document.getElementById(‘student-pin-input’).value = ‘’;
-                        document.getElementById(‘student-pin-error’).textContent = ‘’;
-                        showStudentPhase(‘pin’);
-                        document.getElementById(‘student-pin-input’).focus();
+                        document.getElementById('student-pin-name').textContent = item.dataset.memberName;
+                        document.getElementById('student-pin-input').value = '';
+                        document.getElementById('student-pin-error').textContent = '';
+                        showStudentPhase('pin');
+                        document.getElementById('student-pin-input').focus();
                     });
                 });
-                showStudentPhase(‘list’);
+                showStudentPhase('list');
             } catch (e) {
-                console.warn(‘lookupSeance error’, e);
-                codeError.textContent = ‘Erreur de connexion. Vérifie ta connexion internet.’;
+                console.warn('lookupSeance error', e);
+                codeError.textContent = 'Erreur de connexion. Vérifie ta connexion internet.';
                 if (auth.currentUser && auth.currentUser.isAnonymous) await auth.signOut();
             } finally {
                 codeBtn.disabled = false;
-                codeLoading.style.display = ‘none’;
+                codeLoading.style.display = 'none';
             }
         });
 
-        codeInput.addEventListener(‘keydown’, (e) => { if (e.key === ‘Enter’) codeBtn.click(); });
+        codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') codeBtn.click(); });
 
         // Retour vers phase 1
-        document.getElementById(‘student-back-to-code’).addEventListener(‘click’, () => {
-            showStudentPhase(‘code’);
+        document.getElementById('student-back-to-code').addEventListener('click', () => {
+            showStudentPhase('code');
         });
 
         // Phase 3 : PIN
-        const pinInput = document.getElementById(‘student-pin-input’);
-        const pinError = document.getElementById(‘student-pin-error’);
-        const pinBtn   = document.getElementById(‘student-pin-btn’);
-        const pinLoading = document.getElementById(‘student-pin-loading’);
+        const pinInput = document.getElementById('student-pin-input');
+        const pinError = document.getElementById('student-pin-error');
+        const pinBtn   = document.getElementById('student-pin-btn');
+        const pinLoading = document.getElementById('student-pin-loading');
 
-        pinBtn.addEventListener(‘click’, async () => {
-            pinError.textContent = ‘’;
+        pinBtn.addEventListener('click', async () => {
+            pinError.textContent = '';
             const pin = pinInput.value.trim();
-            if (!/^\d{4}$/.test(pin)) { pinError.textContent = ‘Le code PIN doit contenir 4 chiffres.’; return; }
+            if (!/^\d{4}$/.test(pin)) { pinError.textContent = 'Le code PIN doit contenir 4 chiffres.'; return; }
             pinBtn.disabled = true;
-            pinLoading.style.display = ‘block’;
+            pinLoading.style.display = 'block';
             try {
                 const { classId, seanceId, seanceName, seanceFormat } = this._studentSeanceData;
                 const { id: memberId, displayName } = this._studentSelectedMember;
 
                 // Lire le doc membre et vérifier le PIN
-                const memberDoc = await db.collection(‘classes’).doc(classId)
-                    .collection(‘members’).doc(memberId).get();
+                const memberDoc = await db.collection('classes').doc(classId)
+                    .collection('members').doc(memberId).get();
 
-                if (!memberDoc.exists) { pinError.textContent = ‘Élève introuvable.’; return; }
+                if (!memberDoc.exists) { pinError.textContent = 'Élève introuvable.'; return; }
 
                 const memberData = memberDoc.data();
-                if (memberData.pin !== pin) { pinError.textContent = ‘Code PIN incorrect.’; return; }
+                if (memberData.pin !== pin) { pinError.textContent = 'Code PIN incorrect.'; return; }
 
                 // PIN OK — on crée/met à jour le doc utilisateur pour cet anonyme
                 const anonUid = auth.currentUser.uid;
-                await db.collection(‘users’).doc(anonUid).set({
-                    role: ‘eleve’,
+                await db.collection('users').doc(anonUid).set({
+                    role: 'eleve',
                     displayName: displayName,
                     classes: firebase.firestore.FieldValue.arrayUnion(classId),
-                    loginMode: ‘pin_anonymous’,
+                    loginMode: 'pin_anonymous',
                     memberId: memberId,
                     activeSeanceId: seanceId,
                     activeClassId: classId,
-                    activeSeanceName: seanceName || ‘’,
+                    activeSeanceName: seanceName || '',
                     activeSeanceFormat: seanceFormat || null
                 }, { merge: true });
 
                 // Lier le doc membre à cet UID anonyme
                 await memberDoc.ref.set({ authUid: anonUid }, { merge: true });
 
-                // onAuthStateChanged va router l’élève vers son écran
+                // onAuthStateChanged va router l'élève vers son écran
             } catch (e) {
-                console.warn(‘studentAuth error’, e);
-                pinError.textContent = e.message || ‘Erreur de connexion.’;
+                console.warn('studentAuth error', e);
+                pinError.textContent = e.message || 'Erreur de connexion.';
             } finally {
                 pinBtn.disabled = false;
-                pinLoading.style.display = ‘none’;
+                pinLoading.style.display = 'none';
             }
         });
 
-        pinInput.addEventListener(‘keydown’, (e) => { if (e.key === ‘Enter’) pinBtn.click(); });
+        pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') pinBtn.click(); });
 
         // Retour vers phase 2
-        document.getElementById(‘student-back-to-list’).addEventListener(‘click’, () => {
-            showStudentPhase(‘list’);
+        document.getElementById('student-back-to-list').addEventListener('click', () => {
+            showStudentPhase('list');
         });
     }
 
@@ -5291,7 +5291,7 @@ class LaserEPSApp {
                 this._sessionSavePendingCloud = true;
                 btn.classList.add('saved', 'pending-local');
                 btn.querySelector('.save-icon').textContent = '⏳';
-                text.textContent = 'Sauvegardée sur l’appareil (sync en attente)';
+                text.textContent = 'Sauvegardée sur l'appareil (sync en attente)';
                 postActions.classList.add('visible');
             } else {
                 this._sessionSaved = false;
@@ -5299,7 +5299,7 @@ class LaserEPSApp {
                 btn.querySelector('.save-icon').textContent = '💾';
                 text.textContent = 'Enregistrer la session';
                 postActions.classList.remove('visible');
-                alert('Impossible d’enregistrer la session pour le moment. Réessaie quand la connexion sera meilleure.');
+                alert('Impossible d'enregistrer la session pour le moment. Réessaie quand la connexion sera meilleure.');
             }
         });
 
@@ -5874,7 +5874,7 @@ class LaserEPSApp {
             saveBtn.classList.add('saved');
             if (this._sessionSavePendingCloud) {
                 saveBtn.classList.add('pending-local');
-                document.getElementById('save-session-text').textContent = 'Sauvegardée sur l’appareil (sync en attente)';
+                document.getElementById('save-session-text').textContent = 'Sauvegardée sur l'appareil (sync en attente)';
                 saveBtn.querySelector('.save-icon').textContent = '⏳';
             } else {
                 saveBtn.classList.remove('pending-local');
@@ -6009,7 +6009,7 @@ class LaserEPSApp {
     buildCoachingSuggestion(segment, deltaSeconds) {
         if (segment.segmentType === 'course') {
             if (deltaSeconds > 6) return 'Travaille la relance sur cette course: départ contrôlé puis accélération progressive.';
-            if (deltaSeconds > 3) return 'Reste régulier sur l’allure et pense à la respiration pour éviter la cassure de rythme.';
+            if (deltaSeconds > 3) return 'Reste régulier sur l'allure et pense à la respiration pour éviter la cassure de rythme.';
             return 'Segment course proche de la référence: garde cette régularité.';
         }
         const acc = segment.accuracy || 0;
@@ -6171,7 +6171,7 @@ class LaserEPSApp {
             if (localOk) {
                 this.showModal(
                     'Session sauvegardée sur cet appareil',
-                    '<p style="margin:0;color:#333;line-height:1.5;">L’envoi vers le cloud est en attente (réseau indisponible ou erreur serveur). Tu peux réessayer depuis l’accueil, l’historique ou automatiquement à la reconnexion.</p>'
+                    '<p style="margin:0;color:#333;line-height:1.5;">L'envoi vers le cloud est en attente (réseau indisponible ou erreur serveur). Tu peux réessayer depuis l'accueil, l'historique ou automatiquement à la reconnexion.</p>'
                 );
             }
             return { cloud: false, local: localOk, error: e };
@@ -6522,7 +6522,7 @@ class LaserEPSApp {
 
         const pendingNotice = s._pendingLocal
             ? `<div style="background:rgba(253,126,20,0.12);border:1px solid rgba(253,126,20,0.35);border-radius:12px;padding:10px 14px;margin-bottom:16px;color:#8a4b12;font-size:0.88rem;line-height:1.4;">
-                <strong>Session en attente d’envoi cloud.</strong> Elle est stockée sur cet appareil uniquement. Utilise « Réessayer l’envoi » depuis l’accueil ou l’historique.
+                <strong>Session en attente d'envoi cloud.</strong> Elle est stockée sur cet appareil uniquement. Utilise « Réessayer l'envoi » depuis l'accueil ou l'historique.
             </div>`
             : '';
 
@@ -6996,7 +6996,7 @@ class LaserEPSApp {
     async loadEvolutionCharts() {
         const container = document.getElementById('evolution-content');
         if (!this._historySessions || this._historySessions.length < 2) {
-            container.innerHTML = '<div class="history-empty">Pas assez de données pour l’évolution du format sélectionné.</div>';
+            container.innerHTML = '<div class="history-empty">Pas assez de données pour l'évolution du format sélectionné.</div>';
             return;
         }
 
@@ -7305,7 +7305,7 @@ class LaserEPSApp {
                 activeSeanceFormat: this._activeSeanceFormat
             }, { merge: true });
             if (!foundSeance.format) {
-                alert('Cette séance n’a pas encore de format défini. Utilisation temporaire de ta configuration locale.');
+                alert('Cette séance n'a pas encore de format défini. Utilisation temporaire de ta configuration locale.');
             } else {
                 this.applySeanceFormatToConfig();
             }
@@ -7464,7 +7464,7 @@ class LaserEPSApp {
     }
 
     /**
-     * Mot de passe provisoire (conserve l’UID et l’historique des séances).
+     * Mot de passe provisoire (conserve l'UID et l'historique des séances).
      */
     async setStudentTemporaryPasswordForProf(classId, studentUid, displayName) {
         if (!this.currentUser || this.userRole !== 'prof') return;
@@ -7472,16 +7472,16 @@ class LaserEPSApp {
         const label = displayName || 'cet élève';
         if (!window.confirm(
             `Réinitialiser le PIN de « ${label} » ?\n\n` +
-            ‘Le PIN sera remis à 0000. L’historique des séances est conservé. L’élève devra choisir un nouveau PIN à la prochaine connexion.’
+            'Le PIN sera remis à 0000. L'historique des séances est conservé. L'élève devra choisir un nouveau PIN à la prochaine connexion.'
         )) {
             return;
         }
         try {
             // Mise à jour directe Firestore — pas besoin de Cloud Function
-            await db.collection(‘classes’).doc(classId)
-                .collection(‘members’).doc(studentUid)
-                .update({ pin: ‘0000’ });
-            this.showModal(‘PIN réinitialisé’, `
+            await db.collection('classes').doc(classId)
+                .collection('members').doc(studentUid)
+                .update({ pin: '0000' });
+            this.showModal('PIN réinitialisé', `
                 <div style="text-align:left;color:#333;">
                     <p style="margin:0 0 12px 0;">Dis à <strong>${label}</strong> que son PIN provisoire est :</p>
                     <p style="font-size:2.5rem;font-weight:700;letter-spacing:0.4em;text-align:center;background:#f4f4f4;padding:18px;border-radius:12px;margin:0 0 14px 0;font-family:ui-monospace,monospace;">0000</p>
@@ -7497,7 +7497,7 @@ class LaserEPSApp {
             if (rawCode === 'internal' || lowerMsg.includes('password') || lowerMsg.includes('policy') || lowerMsg.includes('weak-password')) {
                 msg = 'Le mot de passe provisoire est refusé par la politique Firebase. Vérifie Authentication > Settings > Password policy (ou ajuste la valeur fixe côté function).';
             } else if (rawCode === 'permission-denied') {
-                msg = 'Action refusée : ce compte n’est pas autorisé sur cette classe.';
+                msg = 'Action refusée : ce compte n'est pas autorisé sur cette classe.';
             } else if (rawCode === 'failed-precondition') {
                 msg = 'Action impossible sur ce profil (ex: élève démo).';
             } else if (rawMessage) {
@@ -7508,7 +7508,7 @@ class LaserEPSApp {
     }
 
     /**
-     * Supprime le compte élève (perte d’historique lié au nouvel UID si recréation).
+     * Supprime le compte élève (perte d'historique lié au nouvel UID si recréation).
      */
     async deleteStudentAccountForProf(classId, studentUid, displayName) {
         if (!this.currentUser || this.userRole !== 'prof') return;
@@ -7516,14 +7516,14 @@ class LaserEPSApp {
         const label = displayName || 'cet élève';
         if (!window.confirm(
             `SUPPRIMER DÉFINITIVEMENT le compte de « ${label} » ?\n\n` +
-            'L’historique ne sera plus associé à ce compte si l’élève en crée un nouveau. Réservé aux cas extrêmes (RGPD, etc.).'
+            'L'historique ne sera plus associé à ce compte si l'élève en crée un nouveau. Réservé aux cas extrêmes (RGPD, etc.).'
         )) {
             return;
         }
         try {
             const fn = laserepsFunctions.httpsCallable('resetStudentAuth');
             await fn({ classId, studentUid });
-            window.alert('Compte supprimé. L’élève peut créer un nouveau compte élève avec le même nom et prénom si besoin.');
+            window.alert('Compte supprimé. L'élève peut créer un nouveau compte élève avec le même nom et prénom si besoin.');
             await this.loadClassView(classId);
         } catch (e) {
             console.warn('resetStudentAuth', e);
@@ -7700,9 +7700,9 @@ class LaserEPSApp {
                             <div style="text-align:left;color:#333;line-height:1.5;">
                                 <p style="margin:0 0 10px 0;"><strong>Procédure manuelle (gratuite, sans Cloud Functions)</strong></p>
                                 <ol style="margin:0 0 10px 0;padding-left:1.1rem;">
-                                    <li style="margin-bottom:6px;">Firebase Console → <strong>Authentication</strong> → supprimer l’utilisateur élève.</li>
+                                    <li style="margin-bottom:6px;">Firebase Console → <strong>Authentication</strong> → supprimer l'utilisateur élève.</li>
                                     <li style="margin-bottom:6px;">Firebase Console → <strong>Firestore</strong> → supprimer le document <code>classes/${classId}/members/${studentUid}</code>.</li>
-                                    <li style="margin-bottom:0;">L’élève recrée son compte avec le même nom/prénom puis rejoint la séance.</li>
+                                    <li style="margin-bottom:0;">L'élève recrée son compte avec le même nom/prénom puis rejoint la séance.</li>
                                 </ol>
                                 <p style="margin:0;font-size:0.93rem;color:#666;">Élève concerné : <strong>${studentName}</strong></p>
                             </div>`;
@@ -7880,7 +7880,7 @@ class LaserEPSApp {
             }
         } catch (e) {
             console.warn(e);
-            alert('Erreur lors de l’ouverture du renommage.');
+            alert('Erreur lors de l'ouverture du renommage.');
         }
     }
 
@@ -8314,7 +8314,7 @@ class LaserEPSApp {
     loadStudentEvolutionCharts() {
         const container = document.getElementById('sd-evolution-content');
         if (!this._studentSessions || this._studentSessions.length < 2) {
-            container.innerHTML = '<div class="history-empty">Pas assez de données pour l’évolution du format sélectionné.</div>';
+            container.innerHTML = '<div class="history-empty">Pas assez de données pour l'évolution du format sélectionné.</div>';
             return;
         }
         const sessions = [...this._studentSessions].reverse();
