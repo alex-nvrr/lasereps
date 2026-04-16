@@ -1741,6 +1741,30 @@ body {
     }
 }
 
+/* ===== Badge de mode persistant ===== */
+#mode-badge {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px 6px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+#mode-badge.mode-prof   { background: var(--primary); color: #fff; }
+#mode-badge.mode-eleve  { background: #1d4ed8; color: #fff; }
+#mode-badge.mode-perso  { background: #16a34a; color: #fff; }
+#mode-badge .badge-icon { font-size: 1rem; line-height: 1; }
+
 /* ===== Écran d'authentification ===== */
 .auth-container {
     max-width: 420px;
@@ -1792,41 +1816,55 @@ body {
 
 .auth-mode-tabs {
     display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: 14px;
+    margin-bottom: 28px;
 }
 
 .auth-mode-card {
     flex: 1;
     background: #f7f7f7;
     border: 3px solid transparent;
-    border-radius: 18px;
-    padding: 18px 10px 14px;
+    border-radius: 20px;
+    padding: 22px 10px 18px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: all 0.22s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
 
-.auth-mode-card:active { transform: scale(0.96); }
-@media (hover:hover) { .auth-mode-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-2px); } }
+.auth-mode-card:active { transform: scale(0.95); }
+@media (hover:hover) { .auth-mode-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-3px); } }
 
 .auth-mode-card.selected {
     border-color: var(--primary);
     background: white;
-    box-shadow: 0 6px 24px rgba(180, 83, 9, 0.18);
+    box-shadow: 0 6px 28px rgba(180, 83, 9, 0.2);
+}
+
+.auth-mode-card.selected-student {
+    border-color: #1d4ed8;
+    background: white;
+    box-shadow: 0 6px 28px rgba(29, 78, 216, 0.18);
 }
 
 .auth-mode-icon {
-    font-size: 2.2rem;
-    margin-bottom: 6px;
+    font-size: 2.8rem;
+    margin-bottom: 8px;
 }
 
 .auth-mode-label {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #555;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #444;
+}
+.auth-mode-card.selected .auth-mode-label { color: var(--primary); }
+.auth-mode-card.selected-student .auth-mode-label { color: #1d4ed8; }
+.auth-mode-sublabel {
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 3px;
+    line-height: 1.3;
 }
 
 .auth-mode-card.selected .auth-mode-label {
@@ -3305,6 +3343,12 @@ body {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Badge de mode persistant -->
+    <div id="mode-badge">
+        <span class="badge-icon"></span>
+        <span class="badge-label"></span>
+    </div>
+
     <div id="app">
         <!-- Écran de connexion -->
         <div id="auth-screen" class="screen active">
@@ -3316,10 +3360,12 @@ body {
                         <div id="auth-tab-email" class="auth-mode-card" data-mode="email">
                             <div class="auth-mode-icon">🧑‍🏫</div>
                             <div class="auth-mode-label">Professeur</div>
+                            <div class="auth-mode-sublabel">Connexion par e-mail</div>
                         </div>
                         <div id="auth-tab-student" class="auth-mode-card" data-mode="student">
                             <div class="auth-mode-icon">🎒</div>
                             <div class="auth-mode-label">Élève</div>
+                            <div class="auth-mode-sublabel">Code séance + PIN</div>
                         </div>
                     </div>
                     <div id="auth-form-login" class="auth-form">
@@ -3404,7 +3450,7 @@ body {
                     <div class="user-info" style="justify-content:flex-end;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
                         <span id="user-display-name" class="user-email" style="font-weight:600;"></span>
                         <span id="user-email-display" class="user-email"></span>
-                        <button id="change-role-btn" class="logout-button" style="background:var(--bg-subtle);">Changer de mode</button>
+                        <button id="change-role-btn" class="logout-button" style="background:var(--bg-subtle);">Changer de rôle</button>
                         <button id="logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                     <h1 class="header-title-brand">
@@ -3463,7 +3509,7 @@ body {
                 <div class="header">
                     <h2>Mes classes</h2>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <button id="prof-change-role-btn" class="logout-button" style="background:var(--bg-subtle);">Changer de mode</button>
+                        <button id="prof-change-role-btn" class="logout-button" style="background:var(--bg-subtle);">Changer de rôle</button>
                         <button id="prof-logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                 </div>
@@ -4336,10 +4382,25 @@ class LaserEPSApp {
                             this._mustChangePassword = false;
                         }
                     } else {
-                        this.showScreen('role');
-                        this.setupRoleListeners();
-                        this.applyEntryToRoleScreen();
-                        this.syncBrowserUrlEntryParam();
+                        // Si c'est un élève qui vient de se connecter par PIN (doc créé par pinBtn),
+                        // le doc Firestore peut ne pas encore être propagé → on ne passe jamais par role-screen.
+                        const u = userDoc.exists ? userDoc.data() : {};
+                        if (u.loginMode === 'pin_anonymous') {
+                            // Attribuer le rôle élève localement et router directement
+                            this.userRole = 'eleve';
+                            this.userDisplayName = u.displayName || '';
+                            this.userClasses = u.classes || [];
+                            this._activeSeanceId = u.activeSeanceId || null;
+                            this._activeClassId = u.activeClassId || null;
+                            document.getElementById('user-display-name').textContent = this.userDisplayName;
+                            document.getElementById('user-email-display').textContent = '';
+                            this.routeByRole();
+                        } else {
+                            this.showScreen('role');
+                            this.setupRoleListeners();
+                            this.applyEntryToRoleScreen();
+                            this.syncBrowserUrlEntryParam();
+                        }
                     }
                 } catch (e) {
                     console.warn('Erreur lecture profil :', e);
@@ -4363,6 +4424,7 @@ class LaserEPSApp {
 
     routeByRole() {
         this.refreshFormatFilterControls();
+        this.updateModeBadge(this.userRole);
         if (this.userRole === 'prof') {
             this.showScreen('prof');
             this.loadClasses();
@@ -4426,8 +4488,11 @@ class LaserEPSApp {
             const emailActive = tab === 'email';
             emailForm.style.display = emailActive ? 'flex' : 'none';
             studentForm.style.display = emailActive ? 'none' : 'block';
+            // Prof card : classe 'selected' (orange), Élève card : classe 'selected-student' (bleu)
             tabEmailBtn.classList.toggle('selected', emailActive);
-            tabStudentBtn.classList.toggle('selected', !emailActive);
+            tabEmailBtn.classList.remove('selected-student');
+            tabStudentBtn.classList.toggle('selected-student', !emailActive);
+            tabStudentBtn.classList.remove('selected');
             errorDiv.textContent = '';
         };
 
@@ -4825,6 +4890,34 @@ class LaserEPSApp {
         });
         document.getElementById(`${screenName}-screen`).classList.add('active');
         this.currentScreen = screenName;
+        // Badge de mode : caché sur auth et role, visible ailleurs
+        const badge = document.getElementById('mode-badge');
+        if (badge) {
+            const hideBadge = screenName === 'auth' || screenName === 'role';
+            badge.style.display = hideBadge ? 'none' : 'flex';
+        }
+    }
+
+    /** Met à jour le badge de mode affiché en permanence. */
+    updateModeBadge(role) {
+        const badge = document.getElementById('mode-badge');
+        if (!badge) return;
+        badge.classList.remove('mode-prof', 'mode-eleve', 'mode-perso');
+        const icon  = badge.querySelector('.badge-icon');
+        const label = badge.querySelector('.badge-label');
+        if (role === 'prof') {
+            badge.classList.add('mode-prof');
+            if (icon)  icon.textContent  = '🧑\u200d🏫';
+            if (label) label.textContent = 'Mode Professeur';
+        } else if (role === 'eleve') {
+            badge.classList.add('mode-eleve');
+            if (icon)  icon.textContent  = '🎒';
+            if (label) label.textContent = 'Mode Élève';
+        } else {
+            badge.classList.add('mode-perso');
+            if (icon)  icon.textContent  = '🏃';
+            if (label) label.textContent = 'Mode Personnel';
+        }
     }
 
     normalizeSeanceFormat(format) {
