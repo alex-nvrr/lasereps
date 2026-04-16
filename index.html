@@ -2792,10 +2792,25 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     -webkit-tap-highlight-color: transparent;
 }
+.delete-class-btn {
+    background: none;
+    border: 1px solid rgba(220,38,38,0.3);
+    color: var(--danger);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+}
+.delete-class-btn:hover { background: var(--danger-muted); }
 .prof-class-card:active { transform: scale(0.98); }
 @media (hover:hover) { .prof-class-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.12); } }
 .prof-class-card .pcc-info h3 { color: var(--text); font-size: 1.1rem; margin-bottom: 4px; }
@@ -7569,6 +7584,32 @@ class LaserEPSApp {
         }
     }
 
+    async deleteClass(classId, className) {
+        if (!confirm(`Supprimer la classe « ${className} » ?\n\nTous les élèves et séances seront supprimés. Action irréversible.`)) return;
+        try {
+            // Supprimer tous les membres
+            const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
+            for (const doc of membersSnap.docs) await doc.ref.delete();
+
+            // Supprimer toutes les séances
+            const seancesSnap = await db.collection('classes').doc(classId).collection('seances').get();
+            for (const doc of seancesSnap.docs) await doc.ref.delete();
+
+            // Supprimer la classe
+            await db.collection('classes').doc(classId).delete();
+
+            // Retirer l'ID de la liste dans le profil utilisateur
+            await db.collection('users').doc(this.currentUser.uid).update({
+                classes: firebase.firestore.FieldValue.arrayRemove(classId)
+            });
+
+            await this.loadClasses();
+        } catch (e) {
+            console.warn('deleteClass', e);
+            alert('Erreur lors de la suppression : ' + (e.message || e));
+        }
+    }
+
     async loadClasses() {
         const container = document.getElementById('prof-classes-content');
         container.innerHTML = '<div class="history-empty">Chargement...</div>';
@@ -7589,6 +7630,7 @@ class LaserEPSApp {
                         <h3>${c.name}</h3>
                     </div>
                     <div class="pcc-count">${c.memberCount} élève${c.memberCount > 1 ? 's' : ''}</div>
+                    <button class="delete-class-btn" data-class-id="${c.id}" data-class-name="${(c.name || '').replace(/"/g, '&quot;')}">🗑 Supprimer</button>
                 </div>
             `).join('') + '</div>';
             container.querySelectorAll('.prof-class-card').forEach(card => {
@@ -7596,6 +7638,12 @@ class LaserEPSApp {
                     this._currentClassId = card.dataset.classId;
                     this.showScreen('class-view');
                     this.loadClassView(this._currentClassId);
+                });
+            });
+            container.querySelectorAll('.delete-class-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deleteClass(btn.dataset.classId, btn.dataset.className);
                 });
             });
         } catch (e) {
