@@ -3473,6 +3473,20 @@ body {
 .seance-card .sc-info .sc-code { color: var(--primary); font-weight: 600; font-size: 0.85rem; cursor: pointer; }
 .seance-card .sc-info .sc-date { color: #888; font-size: 0.8rem; }
 .seance-card .sc-badge { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+.seance-share-btn {
+    background: var(--primary);
+    color: var(--primary-text-on);
+    border: none;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 4px;
+    transition: filter 0.15s ease;
+}
+.seance-share-btn:hover { filter: brightness(1.08); }
+.seance-share-btn:active { transform: scale(0.97); }
 .seance-rename-btn {
     background: none;
     border: 1px solid #e0e0e0;
@@ -8397,6 +8411,7 @@ class LaserEPSApp {
                             <h3>${data.name}</h3>
                             <div>
                                 <span class="sc-code" title="Copier le code séance" data-code="${data.code}">Code séance : ${data.code}</span>
+                                <button class="seance-share-btn" data-share-code="${data.code}" data-share-name="${(data.name || '').replace(/"/g, '&quot;')}">📤 Partager</button>
                                 <button class="seance-rename-btn" data-seance-id="${seanceId}" data-class-id="${classId}">Renommer</button>
                                 <button class="seance-rename-btn" data-edit-format-seance-id="${seanceId}" data-edit-format-class-id="${classId}">Format</button>
                             </div>
@@ -8412,7 +8427,14 @@ class LaserEPSApp {
             container.querySelectorAll('.sc-code').forEach(el => {
                 el.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    navigator.clipboard.writeText(el.dataset.code).then(() => alert('Code séance copié !'));
+                    navigator.clipboard.writeText(el.dataset.code).then(() => showToast('Code séance copié', 'success'));
+                });
+            });
+
+            container.querySelectorAll('.seance-share-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openShareSeanceModal(btn.dataset.shareCode, btn.dataset.shareName);
                 });
             });
 
@@ -8444,6 +8466,60 @@ class LaserEPSApp {
         } catch (e) {
             console.warn(e);
             container.innerHTML = '<div class="history-empty">Erreur de chargement des séances.</div>';
+        }
+    }
+
+    /**
+     * Modale de partage d'une séance : code visible en grand, lien direct
+     * (?s=CODE) avec bouton copier, et QR code à projeter au tableau.
+     */
+    openShareSeanceModal(code, seanceName) {
+        const safeCode = String(code || '').trim().toUpperCase();
+        const safeName = String(seanceName || 'Séance').replace(/</g, '&lt;');
+        // Lien direct vers la séance — l'élève arrive sur le form de saisie pré-rempli
+        const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.html$/, '/');
+        const shareUrl = `${baseUrl}?s=${encodeURIComponent(safeCode)}`;
+        // QR code via api.qrserver.com (gratuit, sans clé) — encodé pour QR HD
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=${encodeURIComponent(shareUrl)}`;
+        const html = `
+            <div style="text-align:center;">
+                <div style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;">${safeName}</div>
+                <div style="background:var(--bg-subtle);border-radius:14px;padding:18px;margin-bottom:18px;">
+                    <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Code séance</div>
+                    <div style="font-size:2.2rem;font-weight:800;letter-spacing:0.18em;color:var(--primary);font-family:'Courier New',monospace;">${safeCode}</div>
+                </div>
+                <img id="share-qr-img" src="${qrUrl}" alt="QR code de la séance ${safeName}" style="width:240px;height:240px;border-radius:14px;background:white;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.08);margin-bottom:14px;" />
+                <div style="display:flex;gap:8px;flex-direction:column;align-items:stretch;">
+                    <input type="text" id="share-link-input" readonly value="${shareUrl}" style="text-align:center;font-size:0.85rem;padding:10px;border:1px solid var(--border);border-radius:10px;background:white;color:var(--text);" />
+                    <button type="button" id="share-copy-link-btn" class="primary-button">📋 Copier le lien</button>
+                    <button type="button" id="share-copy-code-btn" class="back-button">Copier seulement le code</button>
+                </div>
+                <p style="margin-top:14px;font-size:0.82rem;color:var(--text-muted);line-height:1.4;">
+                    Partage ce lien (ou ce QR code) à tes élèves : ils arrivent direct sur le formulaire pré-rempli.
+                </p>
+            </div>`;
+        this.showModal('Partager la séance', html);
+        const linkInput = document.getElementById('share-link-input');
+        if (linkInput) {
+            linkInput.addEventListener('focus', () => linkInput.select());
+        }
+        const copyLinkBtn = document.getElementById('share-copy-link-btn');
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(shareUrl).then(
+                    () => showToast('Lien copié — partage-le à tes élèves', 'success'),
+                    () => showToast('Impossible de copier automatiquement', 'error')
+                );
+            });
+        }
+        const copyCodeBtn = document.getElementById('share-copy-code-btn');
+        if (copyCodeBtn) {
+            copyCodeBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(safeCode).then(
+                    () => showToast('Code copié', 'success'),
+                    () => showToast('Impossible de copier automatiquement', 'error')
+                );
+            });
         }
     }
 
