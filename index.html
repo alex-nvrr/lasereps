@@ -4702,12 +4702,8 @@ class LaserEPSApp {
                             this.userClasses = [];
                             document.getElementById('user-display-name').textContent = '';
                             document.getElementById('user-email-display').textContent = '';
-                            this.updateModeBadge('guest');
-                            this.showScreen('home');
-                            this.updateSeanceBanner();
-                            const guestBanner = document.getElementById('guest-banner-home');
-                            if (guestBanner) guestBanner.style.display = 'block';
-                            this.updatePendingSyncBanners();
+                            // routeByRole() applique les règles d'affichage (boutons, bannières, etc.)
+                            this.routeByRole();
                         } else {
                             // Cas limite : utilisateur authentifié mais aucun doc profil et aucun flag.
                             // On le déconnecte et on le renvoie au landing — évite d'atterrir sur
@@ -9611,7 +9607,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260417-guest-only-libre';
+const LASEREPS_BUILD = '20260417-guest-route';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
