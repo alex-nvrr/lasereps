@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Anti-cache : on veut toujours la dernière version (déploiement GitHub Pages) -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>LaserEPS - Mode Compétition</title>
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
     <style>
@@ -1918,6 +1922,26 @@ body {
     gap: 14px;
     margin-bottom: 28px;
 }
+.auth-mode-tabs-3 {
+    flex-direction: column;
+    gap: 12px;
+}
+.auth-mode-tabs-3 .auth-mode-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 14px;
+    padding: 16px 18px;
+    min-height: 72px;
+}
+.auth-mode-tabs-3 .auth-mode-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+    margin: 0;
+}
+.auth-mode-tabs-3 .auth-mode-label { font-size: 1.1rem; }
+.auth-mode-tabs-3 .auth-mode-sublabel { font-size: 0.85rem; color: var(--text-muted); }
 
 .auth-mode-card {
     flex: 1;
@@ -3512,8 +3536,8 @@ body {
             <div class="container" style="display:flex;align-items:center;justify-content:center;min-height:80vh;">
                 <div class="auth-container">
                     <h1>LaserEPS</h1>
-                    <p id="auth-subtitle" class="auth-subtitle">Connecte-toi pour suivre ta progression</p>
-                    <div id="auth-mode-tabs" class="auth-mode-tabs">
+                    <p id="auth-subtitle" class="auth-subtitle">Qui es-tu&nbsp;?</p>
+                    <div id="auth-mode-tabs" class="auth-mode-tabs auth-mode-tabs-3">
                         <button type="button" id="auth-tab-email" class="auth-mode-card" data-mode="email" aria-pressed="false">
                             <div class="auth-mode-icon" aria-hidden="true">🧑‍🏫</div>
                             <div class="auth-mode-label">Professeur</div>
@@ -3524,7 +3548,13 @@ body {
                             <div class="auth-mode-label">Élève</div>
                             <div class="auth-mode-sublabel">Code séance</div>
                         </button>
+                        <button type="button" id="auth-tab-guest" class="auth-mode-card" data-mode="guest" aria-pressed="false">
+                            <div class="auth-mode-icon" aria-hidden="true">🏃</div>
+                            <div class="auth-mode-label">Invité</div>
+                            <div class="auth-mode-sublabel">Entraînement libre, sans compte</div>
+                        </button>
                     </div>
+                    <button type="button" id="auth-back-to-landing" class="auth-link-button" style="display:none;margin:0 auto 10px;">← Changer de rôle</button>
                     <div id="auth-form-login" class="auth-form">
                         <label for="auth-email" class="visually-hidden">Adresse e-mail</label>
                         <input type="email" id="auth-email" placeholder="Adresse e-mail" autocomplete="email" inputmode="email">
@@ -3538,7 +3568,7 @@ body {
                         <button id="auth-register-btn" class="auth-button secondary">Créer un compte</button>
                         <div id="auth-loading" class="auth-loading">Chargement...</div>
                     </div>
-                    <button id="auth-guest-btn" class="auth-guest-btn" style="display:none;">Continuer sans compte (mode invité)</button>
+                    <button id="auth-guest-btn" class="auth-guest-btn" style="display:none;" aria-hidden="true">Continuer sans compte (mode invité)</button>
                     <div id="auth-form-student" style="display:none;">
                         <!-- Phase 1 : code séance -->
                         <div id="student-phase-code" class="auth-form">
@@ -3596,7 +3626,7 @@ body {
                     <div class="user-info" style="justify-content:flex-end;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
                         <span id="user-display-name" class="user-email" style="font-weight:600;"></span>
                         <span id="user-email-display" class="user-email"></span>
-                        <button id="change-role-btn" class="logout-button" style="background:var(--bg-subtle);">Changer de rôle</button>
+                        <button id="change-role-btn" class="logout-button" style="display:none;" aria-hidden="true">Changer de rôle</button>
                         <button id="logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                     <h1 class="header-title-brand">
@@ -3656,7 +3686,7 @@ body {
                 <div class="header">
                     <h2>Mes classes</h2>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <button id="prof-change-role-btn" class="logout-button" style="background:var(--bg-subtle);">Changer de rôle</button>
+                        <button id="prof-change-role-btn" class="logout-button" style="display:none;" aria-hidden="true">Changer de rôle</button>
                         <button id="prof-logout-btn" class="logout-button">Déconnexion</button>
                     </div>
                 </div>
@@ -4064,19 +4094,32 @@ const LASEREPS_PENDING_MAX_BYTES = 4500000;
  *   https://alex-nvrr.github.io/lasereps/?entry=libre
  */
 const LASEREPS_ENTRY_KEY = 'lasereps_entry';
+const LASEREPS_SEANCE_PARAM = 's'; // ?s=CODE pour deep-linker directement une séance (élève)
 
 function normalizeEntryParam(raw) {
     if (!raw || typeof raw !== 'string') return null;
     const v = raw.trim().toLowerCase();
     if (v === 'eleve' || v === 'élève') return 'eleve';
     if (v === 'prof') return 'prof';
+    if (v === 'invite' || v === 'invité' || v === 'guest' || v === 'libre') return 'invite';
     return null;
 }
 
 function captureLaserepsEntryFromUrl() {
     try {
-        const p = new URLSearchParams(window.location.search).get('entry');
+        const params = new URLSearchParams(window.location.search);
+        const p = params.get('entry');
         const n = normalizeEntryParam(p);
+        // Si un code séance est passé dans l'URL (?s=ABCD), on force l'entrée "eleve"
+        // et on mémorise le code pour le pré-remplir dans le formulaire.
+        const seanceCode = (params.get(LASEREPS_SEANCE_PARAM) || '').trim().toUpperCase();
+        if (seanceCode) {
+            try {
+                sessionStorage.setItem(LASEREPS_ENTRY_KEY, 'eleve');
+                sessionStorage.setItem('lasereps_prefill_seance_code', seanceCode);
+            } catch (e) { /* ignore */ }
+            return;
+        }
         if (n) {
             try {
                 sessionStorage.setItem(LASEREPS_ENTRY_KEY, n);
@@ -4243,36 +4286,49 @@ class LaserEPSApp {
         const tabsRow = document.getElementById('auth-mode-tabs');
         const sub = document.getElementById('auth-subtitle');
         const errorDiv = document.getElementById('auth-error');
+        const backBtn = document.getElementById('auth-back-to-landing');
         if (!emailForm || !studentForm) return;
         const entry = this.getEffectiveEntry();
-        const setForms = (mode) => {
-            const emailActive = mode === 'email';
-            emailForm.style.display = emailActive ? 'flex' : 'none';
-            studentForm.style.display = emailActive ? 'none' : 'block';
-            if (tabEmailBtn && tabStudentBtn) {
-                tabEmailBtn.classList.toggle('selected', emailActive);
-                tabEmailBtn.classList.toggle('selected-student', false);
-                tabStudentBtn.classList.toggle('selected-student', !emailActive);
-                tabStudentBtn.classList.toggle('selected', false);
-            }
+        // Landing = 3 cartes visibles, aucune form visible
+        const showLanding = () => {
+            if (tabsRow) tabsRow.style.display = '';
+            if (sub) sub.textContent = 'Qui es-tu\u00a0?';
+            emailForm.style.display = 'none';
+            studentForm.style.display = 'none';
+            if (guestBtn) guestBtn.style.display = 'none';
+            if (backBtn) backBtn.style.display = 'none';
             if (errorDiv) errorDiv.textContent = '';
         };
+        // Form prof ou élève visible, cartes masquées
+        const showForm = (mode) => {
+            if (tabsRow) tabsRow.style.display = 'none';
+            if (backBtn) backBtn.style.display = 'block';
+            if (guestBtn) guestBtn.style.display = 'none';
+            if (errorDiv) errorDiv.textContent = '';
+            if (mode === 'email') {
+                if (sub) sub.textContent = 'Connexion professeur';
+                emailForm.style.display = 'flex';
+                studentForm.style.display = 'none';
+            } else {
+                if (sub) sub.textContent = 'Entre le code de ton prof';
+                emailForm.style.display = 'none';
+                studentForm.style.display = 'block';
+            }
+        };
         if (entry === 'eleve') {
-            if (tabsRow) tabsRow.style.display = 'none';
-            if (sub) sub.textContent = 'Espace élève — entre le code séance de ton prof.';
-            if (guestBtn) guestBtn.style.display = 'none';
-            setForms('student');
-        } else if (entry === 'prof') {
-            if (tabsRow) tabsRow.style.display = 'none';
-            if (sub) sub.textContent = 'Espace professeur — connexion par e-mail.';
-            if (guestBtn) guestBtn.style.display = 'none';
-            setForms('email');
-        } else {
-            if (tabsRow) tabsRow.style.display = '';
-            if (sub) sub.textContent = 'Choisis ton mode pour commencer';
-            if (guestBtn) guestBtn.style.display = 'block';
-            setForms('email');
+            showForm('student');
+            // Pré-remplissage du code séance via deep-link ?s=CODE
+            try {
+                const prefill = sessionStorage.getItem('lasereps_prefill_seance_code');
+                if (prefill) {
+                    const codeInput = document.getElementById('student-seance-code');
+                    if (codeInput && !codeInput.value) codeInput.value = prefill;
+                    sessionStorage.removeItem('lasereps_prefill_seance_code');
+                }
+            } catch (e) { /* ignore */ }
         }
+        else if (entry === 'prof') showForm('email');
+        else showLanding();
     }
 
     /** Garde ?entry=prof|eleve|libre visible dans la barre d'adresse selon le rôle (ou l'entrée en cours). */
@@ -4590,10 +4646,11 @@ class LaserEPSApp {
                             if (guestBanner) guestBanner.style.display = 'block';
                             this.updatePendingSyncBanners();
                         } else {
-                            this.showScreen('role');
-                            this.setupRoleListeners();
-                            this.applyEntryToRoleScreen();
-                            this.syncBrowserUrlEntryParam();
+                            // Cas limite : utilisateur authentifié mais aucun doc profil et aucun flag.
+                            // On le déconnecte et on le renvoie au landing — évite d'atterrir sur
+                            // un écran "choix de rôle" qui duplique les cartes d'accueil.
+                            console.warn('Auth state sans profil ni flag, retour au landing.');
+                            try { await auth.signOut(); } catch (e) { /* ignore */ }
                         }
                     }
                 } catch (e) {
@@ -4640,16 +4697,18 @@ class LaserEPSApp {
             const joinBtn  = document.getElementById('choice-join-seance');
             const histBtn  = document.getElementById('show-history');
             if (this.userRole === 'eleve') {
-                // Élève sans séance active : seul "Rejoindre" et "Historique" ont du sens
+                // Élève sans séance active : seul "Rejoindre" et "Historique" ont du sens.
+                // L'entraînement libre n'est pas proposé (il doit venir du code prof).
                 if (startBtn) startBtn.style.display = 'none';
                 if (joinBtn)  joinBtn.style.display  = '';
                 if (histBtn)  histBtn.style.display  = '';
             } else if (this.userRole === 'guest') {
-                // Invité : pas de séance possible, juste mode libre + historique local
+                // Invité : entraînement libre uniquement (pas de séance, pas d'historique cloud).
                 if (startBtn) startBtn.style.display = '';
                 if (joinBtn)  joinBtn.style.display  = 'none';
                 if (histBtn)  histBtn.style.display  = '';
             } else {
+                // Prof (fallback improbable) : tout affiché
                 if (startBtn) startBtn.style.display = '';
                 if (joinBtn)  joinBtn.style.display  = '';
                 if (histBtn)  histBtn.style.display  = '';
@@ -4718,8 +4777,46 @@ class LaserEPSApp {
             errorDiv.textContent = '';
         };
 
-        tabEmailBtn.addEventListener('click', () => setActiveAuthTab('email'));
-        tabStudentBtn.addEventListener('click', () => setActiveAuthTab('student'));
+        // Les 3 cartes du landing : chacune fixe l'entry et re-rend l'écran
+        const setEntryAndRefresh = (entryValue) => {
+            try { sessionStorage.setItem(LASEREPS_ENTRY_KEY, entryValue); } catch (e) { /* ignore */ }
+            this.applyAuthEntryUi();
+            this.syncBrowserUrlEntryParam();
+        };
+        tabEmailBtn.addEventListener('click', () => setEntryAndRefresh('prof'));
+        tabStudentBtn.addEventListener('click', () => setEntryAndRefresh('eleve'));
+        const tabGuestBtn = document.getElementById('auth-tab-guest');
+        if (tabGuestBtn) {
+            tabGuestBtn.addEventListener('click', async () => {
+                // Invité : connexion anonyme directe, puis route vers home
+                try {
+                    this._guestModeRequested = true;
+                    setEntryAndRefresh('invite');
+                    if (!auth.currentUser) await auth.signInAnonymously();
+                    else {
+                        // déjà anonyme (ex: code séance échoué) → re-déclencher le routage
+                        this.userRole = 'guest';
+                        this.updateModeBadge('guest');
+                        this.showScreen('home');
+                        const gb = document.getElementById('guest-banner-home');
+                        if (gb) gb.style.display = 'block';
+                    }
+                } catch (e) {
+                    console.warn('guest mode', e);
+                    showToast('Impossible de lancer le mode invité : ' + (e.message || e), 'error');
+                    this._guestModeRequested = false;
+                }
+            });
+        }
+        // Bouton "← Changer de rôle" : revient au landing (efface l'entry)
+        const backBtn = document.getElementById('auth-back-to-landing');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                try { sessionStorage.removeItem(LASEREPS_ENTRY_KEY); } catch (e) { /* ignore */ }
+                this.applyAuthEntryUi();
+                this.syncBrowserUrlEntryParam();
+            });
+        }
         this.applyAuthEntryUi();
 
         const setLoading = (loading) => {
@@ -5311,13 +5408,13 @@ class LaserEPSApp {
             window.addEventListener('online', () => this.schedulePendingSessionSync());
         }
 
-        // Déconnexion
-        document.getElementById('logout-btn').addEventListener('click', () => {
+        // Déconnexion — efface aussi l'entry pour ramener l'utilisateur au landing
+        const doLogout = () => {
+            try { sessionStorage.removeItem(LASEREPS_ENTRY_KEY); } catch (e) { /* ignore */ }
             auth.signOut();
-        });
-        document.getElementById('prof-logout-btn').addEventListener('click', () => {
-            auth.signOut();
-        });
+        };
+        document.getElementById('logout-btn').addEventListener('click', doLogout);
+        document.getElementById('prof-logout-btn').addEventListener('click', doLogout);
 
         // Changer de mode (rôle)
         document.getElementById('change-role-btn').addEventListener('click', () => {
@@ -9286,6 +9383,42 @@ class LaserEPSApp {
         if (activeLap) activeLap.scrollIntoView({ behavior: 'smooth', inline: 'end', block: 'nearest' });
     }
 }
+
+/* ============ Gestion de version & cache-busting ============ */
+const LASEREPS_BUILD = '20260417-logic';
+(function setupCacheBusting() {
+    // Affiche la version + bouton "Mettre à jour" en bas de page
+    const showBuildBadge = () => {
+        if (document.getElementById('build-badge')) return;
+        const badge = document.createElement('div');
+        badge.id = 'build-badge';
+        badge.style.cssText = 'position:fixed;bottom:6px;right:8px;z-index:9999;font-size:10px;color:#94a3b8;background:rgba(255,255,255,0.85);padding:3px 7px;border-radius:6px;pointer-events:auto;display:flex;gap:6px;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,0.06);';
+        badge.innerHTML = `<span>v${LASEREPS_BUILD}</span><button type="button" id="force-update-btn" title="Recharger sans cache" aria-label="Recharger sans cache" style="border:none;background:none;cursor:pointer;font-size:13px;padding:0;color:#64748b;">↻</button>`;
+        document.body.appendChild(badge);
+        badge.querySelector('#force-update-btn').addEventListener('click', () => {
+            // Vide les caches navigateur disponibles puis recharge
+            if ('caches' in window) {
+                caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).finally(() => {
+                    location.reload();
+                });
+            } else {
+                location.reload();
+            }
+        });
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', showBuildBadge);
+    } else { showBuildBadge(); }
+
+    // Si l'app est restaurée depuis le bfcache (retour navigateur, app en arrière-plan iOS),
+    // recharger pour récupérer la dernière version après un déploiement.
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted) {
+            // Page restaurée depuis le bfcache : on force un rechargement réseau
+            location.reload();
+        }
+    });
+})();
 
 /* ============ Toasts + Confirm custom ============ */
 function showToast(message, type = 'info', duration = 3200) {
