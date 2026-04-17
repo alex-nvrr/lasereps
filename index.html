@@ -4759,6 +4759,9 @@ class LaserEPSApp {
             const startBtn = document.getElementById('start-competition');
             const joinBtn  = document.getElementById('choice-join-seance');
             const histBtn  = document.getElementById('show-history');
+            // Reset des éléments masqués en mode invité (au cas où on change de rôle sans reload)
+            const lastSummaryEl = document.getElementById('last-session-summary');
+            if (lastSummaryEl && this.userRole !== 'guest') lastSummaryEl.style.display = '';
             if (this.userRole === 'eleve') {
                 // Élève sans séance active : seul "Rejoindre" et "Historique" ont du sens.
                 // L'entraînement libre n'est pas proposé (il doit venir du code prof).
@@ -4766,10 +4769,16 @@ class LaserEPSApp {
                 if (joinBtn)  joinBtn.style.display  = '';
                 if (histBtn)  histBtn.style.display  = '';
             } else if (this.userRole === 'guest') {
-                // Invité : entraînement libre uniquement (pas de séance, pas d'historique cloud).
+                // Invité : UNIQUEMENT entraînement libre. Pas de rejoindre, pas d'historique, pas de résumé.
                 if (startBtn) startBtn.style.display = '';
                 if (joinBtn)  joinBtn.style.display  = 'none';
-                if (histBtn)  histBtn.style.display  = '';
+                if (histBtn)  histBtn.style.display  = 'none';
+                const lastSummary = document.getElementById('last-session-summary');
+                if (lastSummary) lastSummary.style.display = 'none';
+                const joinBanner = document.getElementById('join-seance-banner');
+                if (joinBanner) joinBanner.style.display = 'none';
+                const seanceBanner = document.getElementById('seance-active-banner');
+                if (seanceBanner) seanceBanner.style.display = 'none';
             } else {
                 // Prof (fallback improbable) : tout affiché
                 if (startBtn) startBtn.style.display = '';
@@ -4852,22 +4861,56 @@ class LaserEPSApp {
         if (tabGuestBtn) {
             tabGuestBtn.addEventListener('click', async () => {
                 // Invité : connexion anonyme directe, puis route vers home
+                if (tabGuestBtn.disabled) return;
+                const originalHTML = tabGuestBtn.innerHTML;
+                const setLoading = (on) => {
+                    tabGuestBtn.disabled = on;
+                    tabGuestBtn.style.opacity = on ? '0.7' : '';
+                    tabGuestBtn.style.cursor = on ? 'wait' : '';
+                    if (on) {
+                        tabGuestBtn.innerHTML = '<div class="auth-mode-icon" aria-hidden="true">⏳</div><div class="auth-mode-label">Connexion…</div><div class="auth-mode-sublabel">Mode invité</div>';
+                    } else {
+                        tabGuestBtn.innerHTML = originalHTML;
+                    }
+                };
                 try {
                     this._guestModeRequested = true;
                     setEntryAndRefresh('invite');
-                    if (!auth.currentUser) await auth.signInAnonymously();
-                    else {
-                        // déjà anonyme (ex: code séance échoué) → re-déclencher le routage
+                    setLoading(true);
+                    // Cas 1 : déjà anonyme (ex: code séance échoué) → re-route directement
+                    if (auth.currentUser && auth.currentUser.isAnonymous) {
+                        this._guestModeRequested = false;
                         this.userRole = 'guest';
                         this.updateModeBadge('guest');
                         this.showScreen('home');
+                        this.loadLastSessionSummary();
                         const gb = document.getElementById('guest-banner-home');
                         if (gb) gb.style.display = 'block';
+                        setLoading(false);
+                        return;
                     }
+                    // Cas 2 : un autre utilisateur (prof/élève) est connecté → on le déconnecte d'abord
+                    if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                        try { await auth.signOut(); } catch (_) { /* ignore */ }
+                        this._guestModeRequested = true; // re-flag après signOut
+                    }
+                    // Cas 3 : aucun user → connexion anonyme (onAuthStateChanged routera)
+                    await auth.signInAnonymously();
+                    // Le routage se fait dans onAuthStateChanged ; on rétablit le bouton après un court délai
+                    setTimeout(() => setLoading(false), 1500);
                 } catch (e) {
                     console.warn('guest mode', e);
-                    showToast('Impossible de lancer le mode invité : ' + (e.message || e), 'error');
+                    let msg = 'Impossible de lancer le mode invité.';
+                    if (e && e.code === 'auth/operation-not-allowed') {
+                        msg = 'Le mode invité n\'est pas activé sur ce projet (contacte l\'administrateur).';
+                    } else if (e && e.code === 'auth/network-request-failed') {
+                        msg = 'Pas de connexion réseau. Réessaie quand tu seras en ligne.';
+                    } else if (e && e.message) {
+                        msg += ' ' + e.message;
+                    }
+                    showToast(msg, 'error');
                     this._guestModeRequested = false;
+                    setLoading(false);
                 }
             });
         }
@@ -9568,7 +9611,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260417-breadcrumb';
+const LASEREPS_BUILD = '20260417-guest-only-libre';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
