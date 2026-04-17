@@ -3002,6 +3002,51 @@ body {
 }
 
 /* ===== Vue classe (prof) ===== */
+/* Fil d'Ariane (breadcrumb) — navigation hiérarchique prof */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    font-size: 0.9rem;
+    margin: 0 0 14px;
+    padding: 8px 12px;
+    background: var(--bg-subtle);
+    border-radius: 10px;
+    min-height: 38px;
+}
+.breadcrumb-item {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    border-radius: 6px;
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.breadcrumb-item:hover { background: var(--primary-muted); }
+.breadcrumb-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.breadcrumb-current {
+    color: var(--text);
+    font-weight: 700;
+    padding: 4px 6px;
+    white-space: nowrap;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.breadcrumb-sep {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    user-select: none;
+}
+
 .class-info-header {
     background: white;
     border-radius: 16px;
@@ -3709,9 +3754,10 @@ body {
         <!-- Vue classe -->
         <div id="class-view-screen" class="screen">
             <div class="container">
+                <nav class="breadcrumb" id="class-view-breadcrumb" aria-label="Fil d'Ariane"></nav>
                 <div class="header">
                     <h2 id="class-view-title">Classe</h2>
-                    <button id="back-to-prof" class="back-button">← Mes classes</button>
+                    <button id="back-to-prof" class="back-button" aria-label="Retour à mes classes">←</button>
                 </div>
                 <div id="class-view-header" class="class-info-header"></div>
                 <div class="history-tabs">
@@ -3741,9 +3787,10 @@ body {
         <!-- Vue séance (classements) -->
         <div id="seance-view-screen" class="screen">
             <div class="container">
+                <nav class="breadcrumb" id="seance-view-breadcrumb" aria-label="Fil d'Ariane"></nav>
                 <div class="header">
                     <h2 id="seance-view-title">Séance</h2>
-                    <button id="back-to-class-from-seance" class="back-button">← Classe</button>
+                    <button id="back-to-class-from-seance" class="back-button" aria-label="Retour à la classe">←</button>
                 </div>
                 <div class="format-filter-row">
                     <span class="format-filter-label">Format comparé</span>
@@ -3759,9 +3806,10 @@ body {
         <!-- Création de séance (prof) — écran dédié -->
         <div id="seance-create-screen" class="screen">
             <div class="container">
+                <nav class="breadcrumb" id="seance-create-breadcrumb" aria-label="Fil d'Ariane"></nav>
                 <div class="header">
                     <h2>Nouvelle séance</h2>
-                    <button id="back-from-seance-create" class="back-button">← Classe</button>
+                    <button id="back-from-seance-create" class="back-button" aria-label="Retour à la classe">←</button>
                 </div>
                 <div class="create-class-section" style="max-width:480px;margin:0 auto;">
                     <label style="display:block;font-weight:600;color:var(--text);margin-bottom:6px;">Nom de la séance</label>
@@ -3798,9 +3846,10 @@ body {
         <!-- Detail élève (pour le prof) -->
         <div id="student-detail-screen" class="screen">
             <div class="container">
+                <nav class="breadcrumb" id="student-detail-breadcrumb" aria-label="Fil d'Ariane"></nav>
                 <div class="header">
                     <h2 id="student-detail-title">Élève</h2>
-                    <button id="back-to-class-view" class="back-button">← Classe</button>
+                    <button id="back-to-class-view" class="back-button" aria-label="Retour à la classe">←</button>
                 </div>
                 <div class="history-tabs">
                     <button class="sd-tab active" data-sdtab="sessions">Sessions</button>
@@ -5495,6 +5544,14 @@ class LaserEPSApp {
             document.getElementById('new-seance-other-distance').value = '100';
             document.getElementById('new-seance-final-distance').value = '100';
             document.getElementById('seance-create-error').textContent = '';
+            // Fil d'Ariane : Mes classes › [Classe] › Nouvelle séance
+            const classId = this._currentClassId;
+            const className = this._currentClassName || 'Classe';
+            this.renderBreadcrumb('seance-create-breadcrumb', [
+                { label: 'Mes classes', onClick: () => this.showScreen('prof') },
+                { label: className, onClick: () => { this.showScreen('class-view'); if (classId) this.loadClassView(classId); } },
+                { label: 'Nouvelle séance', current: true }
+            ]);
             this.showScreen('seance-create');
         });
 
@@ -8054,6 +8111,32 @@ class LaserEPSApp {
     }
 
     // ===== VUE CLASSE =====
+    /**
+     * Construit un fil d'Ariane (breadcrumb) dans le conteneur donné.
+     * items : [{ label, onClick?, current? }]. Les items sans onClick ou avec current:true
+     * sont rendus comme texte non cliquable (dernière position).
+     */
+    renderBreadcrumb(containerId, items) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const escape = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        const parts = [];
+        items.forEach((it, idx) => {
+            if (idx > 0) parts.push('<span class="breadcrumb-sep" aria-hidden="true">›</span>');
+            if (it.current || !it.onClick) {
+                parts.push(`<span class="breadcrumb-current" aria-current="page">${escape(it.label)}</span>`);
+            } else {
+                parts.push(`<button type="button" class="breadcrumb-item" data-bc-idx="${idx}">${escape(it.label)}</button>`);
+            }
+        });
+        container.innerHTML = parts.join('');
+        container.querySelectorAll('.breadcrumb-item').forEach(btn => {
+            const idx = parseInt(btn.dataset.bcIdx, 10);
+            const handler = items[idx] && items[idx].onClick;
+            if (handler) btn.addEventListener('click', handler);
+        });
+    }
+
     async loadClassView(classId) {
         const headerDiv = document.getElementById('class-view-header');
         const studentsDiv = document.getElementById('cv-students-content');
@@ -8066,7 +8149,13 @@ class LaserEPSApp {
             const classDoc = await db.collection('classes').doc(classId).get();
             if (!classDoc.exists) return;
             const cls = classDoc.data();
+            this._currentClassName = cls.name;
             document.getElementById('class-view-title').textContent = cls.name;
+            // Fil d'Ariane : Mes classes › [Classe]
+            this.renderBreadcrumb('class-view-breadcrumb', [
+                { label: 'Mes classes', onClick: () => this.showScreen('prof') },
+                { label: cls.name, current: true }
+            ]);
             headerDiv.innerHTML = `
                 <div class="cih-name">${cls.name}</div>
             `;
@@ -8189,6 +8278,14 @@ class LaserEPSApp {
                     this._currentStudentUid = uid;
                     this._currentStudentAlertSummary = (this._classAlertByUid && this._classAlertByUid[uid]) || null;
                     document.getElementById('student-detail-title').textContent = name;
+                    // Fil d'Ariane : Mes classes › [Classe] › [Élève]
+                    const classIdBc = this._currentClassId;
+                    const classNameBc = this._currentClassName || 'Classe';
+                    this.renderBreadcrumb('student-detail-breadcrumb', [
+                        { label: 'Mes classes', onClick: () => this.showScreen('prof') },
+                        { label: classNameBc, onClick: () => { this.showScreen('class-view'); if (classIdBc) this.loadClassView(classIdBc); } },
+                        { label: name, current: true }
+                    ]);
                     this.showScreen('student-detail');
                     this.loadStudentSessions(uid);
                 };
@@ -8476,7 +8573,17 @@ class LaserEPSApp {
             }
             const seanceData = seanceDoc.data();
             const seanceFormat = this.normalizeSeanceFormat(seanceData.format);
+            this._currentSeanceName = seanceData.name;
             document.getElementById('seance-view-title').textContent = seanceData.name;
+            // Fil d'Ariane : Mes classes › [Classe] › [Séance]
+            const classDocBc = await db.collection('classes').doc(classId).get();
+            const className = (classDocBc.exists && classDocBc.data().name) || this._currentClassName || 'Classe';
+            this._currentClassName = className;
+            this.renderBreadcrumb('seance-view-breadcrumb', [
+                { label: 'Mes classes', onClick: () => this.showScreen('prof') },
+                { label: className, onClick: () => { this.showScreen('class-view'); this.loadClassView(classId); } },
+                { label: seanceData.name, current: true }
+            ]);
 
             const membersSnap = await db.collection('classes').doc(classId).collection('members').get();
             if (membersSnap.empty) {
@@ -9385,7 +9492,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260417-logic';
+const LASEREPS_BUILD = '20260417-breadcrumb';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
