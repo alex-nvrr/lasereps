@@ -4694,8 +4694,9 @@ class LaserEPSApp {
                             // Auth anonyme déclenchée par le flux élève (lecture du code séance).
                             // Ne pas router — la suite du flux prendra le relais via routeByRole().
                             return;
-                        } else if (user.isAnonymous && this._guestModeRequested) {
-                            // Mode invité — uniquement si explicitement demandé via le bouton
+                        } else if (user.isAnonymous && (this._guestModeRequested || this.getEffectiveEntry() === 'invite')) {
+                            // Mode invité — soit nouveau (flag), soit reconnu via sessionStorage
+                            // (cas d'un re-fire après reload/bfcache/refresh token)
                             this._guestModeRequested = false;
                             this.userRole = 'guest';
                             this.userDisplayName = '';
@@ -9608,7 +9609,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260417-guest-shortcut';
+const LASEREPS_BUILD = '20260419-guest-persist';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
