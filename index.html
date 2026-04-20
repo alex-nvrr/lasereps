@@ -4927,13 +4927,20 @@ class LaserEPSApp {
                 }
             });
         }
-        // Bouton "← Changer de rôle" : revient au landing (efface l'entry)
+        // Bouton "← Changer de rôle" : revient au landing (efface l'entry session ET URL)
         const backBtn = document.getElementById('auth-back-to-landing');
         if (backBtn) {
             backBtn.addEventListener('click', () => {
                 try { sessionStorage.removeItem(LASEREPS_ENTRY_KEY); } catch (e) { /* ignore */ }
+                // Nettoyer l'URL AVANT applyAuthEntryUi, sinon getEffectiveEntry()
+                // re-lit ?entry=eleve depuis l'URL et le re-sauve en sessionStorage
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('entry');
+                    const q = url.searchParams.toString();
+                    window.history.replaceState({}, '', url.pathname + (q ? `?${q}` : '') + (url.hash || ''));
+                } catch (e) { /* ignore */ }
                 this.applyAuthEntryUi();
-                this.syncBrowserUrlEntryParam();
             });
         }
         this.applyAuthEntryUi();
@@ -9624,7 +9631,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260420-guest-center';
+const LASEREPS_BUILD = '20260420-back-fix';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
