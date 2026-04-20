@@ -302,6 +302,16 @@ body {
         gap: 18px;
         align-items: stretch;
     }
+    /* Mode invité : un seul bouton, on le centre et on lui donne une largeur correcte */
+    .menu-buttons.guest-single {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 480px;
+    }
+    .menu-buttons.guest-single .menu-button {
+        width: 100%;
+    }
 }
 
 .menu-button {
@@ -4759,6 +4769,8 @@ class LaserEPSApp {
             // Reset des éléments masqués en mode invité (au cas où on change de rôle sans reload)
             const lastSummaryEl = document.getElementById('last-session-summary');
             if (lastSummaryEl && this.userRole !== 'guest') lastSummaryEl.style.display = '';
+            const menuBtnsEl = document.querySelector('#home-screen .menu-buttons');
+            if (menuBtnsEl && this.userRole !== 'guest') menuBtnsEl.classList.remove('guest-single');
             if (this.userRole === 'eleve') {
                 // Élève sans séance active : seul "Rejoindre" et "Historique" ont du sens.
                 // L'entraînement libre n'est pas proposé (il doit venir du code prof).
@@ -4776,6 +4788,9 @@ class LaserEPSApp {
                 if (joinBanner) joinBanner.style.display = 'none';
                 const seanceBanner = document.getElementById('seance-active-banner');
                 if (seanceBanner) seanceBanner.style.display = 'none';
+                // Centre le bouton unique (override de la grille 3 colonnes en paysage)
+                const menuButtons = document.querySelector('#home-screen .menu-buttons');
+                if (menuButtons) menuButtons.classList.add('guest-single');
             } else {
                 // Prof (fallback improbable) : tout affiché
                 if (startBtn) startBtn.style.display = '';
@@ -9609,7 +9624,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260419-guest-persist';
+const LASEREPS_BUILD = '20260420-guest-center';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
