@@ -4927,20 +4927,19 @@ class LaserEPSApp {
                 }
             });
         }
-        // Bouton "← Changer de rôle" : revient au landing (efface l'entry session ET URL)
+        // Bouton "← Changer de rôle" : nuke total — on vide tout et on reload sur une URL propre.
+        // Approche brute mais infaillible : pas de risque que applyAuthEntryUi/getEffectiveEntry
+        // ré-injectent l'entry depuis un coin du state qu'on aurait oublié de nettoyer.
         const backBtn = document.getElementById('auth-back-to-landing');
         if (backBtn) {
-            backBtn.addEventListener('click', () => {
-                try { sessionStorage.removeItem(LASEREPS_ENTRY_KEY); } catch (e) { /* ignore */ }
-                // Nettoyer l'URL AVANT applyAuthEntryUi, sinon getEffectiveEntry()
-                // re-lit ?entry=eleve depuis l'URL et le re-sauve en sessionStorage
-                try {
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete('entry');
-                    const q = url.searchParams.toString();
-                    window.history.replaceState({}, '', url.pathname + (q ? `?${q}` : '') + (url.hash || ''));
-                } catch (e) { /* ignore */ }
-                this.applyAuthEntryUi();
+            backBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try { sessionStorage.removeItem(LASEREPS_ENTRY_KEY); } catch (_) { /* ignore */ }
+                try { sessionStorage.removeItem('lasereps_prefill_seance_code'); } catch (_) { /* ignore */ }
+                // Reload vers l'URL de base, sans aucun query param ni hash
+                const cleanUrl = window.location.origin + window.location.pathname;
+                window.location.replace(cleanUrl);
             });
         }
         this.applyAuthEntryUi();
@@ -9631,7 +9630,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260420-back-fix';
+const LASEREPS_BUILD = '20260421-back-reload';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
