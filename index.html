@@ -2956,15 +2956,12 @@ body {
 .delete-class-btn:hover { background: var(--danger-muted); }
 .prof-class-card:active { transform: scale(0.98); }
 @media (hover:hover) { .prof-class-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.12); } }
-.prof-class-card .pcc-info h3 { color: var(--text); font-size: 1.1rem; margin-bottom: 4px; }
+.prof-class-card .pcc-info { display: flex; flex-direction: column; gap: 2px; }
+.prof-class-card .pcc-info h3 { color: var(--text); font-size: 1.1rem; margin: 0; }
 .prof-class-card .pcc-count {
-    background: linear-gradient(145deg, var(--accent-secondary) 0%, var(--primary) 42%, var(--primary-hover) 100%);
-    color: #fff;
-    padding: 8px 14px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.95rem;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 12px rgba(180, 83, 9, 0.35);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
 }
 .create-class-section {
     margin-top: 20px;
@@ -8045,8 +8042,8 @@ class LaserEPSApp {
                 <div class="prof-class-card" data-class-id="${c.id}">
                     <div class="pcc-info">
                         <h3>${c.name}</h3>
+                        <div class="pcc-count">${c.memberCount} élève${c.memberCount > 1 ? 's' : ''}</div>
                     </div>
-                    <div class="pcc-count">${c.memberCount} élève${c.memberCount > 1 ? 's' : ''}</div>
                     <button class="delete-class-btn" data-class-id="${c.id}" data-class-name="${(c.name || '').replace(/"/g, '&quot;')}">🗑 Supprimer</button>
                 </div>
             `).join('') + '</div>';
@@ -9645,7 +9642,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260421-guest-no-save';
+const LASEREPS_BUILD = '20260421-prof-card-discreet';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
