@@ -6467,6 +6467,21 @@ class LaserEPSApp {
         await this.renderSplitCoachingAnalysis();
         const saveBtn = document.getElementById('save-session-btn');
         const postActions = document.getElementById('post-save-actions');
+        // Mode invité : pas de sauvegarde possible → on masque les boutons d'enregistrement
+        // et le bloc post-save (historique/PDF). Seul "Relancer une course" reste visible.
+        if (this.userRole === 'guest') {
+            if (saveBtn) saveBtn.style.display = 'none';
+            if (postActions) {
+                postActions.classList.remove('visible');
+                postActions.style.display = 'none';
+            }
+            // Marquer la session comme "sauvée" pour éviter la confirm "session non enregistrée"
+            this._sessionSaved = true;
+            return;
+        }
+        // Reset visibilité (au cas où on aurait switché de rôle)
+        if (saveBtn) saveBtn.style.display = '';
+        if (postActions) postActions.style.display = '';
         if (this._sessionSaved) {
             saveBtn.classList.add('saved');
             if (this._sessionSavePendingCloud) {
@@ -9630,7 +9645,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260421-back-reload';
+const LASEREPS_BUILD = '20260421-guest-no-save';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
