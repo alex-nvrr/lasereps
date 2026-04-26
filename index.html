@@ -4774,6 +4774,21 @@ class LaserEPSApp {
                 if (startBtn) startBtn.style.display = 'none';
                 if (joinBtn)  joinBtn.style.display  = '';
                 if (histBtn)  histBtn.style.display  = '';
+                // Si une séance est déjà active, transformer "Rejoindre" en "Lancer la séance"
+                if (joinBtn) {
+                    const joinIcon = joinBtn.querySelector('.button-icon');
+                    const joinTitle = joinBtn.querySelector('h3');
+                    const joinDesc = joinBtn.querySelector('p');
+                    if (this._activeSeanceId) {
+                        if (joinIcon) joinIcon.textContent = '🚀';
+                        if (joinTitle) joinTitle.textContent = 'Lancer la séance';
+                        if (joinDesc) joinDesc.textContent = this._activeSeanceName ? `Aperçu : ${this._activeSeanceName}` : 'Aperçu et démarrage';
+                    } else {
+                        if (joinIcon) joinIcon.textContent = '📘';
+                        if (joinTitle) joinTitle.textContent = 'Rejoindre une séance';
+                        if (joinDesc) joinDesc.textContent = 'Entrer le code du prof';
+                    }
+                }
             } else if (this.userRole === 'guest') {
                 // Invité : UNIQUEMENT entraînement libre. Pas de rejoindre, pas d'historique, pas de résumé.
                 if (startBtn) startBtn.style.display = '';
@@ -5551,6 +5566,14 @@ class LaserEPSApp {
             this.openJoinSeanceModal();
         });
         document.getElementById('choice-join-seance').addEventListener('click', () => {
+            // Si l'élève a déjà une séance active : aller direct à l'aperçu config (lecture seule)
+            if (this.userRole === 'eleve' && this._activeSeanceId) {
+                this.applySeanceFormatToConfig();
+                this.updateConfigLockState();
+                this.updateSeanceBanner();
+                this.showScreen('config');
+                return;
+            }
             this.openJoinSeanceModal();
         });
         document.getElementById('join-seance-cancel').addEventListener('click', () => {
@@ -9642,7 +9665,7 @@ class LaserEPSApp {
 }
 
 /* ============ Gestion de version & cache-busting ============ */
-const LASEREPS_BUILD = '20260421-prof-card-discreet';
+const LASEREPS_BUILD = '20260421-eleve-launch';
 (function setupCacheBusting() {
     // Affiche la version + bouton "Mettre à jour" en bas de page
     const showBuildBadge = () => {
